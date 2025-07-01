@@ -129,8 +129,9 @@ const PostDetail = () => {
 
           <main 
             className={css({
-              prose: true,
               maxWidth: 'none',
+              lineHeight: '1.7',
+              fontSize: 'lg',
               '& h1, & h2, & h3, & h4, & h5, & h6': {
                 color: 'gray.900',
                 fontWeight: 'bold',

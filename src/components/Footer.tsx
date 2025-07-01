@@ -4,8 +4,8 @@ import { BrandName } from './common/BrandName';
 export const Footer = () => {
   return (
     <footer className={css({
-      background: '#1f2937',
-      color: 'white',
+      background: '#f3f4f6',
+      color: '#374151',
       padding: 'content',
       minHeight: 'header',
       display: 'flex',
@@ -18,7 +18,7 @@ export const Footer = () => {
         fontSize: 'sm',
         fontWeight: '600',
         marginBottom: '4px',
-        color: 'white'
+        color: '#374151'
       })}>
         ✨ Creative Blog
       </div>

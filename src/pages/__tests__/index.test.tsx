@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Index from '../index';
-import * as markdownModule from '../../lib/markdown';
+import * as usePostsHook from '../../hooks/usePosts';
 
-// markdown モジュールをモック
-vi.mock('../../lib/markdown');
+// usePostsカスタムフックをモック
+vi.mock('../../hooks/usePosts');
 
-const mockGetAllPosts = vi.mocked(markdownModule.getAllPosts);
+const mockUsePosts = vi.mocked(usePostsHook.usePosts);
 
 // テスト用のモックデータ
 const mockPosts = [
@@ -40,8 +40,12 @@ describe('Indexコンポーネント', () => {
   });
 
   it('読み込み中の状態を表示する', async () => {
-    // getAllPostsを永続的なPromiseでモック
-    mockGetAllPosts.mockImplementation(() => new Promise(() => {}));
+    // usePostsでローディング状態をモック
+    mockUsePosts.mockReturnValue({
+      posts: [],
+      loading: true,
+      error: null
+    });
 
     render(
       <TestWrapper>
@@ -53,7 +57,11 @@ describe('Indexコンポーネント', () => {
   });
 
   it('記事一覧を正しく表示する', async () => {
-    mockGetAllPosts.mockResolvedValue(mockPosts);
+    mockUsePosts.mockReturnValue({
+      posts: mockPosts,
+      loading: false,
+      error: null
+    });
 
     render(
       <TestWrapper>
@@ -61,14 +69,8 @@ describe('Indexコンポーネント', () => {
       </TestWrapper>
     );
 
-    // 読み込み完了まで待機
-    await waitFor(() => {
-      expect(screen.queryByText('読み込み中...')).not.toBeInTheDocument();
-    });
-
-    // ヘッダーの確認
-    expect(screen.getByRole('heading', { name: 'ブログ' })).toBeInTheDocument();
-    expect(screen.getByText('記事一覧')).toBeInTheDocument();
+    // ブランド名の確認
+    expect(screen.getAllByText('✨ Creative Blog')).toHaveLength(2); // ヘッダーとフッター
 
     // 記事タイトルの確認
     expect(screen.getByRole('heading', { name: '2つ目の記事' })).toBeInTheDocument();
@@ -84,7 +86,11 @@ describe('Indexコンポーネント', () => {
   });
 
   it('記事がない場合に適切なメッセージを表示する', async () => {
-    mockGetAllPosts.mockResolvedValue([]);
+    mockUsePosts.mockReturnValue({
+      posts: [],
+      loading: false,
+      error: null
+    });
 
     render(
       <TestWrapper>
@@ -92,17 +98,15 @@ describe('Indexコンポーネント', () => {
       </TestWrapper>
     );
 
-    // 読み込み完了まで待機
-    await waitFor(() => {
-      expect(screen.queryByText('読み込み中...')).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText('記事がありません')).toBeInTheDocument();
+    expect(screen.getByText('新しい記事をお楽しみに')).toBeInTheDocument();
   });
 
   it('記事の読み込みでエラーが発生した場合に記事なしメッセージを表示する', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockGetAllPosts.mockRejectedValue(new Error('ネットワークエラー'));
+    mockUsePosts.mockReturnValue({
+      posts: [],
+      loading: false,
+      error: 'ネットワークエラー'
+    });
 
     render(
       <TestWrapper>
@@ -110,30 +114,21 @@ describe('Indexコンポーネント', () => {
       </TestWrapper>
     );
 
-    // 読み込み完了まで待機
-    await waitFor(() => {
-      expect(screen.queryByText('読み込み中...')).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText('記事がありません')).toBeInTheDocument();
-    expect(consoleSpy).toHaveBeenCalledWith('Failed to load posts:', expect.any(Error));
-
-    consoleSpy.mockRestore();
+    expect(screen.getByText('新しい記事をお楽しみに')).toBeInTheDocument();
   });
 
   it('記事のリンクが正しく設定されている', async () => {
-    mockGetAllPosts.mockResolvedValue(mockPosts);
+    mockUsePosts.mockReturnValue({
+      posts: mockPosts,
+      loading: false,
+      error: null
+    });
 
     render(
       <TestWrapper>
         <Index />
       </TestWrapper>
     );
-
-    // 読み込み完了まで待機
-    await waitFor(() => {
-      expect(screen.queryByText('読み込み中...')).not.toBeInTheDocument();
-    });
 
     const firstPostLink = screen.getByRole('link', { name: '2つ目の記事' });
     const secondPostLink = screen.getByRole('link', { name: '最初の記事' });
@@ -143,18 +138,17 @@ describe('Indexコンポーネント', () => {
   });
 
   it('記事が投稿日時の新しい順でソートされている', async () => {
-    mockGetAllPosts.mockResolvedValue(mockPosts);
+    mockUsePosts.mockReturnValue({
+      posts: mockPosts,
+      loading: false,
+      error: null
+    });
 
     render(
       <TestWrapper>
         <Index />
       </TestWrapper>
     );
-
-    // 読み込み完了まで待機
-    await waitFor(() => {
-      expect(screen.queryByText('読み込み中...')).not.toBeInTheDocument();
-    });
 
     const articles = screen.getAllByRole('article');
     expect(articles).toHaveLength(2);

@@ -1,129 +1,91 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllPosts, type Post } from '../lib/markdown';
 import { css } from '../../styled-system/css';
-import { container, vstack, hstack } from '../../styled-system/patterns';
+import { container, grid } from '../../styled-system/patterns';
+import { usePosts } from '../hooks/usePosts';
+import { Layout } from '../components/Layout';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { EmptyState } from '../components/common/EmptyState';
+import { MetaInfo } from '../components/common/MetaInfo';
 
 const Index = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadPosts = async () => {
-      try {
-        const allPosts = await getAllPosts();
-        setPosts(allPosts);
-      } catch (error) {
-        console.error('Failed to load posts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPosts();
-  }, []);
+  const { posts, loading } = usePosts();
 
   if (loading) {
-    return (
-      <div className={container({ maxWidth: '4xl', py: '8' })}>
-        <div className={css({ textAlign: 'center', py: '8' })}>
-          読み込み中...
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className={container({ maxWidth: '4xl', py: '8' })}>
-      <div className={vstack({ gap: '8', alignItems: 'stretch' })}>
-        <header className={css({ textAlign: 'center', py: '8' })}>
-          <h1 className={css({ 
-            fontSize: '3xl', 
-            fontWeight: 'bold',
-            color: 'gray.900',
-            mb: '4'
-          })}>
-            ブログ
-          </h1>
-          <p className={css({ 
-            color: 'gray.600',
-            fontSize: 'lg'
-          })}>
-            記事一覧
-          </p>
-        </header>
-
-        <main>
+    <Layout postCount={posts.length}>
+      <div className={container({ maxWidth: '6xl', py: '16' })}>
           {posts.length === 0 ? (
-            <div className={css({ 
-              textAlign: 'center', 
-              py: '12',
-              color: 'gray.500'
-            })}>
-              記事がありません
-            </div>
+            <EmptyState
+              icon="📝"
+              title="新しい記事をお楽しみに"
+              description="まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。"
+            />
           ) : (
-            <div className={vstack({ gap: '6', alignItems: 'stretch' })}>
+            <div className={grid({ columns: { base: 1, md: 2, lg: 3 }, gap: '8' })}>
               {posts.map((post) => (
                 <article 
                   key={post.id}
                   className={css({
-                    border: '1px solid',
-                    borderColor: 'gray.200',
-                    rounded: 'lg',
-                    p: '6',
                     bg: 'white',
-                    shadow: 'sm',
+                    borderRadius: 'xl',
+                    overflow: 'hidden',
+                    shadow: 'card',
+                    border: '1px solid',
+                    borderColor: 'surface.200',
+                    transition: 'all 0.3s ease',
+                    transform: 'translateY(0)',
                     _hover: {
-                      shadow: 'md',
-                      transform: 'translateY(-1px)',
-                      transition: 'all 0.2s'
+                      shadow: 'card-hover',
+                      transform: 'translateY(-8px)',
+                      borderColor: 'primary.300'
                     }
                   })}
                 >
-                  <div className={vstack({ gap: '4', alignItems: 'stretch' })}>
+                  <div className={css({
+                    h: '2',
+                    bg: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f97316 100%)'
+                  })} />
+                  
+                  <div className={css({ p: '6' })}>
                     <Link 
                       to={`/posts/${post.id}`}
                       className={css({
                         display: 'block',
                         textDecoration: 'none',
-                        color: 'inherit',
-                        _hover: { color: 'blue.600' }
+                        color: 'inherit'
                       })}
                     >
                       <h2 className={css({
-                        fontSize: '2xl',
+                        fontSize: 'xl',
                         fontWeight: 'bold',
-                        color: 'gray.900',
-                        mb: '2'
+                        color: 'secondary.800',
+                        mb: '3',
+                        lineHeight: '1.4',
+                        _hover: {
+                          color: 'primary.600'
+                        }
                       })}>
-                        {post.title}
+                        {post.title || '無題の記事'}
                       </h2>
                     </Link>
                     
-                    <div className={hstack({ gap: '4', justify: 'space-between' })}>
-                      <div className={css({
-                        color: 'gray.600',
-                        fontSize: 'sm'
-                      })}>
-                        {post.createdAt}
-                      </div>
-                      <div className={css({
-                        color: 'gray.600',
-                        fontSize: 'sm'
-                      })}>
-                        {post.author}
-                      </div>
-                    </div>
+                    <MetaInfo
+                      createdAt={post.createdAt}
+                      author={post.author}
+                      variant="card"
+                    />
                   </div>
                 </article>
               ))}
             </div>
           )}
-        </main>
       </div>
-    </div>
+    </Layout>
   );
 };
 
 export default Index;
+

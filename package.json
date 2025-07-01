@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "panda --watch & vite",
-    "build": "panda && tsc && vite build",
+    "build": "pnpm run lint && pnpm run test:run && panda && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "fmt": "biome check --write --unsafe ./src",
     "lint": "biome lint  ./src",
-    "prepare": "panda codegen"
+    "prepare": "panda codegen",
+    "new-post": "node scripts/new-post.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

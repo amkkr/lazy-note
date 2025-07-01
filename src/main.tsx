@@ -1,7 +1,19 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
+import { BrowserRouter } from "react-router-dom";
+import { Suspense } from "react";
+import routes from "virtual:generated-pages";
+import { useRoutes } from "react-router-dom";
 import "./index.css";
+
+const App = () => {
+  const routesElement = useRoutes(routes);
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      {routesElement}
+    </Suspense>
+  );
+};
 
 const rootElement = document.getElementById("root");
 if (rootElement === null) {
@@ -9,6 +21,8 @@ if (rootElement === null) {
 }
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>,
 );

@@ -10,15 +10,11 @@ export const BrandName = ({ variant = 'header', showIcon = true }: BrandNameProp
   
   return (
     <div className={css({
-      fontSize: isHeader ? 'xl' : 'sm',
-      fontWeight: isHeader ? 'bold' : '600',
-      color: isHeader ? 'white' : '#ffffff',
-      ...(isHeader && {
-        textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        letterSpacing: 'tight'
-      }),
+      fontSize: isHeader ? '20px' : '14px',
+      fontWeight: 'bold',
+      color: '#ffffff',
       ...(variant === 'footer' && {
-        mb: '1'
+        marginBottom: '4px'
       })
     })}>
       {showIcon && '✨ '}Creative Blog

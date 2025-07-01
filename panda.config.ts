@@ -14,16 +14,16 @@ export default defineConfig({
   theme: {
     tokens: {
       fontSizes: {
-        'xs': { value: '1.2em' },    // 12px (元の7.5px → 読みやすい12px)
-        'sm': { value: '1.4em' },    // 14px (元の8.75px → 読みやすい14px)
-        'base': { value: '1.6em' },  // 16px (元の10px → 読みやすい16px)
-        'lg': { value: '1.8em' },    // 18px (元の11.25px → 読みやすい18px)
-        'xl': { value: '2em' },      // 20px (元の12.5px → 読みやすい20px)
-        '2xl': { value: '2.4em' },   // 24px (元の15px → 読みやすい24px)
-        '3xl': { value: '3em' },     // 30px (元の18.75px → 読みやすい30px)
-        '4xl': { value: '3.6em' },   // 36px (元の22.5px → 読みやすい36px)
-        '5xl': { value: '4.8em' },   // 48px
-        '6xl': { value: '6em' },     // 60px
+        'xs': { value: '1.2em' },
+        'sm': { value: '1.4em' },
+        'base': { value: '1.6em' },
+        'lg': { value: '1.8em' },
+        'xl': { value: '2em' },
+        '2xl': { value: '2.4em' },
+        '3xl': { value: '3em' },
+        '4xl': { value: '3.6em' },
+        '5xl': { value: '4.8em' },
+        '6xl': { value: '6em' },
       },
     },
     extend: {
@@ -81,6 +81,18 @@ export default defineConfig({
         hero: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         card: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
         accent: 'linear-gradient(90deg, #f97316 0%, #ea580c 100%)',
+        primary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        cardStripe: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+      },
+      spacing: {
+        'content': '32px',
+        'section': '48px',
+        'card': '24px',
+      },
+      sizes: {
+        'container': '1200px',
+        'article': '800px',
+        'header': '70px',
       },
       shadows: {
         card: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',

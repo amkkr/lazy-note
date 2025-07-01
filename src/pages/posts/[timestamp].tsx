@@ -1,12 +1,10 @@
 import { useParams, Link } from 'react-router-dom';
 import { css } from '../../../styled-system/css';
-import { container } from '../../../styled-system/patterns';
 import { usePost } from '../../hooks/usePost';
 import { Layout } from '../../components/Layout';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { EmptyState } from '../../components/common/EmptyState';
 import { MetaInfo } from '../../components/common/MetaInfo';
-import { GradientBox } from '../../components/common/GradientBox';
 
 const PostDetail = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
@@ -32,196 +30,117 @@ const PostDetail = () => {
 
   return (
     <Layout showHeader={false}>
-      <div className={css({ bg: 'surface.50', flex: 1 })}>
+      <div className={css({ 
+        background: '#f9fafb',
+        minHeight: '100vh'
+      })}>
         {/* Navigation */}
         <nav className={css({
-          bg: 'white',
+          background: 'white',
           borderBottom: '1px solid',
           borderColor: 'surface.200',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          backdropFilter: 'blur(10px)'
+          padding: 'content'
         })}>
-          <div className={container({ maxWidth: '6xl', py: '4' })}>
-            <Link 
-              to="/"
-              className={css({
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '2',
-                color: 'primary.600',
-                fontSize: 'sm',
-                fontWeight: '600',
-                textDecoration: 'none',
-                transition: 'all 0.2s ease',
-                _hover: {
-                  color: 'primary.700',
-                  transform: 'translateX(-2px)'
-                }
-              })}
-            >
-              ← Creative Blog に戻る
-            </Link>
-          </div>
+          <Link 
+            to="/"
+            className={css({
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: 'primary.600',
+              fontSize: 'sm',
+              fontWeight: '600',
+              textDecoration: 'none',
+              '&:hover': {
+                color: 'primary.700'
+              }
+            })}
+          >
+            ← Creative Blog に戻る
+          </Link>
         </nav>
 
-      <div className={container({ maxWidth: '4xl', py: '12' })}>
+      <div className={css({
+        maxWidth: 'article',
+        margin: '0 auto',
+        padding: 'content'
+      })}>
         <article className={css({
-          bg: 'white',
-          borderRadius: '2xl',
+          background: 'white',
+          borderRadius: '12px',
           overflow: 'hidden',
-          shadow: 'card',
+          boxShadow: 'card-hover',
           border: '1px solid',
           borderColor: 'surface.200'
         })}>
           {/* Article Header with Gradient */}
-          <GradientBox variant="primary" showPattern={true} className={css({
+          <header className={css({
+            background: 'gradients.primary',
             color: 'white',
-            p: '12'
+            padding: 'section'
           })}>
+            <h1 className={css({
+              fontSize: '3xl',
+              fontWeight: 'bold',
+              lineHeight: '1.2',
+              marginBottom: 'card'
+            })}>
+              {post.title || '無題の記事'}
+            </h1>
             
-            <div>
-              <h1 className={css({
-                fontSize: { base: '2xl', md: '4xl' },
-                fontWeight: 'bold',
-                lineHeight: '1.2',
-                mb: '6',
-                textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-              })}>
-                {post.title || '無題の記事'}
-              </h1>
-              
-              <MetaInfo
-                createdAt={post.createdAt}
-                author={post.author}
-                variant="header"
-              />
-            </div>
-          </GradientBox>
+            <MetaInfo
+              createdAt={post.createdAt}
+              author={post.author}
+              variant="header"
+            />
+          </header>
 
           {/* Article Content */}
           <main className={css({
-            p: '12',
-            maxWidth: 'none',
-            lineHeight: '1.8',
-            fontSize: { base: 'lg', md: 'xl' },
+            padding: 'section',
+            lineHeight: '1.7',
+            fontSize: 'base',
             color: 'secondary.700',
-            '& h1, & h2, & h3, & h4, & h5, & h6': {
-              color: 'secondary.900',
+            '& h1, & h2, & h3': {
+              color: '#1f2937',
               fontWeight: 'bold',
-              mt: '8',
-              mb: '4',
-              lineHeight: '1.3'
+              marginTop: '32px',
+              marginBottom: '16px'
             },
-            '& h1': { fontSize: '3xl' },
-            '& h2': { 
-              fontSize: '2xl',
-              borderBottom: '2px solid',
-              borderColor: 'primary.100',
-              pb: '2'
-            },
-            '& h3': { fontSize: 'xl' },
+            '& h1': { fontSize: '28px' },
+            '& h2': { fontSize: '24px' },
+            '& h3': { fontSize: '20px' },
             '& p': {
-              mb: '6',
-              lineHeight: '1.8'
+              marginBottom: '16px'
             },
             '& ul, & ol': {
-              pl: '8',
-              mb: '6',
-              '& li': {
-                mb: '3',
-                position: 'relative',
-                '&::marker': {
-                  color: 'primary.600'
-                }
+              paddingLeft: '24px',
+              marginBottom: '16px'
+            },
+            '& li': {
+              marginBottom: '8px'
+            },
+            '& a': {
+              color: '#667eea',
+              textDecoration: 'underline',
+              '&:hover': {
+                color: '#4f46e5'
               }
             },
             '& code': {
-              bg: 'surface.100',
-              color: 'accent.700',
-              px: '3',
-              py: '1',
-              borderRadius: 'md',
-              fontSize: 'sm',
-              fontFamily: 'mono',
-              fontWeight: '600'
+              background: '#f3f4f6',
+              color: '#e11d48',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontSize: '14px'
             },
             '& pre': {
-              bg: 'secondary.900',
+              background: '#1f2937',
               color: 'white',
-              p: '6',
-              borderRadius: 'lg',
+              padding: '24px',
+              borderRadius: '8px',
               overflow: 'auto',
-              my: '6',
-              '& code': {
-                bg: 'transparent',
-                color: 'inherit',
-                p: 0,
-                fontSize: 'sm'
-              }
-            },
-            '& strong': {
-              fontWeight: 'bold',
-              color: 'secondary.900'
-            },
-            '& em': {
-              fontStyle: 'italic',
-              color: 'accent.600'
-            },
-            '& blockquote': {
-              borderLeft: '4px solid',
-              borderColor: 'primary.400',
-              pl: '6',
-              py: '4',
-              my: '6',
-              bg: 'primary.50',
-              borderRadius: 'md',
-              fontStyle: 'italic',
-              position: 'relative',
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: '4',
-                left: '4',
-                width: '8',
-                height: '8',
-                bg: 'primary.400',
-                borderRadius: 'full'
-              }
-            },
-            '& a': {
-              color: 'primary.600',
-              fontWeight: '600',
-              textDecoration: 'underline',
-              textDecorationColor: 'primary.300',
-              textUnderlineOffset: '2px',
-              _hover: {
-                color: 'primary.700',
-                textDecorationColor: 'primary.600'
-              }
-            },
-            '& table': {
-              width: 'full',
-              borderCollapse: 'collapse',
-              my: '6',
-              border: '1px solid',
-              borderColor: 'surface.300',
-              borderRadius: 'lg',
-              overflow: 'hidden'
-            },
-            '& th': {
-              bg: 'surface.100',
-              p: '4',
-              textAlign: 'left',
-              fontWeight: '600',
-              borderBottom: '1px solid',
-              borderColor: 'surface.300'
-            },
-            '& td': {
-              p: '4',
-              borderBottom: '1px solid',
-              borderColor: 'surface.200'
+              margin: '24px 0'
             }
           })}>
             <div dangerouslySetInnerHTML={{ __html: post.content }} />

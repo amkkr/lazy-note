@@ -17,30 +17,16 @@ export const Layout = ({ children, postCount = 0, showHeader = true }: LayoutPro
       flexDirection: 'column'
     })}>
       {showHeader && (
-        <div className={css({
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        })}>
-          <Header postCount={postCount} />
-        </div>
+        <Header postCount={postCount} />
       )}
       
       <main className={css({
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column'
+        flex: 1
       })}>
         {children}
       </main>
       
-      <div className={css({
-        position: 'sticky',
-        bottom: 0,
-        zIndex: 10
-      })}>
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 };

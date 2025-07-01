@@ -4,27 +4,29 @@ import { BrandName } from './common/BrandName';
 export const Footer = () => {
   return (
     <footer className={css({
-      bg: '#1f2937',
+      background: '#1f2937',
       color: 'white',
-      height: '70px',
+      padding: 'content',
+      minHeight: 'header',
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      textAlign: 'center'
     })}>
       <div className={css({
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center'
+        fontSize: 'sm',
+        fontWeight: '600',
+        marginBottom: '4px',
+        color: 'white'
       })}>
-          <BrandName variant="footer" />
-          <div className={css({
-            color: '#9ca3af',
-            fontSize: 'xs'
-          })}>
-            © 2025 Creative Blog. All rights reserved.
-          </div>
+        ✨ Creative Blog
+      </div>
+      <div className={css({
+        color: '#9ca3af',
+        fontSize: 'xs'
+      })}>
+        © 2025 Creative Blog. All rights reserved.
       </div>
     </footer>
   );

@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { css } from '../../styled-system/css';
-import { container, grid } from '../../styled-system/patterns';
 import { usePosts } from '../hooks/usePosts';
 import { Layout } from '../components/Layout';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -16,7 +15,11 @@ const Index = () => {
 
   return (
     <Layout postCount={posts.length}>
-      <div className={container({ maxWidth: '6xl', py: '16' })}>
+      <div className={css({
+        maxWidth: 'container',
+        margin: '0 auto',
+        padding: 'content'
+      })}>
           {posts.length === 0 ? (
             <EmptyState
               icon="📝"
@@ -24,32 +27,34 @@ const Index = () => {
               description="まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。"
             />
           ) : (
-            <div className={grid({ columns: { base: 1, md: 2, lg: 3 }, gap: '8' })}>
+            <div className={css({
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: 'card'
+            })}>
               {posts.map((post) => (
                 <article 
                   key={post.id}
                   className={css({
-                    bg: 'white',
-                    borderRadius: 'xl',
+                    background: 'white',
+                    borderRadius: '12px',
                     overflow: 'hidden',
-                    shadow: 'card',
+                    boxShadow: 'card',
                     border: '1px solid',
                     borderColor: 'surface.200',
-                    transition: 'all 0.3s ease',
-                    transform: 'translateY(0)',
-                    _hover: {
-                      shadow: 'card-hover',
-                      transform: 'translateY(-8px)',
-                      borderColor: 'primary.300'
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 'card-hover'
                     }
                   })}
                 >
                   <div className={css({
-                    h: '2',
-                    bg: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f97316 100%)'
+                    height: '4px',
+                    background: 'gradients.cardStripe'
                   })} />
                   
-                  <div className={css({ p: '6' })}>
+                  <div className={css({ padding: 'card' })}>
                     <Link 
                       to={`/posts/${post.id}`}
                       className={css({
@@ -61,10 +66,10 @@ const Index = () => {
                       <h2 className={css({
                         fontSize: 'xl',
                         fontWeight: 'bold',
-                        color: 'secondary.800',
-                        mb: '3',
+                        color: 'secondary.700',
+                        marginBottom: '12px',
                         lineHeight: '1.4',
-                        _hover: {
+                        '&:hover': {
                           color: 'primary.600'
                         }
                       })}>

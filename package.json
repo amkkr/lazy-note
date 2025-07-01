@@ -7,22 +7,34 @@
     "dev": "panda --watch & vite",
     "build": "panda && tsc && vite build",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
     "fmt": "biome check --write --unsafe ./src",
     "lint": "biome lint  ./src",
     "prepare": "panda codegen"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
+    "marked": "^16.0.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.3",
+    "vite-plugin-pages": "^0.33.1"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@pandacss/dev": "^0.54.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.5.0",
+    "jsdom": "^26.1.0",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
   }
 }

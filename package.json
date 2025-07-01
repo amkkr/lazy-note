@@ -4,18 +4,21 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "panda --watch & vite",
+    "build": "panda && tsc && vite build",
     "preview": "vite preview",
     "fmt": "biome check --write --unsafe ./src",
-    "lint": "biome lint  ./src"
+    "lint": "biome lint  ./src",
+    "prepare": "panda codegen"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@pandacss/dev": "^0.54.0",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.5.0",

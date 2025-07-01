@@ -1,16 +1,12 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import Pages from 'vite-plugin-pages'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: process.env.NODE_ENV === 'production' ? '/sample-vite-react/' : '/',
   plugins: [
-    react(),
-    Pages({
-      dirs: 'src/pages',
-      extensions: ['tsx', 'ts']
-    })
+    react()
   ],
   test: {
     globals: true,

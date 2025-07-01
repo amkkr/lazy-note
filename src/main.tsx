@@ -1,16 +1,19 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
-import { Suspense } from "react";
-import routes from "virtual:generated-pages";
-import { useRoutes } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import "./index.css";
 
+const IndexPage = lazy(() => import("./pages/index"));
+const PostDetailPage = lazy(() => import("./pages/posts/[timestamp]"));
+
 const App = () => {
-  const routesElement = useRoutes(routes);
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      {routesElement}
+      <Routes>
+        <Route path="/" element={<IndexPage />} />
+        <Route path="/posts/:timestamp" element={<PostDetailPage />} />
+      </Routes>
     </Suspense>
   );
 };

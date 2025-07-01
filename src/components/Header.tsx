@@ -10,7 +10,8 @@ export const Header = ({ postCount }: HeaderProps) => {
     <header className={css({
       background: '#1f2937',
       color: 'white',
-      padding: 'content',
+      paddingX: '32px',
+      paddingY: 'content',
       minHeight: 'header',
       display: 'flex',
       alignItems: 'center',

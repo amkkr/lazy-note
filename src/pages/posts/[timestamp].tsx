@@ -157,7 +157,7 @@ const PostDetail = () => {
                 },
               })}
             >
-              <div dangerouslySetInnerHTML={{ __html: post.content }} />
+              <div>{post.content}</div>
             </main>
           </article>
         </div>

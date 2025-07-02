@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { usePost } from '../usePost';
 import * as markdownModule from '../../lib/markdown';
 
@@ -108,9 +108,15 @@ describe('usePost', () => {
     expect(mockGetPost).toHaveBeenCalledWith('20240101100000');
 
     // timestampを変更
-    rerender({ timestamp: '20240102120000' });
+    act(() => {
+      rerender({ timestamp: '20240102120000' });
+    });
 
-    expect(result.current.loading).toBe(true);
+    // 新しいタイムスタンプでの読み込み完了まで待機
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(mockGetPost).toHaveBeenCalledWith('20240102120000');
   });
 });

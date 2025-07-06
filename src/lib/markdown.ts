@@ -69,27 +69,16 @@ export const parseMarkdown = (content: string, timestamp: string): Post => {
 
 export const getAllPosts = async (): Promise<Post[]> => {
   try {
-    const response = await fetch('/datasources/');
+    const response = await fetch('/api/posts');
     if (!response.ok) {
       return [];
     }
     
-    const files = await response.text();
-    const fileMatches = files.match(/href="(\d{14}\.md)"/g);
-    
-    if (!fileMatches) {
-      return [];
-    }
+    const timestamps = await response.json();
     
     const posts = await Promise.all(
-      fileMatches.map(async (match) => {
-        const filename = match.match(/href="([^"]+)"/)?.[1];
-        if (!filename) {
-          return null;
-        }
-        
-        const timestamp = filename.replace('.md', '');
-        const fileResponse = await fetch(`/datasources/${filename}`);
+      timestamps.map(async (timestamp: string) => {
+        const fileResponse = await fetch(`/datasources/${timestamp}.md`);
         
         if (!fileResponse.ok) {
           return null;

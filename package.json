@@ -13,7 +13,7 @@
     "fmt": "biome check --write --unsafe ./src",
     "lint": "biome lint  ./src",
     "prepare": "panda codegen",
-    "new-post": "node scripts/new-post.js"
+    "new-post": "node scripts/newPost.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

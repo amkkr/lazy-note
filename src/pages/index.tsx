@@ -16,9 +16,10 @@ const Index = () => {
   return (
     <Layout postCount={posts.length}>
       <div className={css({
-        maxWidth: 'container',
+        maxWidth: '900px',
         margin: '0 auto',
-        padding: 'content'
+        padding: 'content',
+        paddingX: '32px'
       })}>
           {posts.length === 0 ? (
             <EmptyState
@@ -28,9 +29,9 @@ const Index = () => {
             />
           ) : (
             <div className={css({
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: 'card'
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '32px'
             })}>
               {posts.map((post) => (
                 <article 
@@ -40,8 +41,6 @@ const Index = () => {
                     borderRadius: '12px',
                     overflow: 'hidden',
                     boxShadow: 'card',
-                    border: '1px solid',
-                    borderColor: 'surface.200',
                     transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                     '&:hover': {
                       transform: 'translateY(-4px)',
@@ -49,6 +48,21 @@ const Index = () => {
                     }
                   })}
                 >
+                  <div className={css({ 
+                    padding: 'card',
+                    paddingBottom: '12px'
+                  })}>
+                    <MetaInfo
+                      createdAt={post.createdAt}
+                      author={post.author}
+                      variant="card"
+                    />
+                  </div>
+                  
+                  <div className={css({
+                    borderTop: '1px solid #e5e7eb'
+                  })} />
+                  
                   <div className={css({
                     height: '4px',
                     background: 'gradients.cardStripe'
@@ -67,8 +81,8 @@ const Index = () => {
                         fontSize: 'xl',
                         fontWeight: 'bold',
                         color: 'secondary.700',
-                        marginBottom: '12px',
                         lineHeight: '1.4',
+                        margin: '0 12px 12px 12px',
                         '&:hover': {
                           color: 'primary.600'
                         }
@@ -76,12 +90,6 @@ const Index = () => {
                         {post.title || '無題の記事'}
                       </h2>
                     </Link>
-                    
-                    <MetaInfo
-                      createdAt={post.createdAt}
-                      author={post.author}
-                      variant="card"
-                    />
                   </div>
                 </article>
               ))}

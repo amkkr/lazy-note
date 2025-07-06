@@ -17,8 +17,7 @@ export const MetaInfo = ({ createdAt, author, variant = 'card' }: MetaInfoProps)
       gap: '16px',
       ...(variant === 'card' && {
         marginTop: '16px',
-        paddingTop: '16px',
-        borderTop: '1px solid #e5e7eb'
+        paddingTop: '16px'
       })
     })}>
       <div className={css({

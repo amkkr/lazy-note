@@ -31,7 +31,8 @@ const Index = () => {
             <div className={css({
               display: 'flex',
               flexDirection: 'column',
-              gap: '32px'
+              gap: '32px',
+              paddingTop: '12px'
             })}>
               {posts.map((post) => (
                 <article 
@@ -50,7 +51,8 @@ const Index = () => {
                 >
                   <div className={css({ 
                     padding: 'card',
-                    paddingBottom: '12px'
+                    paddingBottom: '12px',
+                    paddingX: '12px'
                   })}>
                     <MetaInfo
                       createdAt={post.createdAt}
@@ -58,15 +60,6 @@ const Index = () => {
                       variant="card"
                     />
                   </div>
-                  
-                  <div className={css({
-                    borderTop: '1px solid #e5e7eb'
-                  })} />
-                  
-                  <div className={css({
-                    height: '4px',
-                    background: 'gradients.cardStripe'
-                  })} />
                   
                   <div className={css({ padding: 'card' })}>
                     <Link 

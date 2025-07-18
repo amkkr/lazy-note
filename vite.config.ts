@@ -60,5 +60,10 @@ export default defineConfig({
       'src/**/__tests__/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
     ],
+    typecheck: {
+      checker: 'tsc',
+      include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+      tsconfig: './tsconfig.test.json'
+    }
   }
 })

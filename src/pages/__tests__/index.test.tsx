@@ -72,7 +72,7 @@ describe("Indexコンポーネント", () => {
     );
 
     // ブランド名の確認
-    expect(screen.getAllByText("✨ Creative Blog")).toHaveLength(2); // ヘッダーとフッター
+    expect(screen.getAllByText("✨ Lazy Note")).toHaveLength(2); // ヘッダーとフッター
 
     // 記事タイトルの確認
     expect(

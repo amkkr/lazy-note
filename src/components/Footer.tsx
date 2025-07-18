@@ -1,4 +1,5 @@
 import { css } from '../../styled-system/css';
+import { BrandName } from './common/BrandName';
 
 export const Footer = () => {
   return (
@@ -19,13 +20,13 @@ export const Footer = () => {
         marginBottom: '4px',
         color: '#374151'
       })}>
-        ✨ Creative Blog
+        <BrandName variant="footer" />
       </div>
       <div className={css({
         color: '#9ca3af',
         fontSize: 'xs'
       })}>
-        © 2025 Creative Blog. All rights reserved.
+        © 2025 Lazy Note. All rights reserved.
       </div>
     </footer>
   );

@@ -62,6 +62,7 @@ Panda CSSを使用しているため、スタイルは以下のパターンで�
 5. **簡潔な命名**: ブランチ名は短く、わかりやすいものにする
 6. **直接マージ禁止**: 開発ブランチを直接masterにマージしてはならない
 7. **Pull Request必須**: マージは必ずGithubにpushして、Pull Requestを通して行うこと
+8. **rebase禁止**: `git rebase`コマンドは使用しない。コンフリクト解決時は`git merge`を使用すること
 
 ### ブランチ名の例
 
@@ -76,6 +77,21 @@ new-feature
 修正
 my-branch
 ```
+
+### コンフリクト解決の手順
+
+masterとコンフリクトした場合の解決手順：
+
+1. **masterブランチに切り替え**: `git checkout master`
+2. **最新の変更を取得**: `git pull origin master`
+3. **作業ブランチに戻る**: `git checkout [作業ブランチ名]`
+4. **masterをmerge**: `git merge master`
+5. **コンフリクト解決**: エディタでコンフリクトを手動解決
+6. **解決済みファイルをステージング**: `git add [解決済みファイル]`
+7. **マージコミット**: `git commit` (デフォルトメッセージを使用)
+8. **変更をpush**: `git push origin [作業ブランチ名]`
+
+**注意**: 絶対に`git rebase`は使用しないこと
 
 ## TypeScriptコーディングルールについて
 

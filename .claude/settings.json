@@ -1,3 +1,4 @@
+
 {
   "permissions": {
     "allow": [
@@ -15,28 +16,7 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit",
-        "path_pattern": ".*\\.(ts|tsx)$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd /home/amkkr/repos/lazy-note && pnpm test:run && pnpm lint && pnpm prepare"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "path_pattern": ".*\\.(ts|tsx)$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd /home/amkkr/repos/lazy-note && pnpm test:run && pnpm lint && pnpm prepare"
-          }
-        ]
-      },
-      {
-        "matcher": "MultiEdit",
-        "path_pattern": ".*\\.(ts|tsx)$",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",

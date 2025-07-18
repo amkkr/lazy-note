@@ -17,7 +17,7 @@ export const BrandName = ({ variant = 'header', showIcon = true }: BrandNameProp
         marginBottom: '4px'
       })
     })}>
-      {showIcon && '✨ '}Creative Blog
+      {showIcon && '✨ '}Lazy Note
     </div>
   );
 };

@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /home/amkkr/repos/lazy-note && pnpm test:run && pnpm lint && pnpm prepare"
+            "command": "cd $HOME/repos/lazy-note && pnpm test:run && pnpm lint && pnpm type-check && pnpm prepare"
           }
         ]
       }

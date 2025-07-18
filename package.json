@@ -5,13 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "panda --watch & vite",
-    "build": "pnpm run lint && pnpm run test:run && panda && tsc && vite build",
+    "build": "pnpm run lint && pnpm run test:run && pnpm run type-check && panda && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "fmt": "biome check --write --unsafe ./src",
     "lint": "biome lint  ./src",
+    "type-check": "tsc --noEmit",
+    "type-check:test": "tsc --noEmit --project tsconfig.test.json",
     "prepare": "panda codegen",
     "new-post": "node scripts/newPost.ts"
   },

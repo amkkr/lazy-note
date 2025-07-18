@@ -1,0 +1,29 @@
+
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(git pull:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(ls:*)"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/amkkr/repos/lazy-note && pnpm test:run && pnpm lint && pnpm prepare"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -36,10 +36,10 @@ describe("MetaInfo", () => {
   it("cardバリアントがデフォルトで適用される", () => {
     const { container } = render(<MetaInfo createdAt="2024-01-01" author="山田太郎" />);
     
-    // cardバリアントの場合、marginTopとpaddingTopが適用される
+    // cardバリアントの場合、marginとpaddingが0に設定される
     const metaInfo = container.firstChild as HTMLElement;
-    expect(metaInfo.className).toContain("mt_16px");
-    expect(metaInfo.className).toContain("pt_16px");
+    expect(metaInfo.className).toContain("mt_0");
+    expect(metaInfo.className).toContain("pt_0");
   });
 
   it("headerバリアントが正しく適用される", () => {

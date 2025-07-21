@@ -20,6 +20,8 @@ export const MetaInfo = ({
         alignItems: "center",
         justifyContent: "space-between",
         gap: "16px",
+        marginTop: variant === "card" ? "0" : "0",
+        paddingTop: variant === "card" ? "0" : "0",
       })}
     >
       <div

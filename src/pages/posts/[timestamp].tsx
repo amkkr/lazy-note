@@ -60,7 +60,7 @@ const PostDetail = () => {
               },
             })}
           >
-            ← Creative Blog に戻る
+            ← Lazy Note に戻る
           </Link>
         </nav>
 
@@ -106,6 +106,12 @@ const PostDetail = () => {
                 variant="header"
               />
             </header>
+
+            {/* Divider */}
+            <div className={css({
+              height: "1px",
+              background: "surface.200"
+            })} />
 
             {/* Article Content */}
             <main

@@ -1,4 +1,4 @@
-# Sample Vite React Blog
+# Lazy Note
 
 React 19 + TypeScript + Panda CSSを使用したシンプルなブログアプリケーションです。
 

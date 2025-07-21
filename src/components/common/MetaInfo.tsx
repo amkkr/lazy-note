@@ -15,9 +15,8 @@ export const MetaInfo = ({ createdAt, author, variant = 'card' }: MetaInfoProps)
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: '16px',
-      ...(variant === 'card' && {
-        marginTop: '0'
-      })
+      marginTop: variant === 'card' ? '0' : '0',
+      paddingTop: variant === 'card' ? '0' : '0'
     })}>
       <div className={css({
         display: 'flex',

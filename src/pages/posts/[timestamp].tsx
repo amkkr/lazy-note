@@ -32,16 +32,16 @@ const PostDetail = () => {
     <Layout showHeader={false}>
       <div
         className={css({
-          background: "#f9fafb",
+          background: "bg.0",
           minHeight: "100vh",
         })}
       >
         {/* Navigation */}
         <nav
           className={css({
-            background: "white",
+            background: "bg.1",
             borderBottom: "1px solid",
-            borderColor: "surface.200",
+            borderColor: "bg.3",
             padding: "content",
           })}
         >
@@ -51,12 +51,12 @@ const PostDetail = () => {
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              color: "primary.600",
+              color: "blue.light",
               fontSize: "sm",
               fontWeight: "600",
               textDecoration: "none",
               "&:hover": {
-                color: "primary.700",
+                color: "aqua.light",
               },
             })}
           >
@@ -73,19 +73,19 @@ const PostDetail = () => {
         >
           <article
             className={css({
-              background: "white",
+              background: "bg.1",
               borderRadius: "12px",
               overflow: "hidden",
               boxShadow: "card-hover",
               border: "1px solid",
-              borderColor: "surface.200",
+              borderColor: "bg.3",
             })}
           >
             {/* Article Header with Gradient */}
             <header
               className={css({
                 background: "gradients.primary",
-                color: "white",
+                color: "fg.0",
                 padding: "section",
               })}
             >
@@ -119,9 +119,9 @@ const PostDetail = () => {
                 padding: "section",
                 lineHeight: "1.7",
                 fontSize: "base",
-                color: "secondary.700",
+                color: "fg.1",
                 "& h1, & h2, & h3": {
-                  color: "#1f2937",
+                  color: "fg.0",
                   fontWeight: "bold",
                   marginTop: "32px",
                   marginBottom: "16px",
@@ -140,22 +140,22 @@ const PostDetail = () => {
                   marginBottom: "8px",
                 },
                 "& a": {
-                  color: "#667eea",
+                  color: "blue.light",
                   textDecoration: "underline",
                   "&:hover": {
-                    color: "#4f46e5",
+                    color: "aqua.light",
                   },
                 },
                 "& code": {
-                  background: "#f3f4f6",
-                  color: "#e11d48",
+                  background: "bg.2",
+                  color: "orange.light",
                   padding: "2px 6px",
                   borderRadius: "4px",
                   fontSize: "14px",
                 },
                 "& pre": {
-                  background: "#1f2937",
-                  color: "white",
+                  background: "bg.0",
+                  color: "fg.1",
                   padding: "24px",
                   borderRadius: "8px",
                   overflow: "auto",

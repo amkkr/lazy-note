@@ -38,7 +38,7 @@ const Index = () => {
                 <article 
                   key={post.id}
                   className={css({
-                    background: 'white',
+                    background: 'bg.1',
                     borderRadius: '12px',
                     overflow: 'hidden',
                     boxShadow: 'card',
@@ -75,11 +75,11 @@ const Index = () => {
                       <h2 className={css({
                         fontSize: 'xl',
                         fontWeight: 'bold',
-                        color: 'secondary.700',
+                        color: 'fg.1',
                         lineHeight: '1.4',
                         margin: '0 12px 12px 12px',
                         '&:hover': {
-                          color: 'primary.600'
+                          color: 'blue.light'
                         }
                       })}>
                         {post.title || '無題の記事'}

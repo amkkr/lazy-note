@@ -12,7 +12,7 @@ export const BrandName = ({ variant = 'header', showIcon = true }: BrandNameProp
     <div className={css({
       fontSize: isHeader ? '20px' : '14px',
       fontWeight: 'bold',
-      color: isHeader ? '#ffffff' : '#374151',
+      color: isHeader ? 'fg.0' : 'fg.2',
       ...(variant === 'footer' && {
         marginBottom: '4px'
       })

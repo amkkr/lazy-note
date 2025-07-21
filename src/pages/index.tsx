@@ -51,8 +51,10 @@ const Index = () => {
                 >
                   <div className={css({ 
                     padding: 'card',
-                    paddingBottom: '12px',
-                    paddingX: '12px'
+                    paddingBottom: '16px',
+                    paddingX: '12px',
+                    borderBottom: '1px solid',
+                    borderColor: 'surface.200'
                   })}>
                     <MetaInfo
                       createdAt={post.createdAt}

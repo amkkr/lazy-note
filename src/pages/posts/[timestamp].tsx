@@ -107,6 +107,12 @@ const PostDetail = () => {
               />
             </header>
 
+            {/* Divider */}
+            <div className={css({
+              height: "1px",
+              background: "surface.200"
+            })} />
+
             {/* Article Content */}
             <main
               className={css({

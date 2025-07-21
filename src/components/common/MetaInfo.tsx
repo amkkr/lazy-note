@@ -16,8 +16,7 @@ export const MetaInfo = ({ createdAt, author, variant = 'card' }: MetaInfoProps)
       justifyContent: 'space-between',
       gap: '16px',
       ...(variant === 'card' && {
-        marginTop: '16px',
-        paddingTop: '16px'
+        marginTop: '0'
       })
     })}>
       <div className={css({
@@ -28,8 +27,7 @@ export const MetaInfo = ({ createdAt, author, variant = 'card' }: MetaInfoProps)
         color: isHeader ? 'white' : '#6b7280',
         ...(isHeader && {
           background: 'rgba(255, 255, 255, 0.2)',
-          padding: '8px 16px',
-          borderRadius: '20px'
+          padding: '8px 16px'
         })
       })}>
         <span>📅</span>
@@ -43,8 +41,7 @@ export const MetaInfo = ({ createdAt, author, variant = 'card' }: MetaInfoProps)
         color: isHeader ? 'white' : '#6b7280',
         ...(isHeader && {
           background: 'rgba(255, 255, 255, 0.2)',
-          padding: '8px 16px',
-          borderRadius: '20px'
+          padding: '8px 16px'
         })
       })}>
         <span>✍️</span>

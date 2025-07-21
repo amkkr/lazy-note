@@ -26,7 +26,7 @@ export const EmptyState = ({ icon, title, description, action }: EmptyStateProps
           height: '24',
           mx: 'auto',
           mb: '6',
-          bg: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+          bg: 'gradients.accent',
           borderRadius: 'full',
           display: 'flex',
           alignItems: 'center',
@@ -38,13 +38,13 @@ export const EmptyState = ({ icon, title, description, action }: EmptyStateProps
         <h3 className={css({
           fontSize: '2xl',
           fontWeight: 'bold',
-          color: 'secondary.800',
+          color: 'fg.1',
           mb: '4'
         })}>
           {title}
         </h3>
         <p className={css({
-          color: 'secondary.600',
+          color: 'fg.3',
           fontSize: 'lg',
           lineHeight: '1.7',
           mb: action ? '8' : '0'
@@ -58,8 +58,8 @@ export const EmptyState = ({ icon, title, description, action }: EmptyStateProps
               display: 'inline-flex',
               alignItems: 'center',
               gap: '2',
-              bg: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
+              bg: 'gradients.primary',
+              color: 'fg.0',
               px: '6',
               py: '3',
               borderRadius: 'full',

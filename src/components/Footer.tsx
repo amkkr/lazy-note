@@ -4,8 +4,8 @@ import { BrandName } from './common/BrandName';
 export const Footer = () => {
   return (
     <footer className={css({
-      background: '#f3f4f6',
-      color: '#374151',
+      background: 'bg.1',
+      color: 'fg.2',
       padding: 'content',
       minHeight: 'header',
       display: 'flex',
@@ -18,12 +18,12 @@ export const Footer = () => {
         fontSize: 'sm',
         fontWeight: '600',
         marginBottom: '4px',
-        color: '#374151'
+        color: 'fg.2'
       })}>
         <BrandName variant="footer" />
       </div>
       <div className={css({
-        color: '#9ca3af',
+        color: 'fg.4',
         fontSize: 'xs'
       })}>
         © 2025 Lazy Note. All rights reserved.

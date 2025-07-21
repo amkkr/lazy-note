@@ -29,64 +29,63 @@ export default defineConfig({
     extend: {
       tokens: {
         colors: {
-          primary: {
-            50: { value: "#f0f9ff" },
-            100: { value: "#e0f2fe" },
-            200: { value: "#bae6fd" },
-            300: { value: "#7dd3fc" },
-            400: { value: "#38bdf8" },
-            500: { value: "#0ea5e9" },
-            600: { value: "#0284c7" },
-            700: { value: "#0369a1" },
-            800: { value: "#075985" },
-            900: { value: "#0c4a6e" },
+          // Gruvbox dark color palette
+          bg: {
+            0: { value: "#282828" }, // bg0
+            1: { value: "#3c3836" }, // bg1
+            2: { value: "#504945" }, // bg2
+            3: { value: "#665c54" }, // bg3
+            4: { value: "#7c6f64" }, // bg4
           },
-          secondary: {
-            50: { value: "#fafaf9" },
-            100: { value: "#f5f5f4" },
-            200: { value: "#e7e5e4" },
-            300: { value: "#d6d3d1" },
-            400: { value: "#a8a29e" },
-            500: { value: "#78716c" },
-            600: { value: "#57534e" },
-            700: { value: "#44403c" },
-            800: { value: "#292524" },
-            900: { value: "#1c1917" },
+          fg: {
+            0: { value: "#fbf1c7" }, // fg0
+            1: { value: "#ebdbb2" }, // fg1
+            2: { value: "#d5c4a1" }, // fg2
+            3: { value: "#bdae93" }, // fg3
+            4: { value: "#a89984" }, // fg4
           },
-          accent: {
-            50: { value: "#fff7ed" },
-            100: { value: "#ffedd5" },
-            200: { value: "#fed7aa" },
-            300: { value: "#fdba74" },
-            400: { value: "#fb923c" },
-            500: { value: "#f97316" },
-            600: { value: "#ea580c" },
-            700: { value: "#c2410c" },
-            800: { value: "#9a3412" },
-            900: { value: "#7c2d12" },
+          red: {
+            light: { value: "#fb4934" },
+            dark: { value: "#cc241d" },
           },
-          surface: {
-            50: { value: "#ffffff" },
-            100: { value: "#fafafa" },
-            200: { value: "#f5f5f5" },
-            300: { value: "#f0f0f0" },
-            400: { value: "#dedede" },
-            500: { value: "#c2c2c2" },
-            600: { value: "#979797" },
-            700: { value: "#818181" },
-            800: { value: "#606060" },
-            900: { value: "#3c3c3c" },
+          green: {
+            light: { value: "#b8bb26" },
+            dark: { value: "#98971a" },
+          },
+          yellow: {
+            light: { value: "#fabd2f" },
+            dark: { value: "#d79921" },
+          },
+          blue: {
+            light: { value: "#83a598" },
+            dark: { value: "#458588" },
+          },
+          purple: {
+            light: { value: "#d3869b" },
+            dark: { value: "#b16286" },
+          },
+          aqua: {
+            light: { value: "#8ec07c" },
+            dark: { value: "#689d6a" },
+          },
+          orange: {
+            light: { value: "#fe8019" },
+            dark: { value: "#d65d0e" },
+          },
+          gray: {
+            light: { value: "#a89984" },
+            dark: { value: "#928374" },
           },
         },
         gradients: {
-          hero: { value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" },
-          card: { value: "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)" },
-          accent: { value: "linear-gradient(90deg, #f97316 0%, #ea580c 100%)" },
+          hero: { value: "linear-gradient(135deg, #458588 0%, #689d6a 100%)" },
+          card: { value: "linear-gradient(145deg, #3c3836 0%, #282828 100%)" },
+          accent: { value: "linear-gradient(90deg, #fe8019 0%, #d65d0e 100%)" },
           primary: {
-            value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            value: "linear-gradient(135deg, #458588 0%, #689d6a 100%)",
           },
           cardStripe: {
-            value: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
+            value: "linear-gradient(90deg, #458588 0%, #689d6a 100%)",
           },
         },
         spacing: {
@@ -102,13 +101,13 @@ export default defineConfig({
         shadows: {
           card: {
             value:
-              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)",
           },
           "card-hover": {
             value:
-              "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+              "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
           },
-          glow: { value: "0 0 20px rgba(102, 126, 234, 0.4)" },
+          glow: { value: "0 0 20px rgba(131, 165, 152, 0.4)" },
         },
       },
     },

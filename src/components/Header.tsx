@@ -8,8 +8,8 @@ interface HeaderProps {
 export const Header = ({ postCount }: HeaderProps) => {
   return (
     <header className={css({
-      background: '#1f2937',
-      color: 'white',
+      background: 'bg.0',
+      color: 'fg.1',
       paddingY: 'content',
       minHeight: 'header',
       display: 'flex',
@@ -26,8 +26,8 @@ export const Header = ({ postCount }: HeaderProps) => {
         <BrandName variant="header" />
         
         <div className={css({
-          background: '#374151',
-          color: 'white',
+          background: 'bg.2',
+          color: 'fg.1',
           padding: '8px 16px',
           borderRadius: '20px',
           fontSize: 'sm',

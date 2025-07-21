@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { GradientBox } from "../GradientBox";
 
 describe("GradientBox", () => {
@@ -7,9 +7,9 @@ describe("GradientBox", () => {
     render(
       <GradientBox>
         <div>テストコンテンツ</div>
-      </GradientBox>
+      </GradientBox>,
     );
-    
+
     expect(screen.getByText("テストコンテンツ")).toBeInTheDocument();
   });
 
@@ -17,9 +17,9 @@ describe("GradientBox", () => {
     const { container } = render(
       <GradientBox>
         <div>コンテンツ</div>
-      </GradientBox>
+      </GradientBox>,
     );
-    
+
     const gradientBox = container.firstChild as HTMLElement;
     // Panda CSSで生成されたスタイルの確認
     expect(gradientBox).toBeInTheDocument();
@@ -30,9 +30,9 @@ describe("GradientBox", () => {
     const { container } = render(
       <GradientBox variant="accent">
         <div>コンテンツ</div>
-      </GradientBox>
+      </GradientBox>,
     );
-    
+
     const gradientBox = container.firstChild as HTMLElement;
     // バリアントの違いを確認するため、要素の存在を確認
     expect(gradientBox).toBeInTheDocument();
@@ -42,9 +42,9 @@ describe("GradientBox", () => {
     const { container } = render(
       <GradientBox showPattern={true}>
         <div>コンテンツ</div>
-      </GradientBox>
+      </GradientBox>,
     );
-    
+
     // パターンオーバーレイは2番目の子要素として追加される
     const gradientBox = container.firstChild as HTMLElement;
     const patternOverlay = gradientBox.firstChild;
@@ -57,11 +57,13 @@ describe("GradientBox", () => {
     const { container } = render(
       <GradientBox showPattern={false}>
         <div>コンテンツ</div>
-      </GradientBox>
+      </GradientBox>,
     );
-    
+
     // パターンオーバーレイのdivが存在しないことを確認
-    const patternOverlay = container.querySelector('[class*="position"][class*="absolute"]');
+    const patternOverlay = container.querySelector(
+      '[class*="position"][class*="absolute"]',
+    );
     expect(patternOverlay).not.toBeInTheDocument();
   });
 
@@ -69,9 +71,9 @@ describe("GradientBox", () => {
     const { container } = render(
       <GradientBox className="custom-class">
         <div>コンテンツ</div>
-      </GradientBox>
+      </GradientBox>,
     );
-    
+
     const gradientBox = container.firstChild as HTMLElement;
     expect(gradientBox.className).toContain("custom-class");
   });
@@ -82,9 +84,9 @@ describe("GradientBox", () => {
         <h1>タイトル</h1>
         <p>説明文</p>
         <button type="button">ボタン</button>
-      </GradientBox>
+      </GradientBox>,
     );
-    
+
     expect(screen.getByText("タイトル")).toBeInTheDocument();
     expect(screen.getByText("説明文")).toBeInTheDocument();
     expect(screen.getByText("ボタン")).toBeInTheDocument();

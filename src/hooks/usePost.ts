@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getPost, type Post } from '../lib/markdown';
+import { useEffect, useState } from "react";
+import { type Post, getPost } from "../lib/markdown";
 
 interface UsePostReturn {
   post: Post | null;
@@ -31,7 +31,7 @@ export const usePost = (timestamp: string | undefined): UsePostReturn => {
         setLoading(true);
         setError(null);
         setNotFound(false);
-        
+
         const postData = await getPost(timestamp);
         if (postData) {
           setPost(postData);
@@ -39,8 +39,10 @@ export const usePost = (timestamp: string | undefined): UsePostReturn => {
           setNotFound(true);
         }
       } catch (err) {
-        console.error('Failed to load post:', err);
-        setError(err instanceof Error ? err.message : '記事の読み込みに失敗しました');
+        console.error("Failed to load post:", err);
+        setError(
+          err instanceof Error ? err.message : "記事の読み込みに失敗しました",
+        );
         setNotFound(true);
       } finally {
         setLoading(false);

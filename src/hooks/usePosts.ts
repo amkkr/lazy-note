@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getAllPosts, type Post } from '../lib/markdown';
+import { useEffect, useState } from "react";
+import { type Post, getAllPosts } from "../lib/markdown";
 
 interface UsePostsReturn {
   posts: Post[];
@@ -24,8 +24,10 @@ export const usePosts = (): UsePostsReturn => {
         const allPosts = await getAllPosts();
         setPosts(allPosts);
       } catch (err) {
-        console.error('Failed to load posts:', err);
-        setError(err instanceof Error ? err.message : '記事の読み込みに失敗しました');
+        console.error("Failed to load posts:", err);
+        setError(
+          err instanceof Error ? err.message : "記事の読み込みに失敗しました",
+        );
       } finally {
         setLoading(false);
       }

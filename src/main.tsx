@@ -1,7 +1,7 @@
 import React from "react";
+import { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./index.css";
 
 const IndexPage = lazy(() => import("./pages/index"));

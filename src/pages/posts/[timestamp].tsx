@@ -60,7 +60,7 @@ const PostDetail = () => {
               },
             })}
           >
-            ← Creative Blog に戻る
+            ← Lazy Note に戻る
           </Link>
         </nav>
 

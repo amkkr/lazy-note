@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { Link, useParams } from "react-router-dom";
 import { css } from "../../../styled-system/css";
 import { Layout } from "../../components/Layout";
@@ -163,7 +164,12 @@ const PostDetail = () => {
                 },
               })}
             >
-              <div>{post.content}</div>
+              <div
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: MarkdownをHTMLとして表示するために必要。DOMPurifyでサニタイズ済み
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(post.content),
+                }}
+              />
             </main>
           </article>
         </div>

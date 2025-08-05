@@ -19,7 +19,7 @@ export const MetaInfo = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "16px",
+        gap: "md",
         marginTop: variant === "card" ? "0" : "0",
         paddingTop: variant === "card" ? "0" : "0",
       })}
@@ -28,13 +28,14 @@ export const MetaInfo = ({
         className={css({
           display: "flex",
           alignItems: "center",
-          gap: "8px",
-          fontSize: "14px",
+          gap: "sm",
+          fontSize: "sm",
           color: isHeader ? "white" : "#6b7280",
           ...(isHeader && {
             background: "rgba(255, 255, 255, 0.2)",
-            padding: "8px 16px",
-            borderRadius: "20px",
+            paddingY: "sm",
+            paddingX: "md",
+            borderRadius: "xl",
           }),
         })}
       >
@@ -45,13 +46,14 @@ export const MetaInfo = ({
         className={css({
           display: "flex",
           alignItems: "center",
-          gap: "8px",
-          fontSize: "14px",
+          gap: "sm",
+          fontSize: "sm",
           color: isHeader ? "white" : "#6b7280",
           ...(isHeader && {
             background: "rgba(255, 255, 255, 0.2)",
-            padding: "8px 16px",
-            borderRadius: "20px",
+            paddingY: "sm",
+            paddingX: "md",
+            borderRadius: "xl",
           }),
         })}
       >

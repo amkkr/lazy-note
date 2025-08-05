@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { Layout } from "../../components/Layout";
+import { Layout } from "../../components/layouts/Layout";
 import { EmptyState } from "../../components/common/EmptyState";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { PostDetailPage } from "../../components/pages/PostDetailPage";

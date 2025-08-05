@@ -58,7 +58,7 @@ export const EmptyState = ({
           className={css({
             color: "fg.3",
             fontSize: "lg",
-            lineHeight: "1.7",
+            lineHeight: "body",
             mb: action ? "8" : "0",
           })}
         >

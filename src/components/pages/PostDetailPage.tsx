@@ -1,7 +1,8 @@
 import DOMPurify from "dompurify";
-import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
 import type { Post } from "../../lib/markdown";
+import { Link } from "../atoms/Link";
+import { Heading1 } from "../atoms/Typography";
 import { MetaInfo } from "../common/MetaInfo";
 
 interface PostDetailPageProps {
@@ -29,21 +30,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             width: "100%",
           })}
         >
-          <Link
-            to="/"
-            className={css({
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              color: "blue.light",
-              fontSize: "sm",
-              fontWeight: "600",
-              textDecoration: "none",
-              "&:hover": {
-                color: "aqua.light",
-              },
-            })}
-          >
+          <Link to="/" variant="navigation">
             ← Lazy Note に戻る
           </Link>
         </div>
@@ -80,16 +67,12 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                 padding: "section",
               })}
             >
-              <h1
-                className={css({
-                  fontSize: "3xl",
-                  fontWeight: "bold",
-                  lineHeight: "1.2",
-                  marginBottom: "card",
-                })}
+              <Heading1 
+                variant="page"
+                className={css({ marginBottom: "card" })}
               >
                 {post.title || "無題の記事"}
-              </h1>
+              </Heading1>
 
               <MetaInfo
                 createdAt={post.createdAt}
@@ -110,27 +93,27 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             <main
               className={css({
                 padding: "section",
-                lineHeight: "1.7",
+                lineHeight: "body",
                 fontSize: "base",
                 color: "fg.1",
                 "& h1, & h2, & h3": {
                   color: "fg.0",
                   fontWeight: "bold",
-                  marginTop: "32px",
-                  marginBottom: "16px",
+                  marginTop: "xl",
+                  marginBottom: "md",
                 },
-                "& h1": { fontSize: "28px" },
-                "& h2": { fontSize: "24px" },
-                "& h3": { fontSize: "20px" },
+                "& h1": { fontSize: "2xl" },
+                "& h2": { fontSize: "xl" },
+                "& h3": { fontSize: "lg" },
                 "& p": {
-                  marginBottom: "16px",
+                  marginBottom: "md",
                 },
                 "& ul, & ol": {
-                  paddingLeft: "24px",
-                  marginBottom: "16px",
+                  paddingLeft: "lg",
+                  marginBottom: "md",
                 },
                 "& li": {
-                  marginBottom: "8px",
+                  marginBottom: "sm",
                 },
                 "& a": {
                   color: "blue.light",
@@ -142,17 +125,17 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                 "& code": {
                   background: "bg.2",
                   color: "orange.light",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  fontSize: "14px",
+                  padding: "2xs xs-sm",
+                  borderRadius: "xs",
+                  fontSize: "sm-lg",
                 },
                 "& pre": {
                   background: "bg.0",
                   color: "fg.1",
-                  padding: "24px",
-                  borderRadius: "8px",
+                  padding: "lg",
+                  borderRadius: "sm",
                   overflow: "auto",
-                  margin: "24px 0",
+                  margin: "lg 0",
                 },
               })}
             >

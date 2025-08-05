@@ -30,20 +30,23 @@ const PostDetail = () => {
   }
 
   return (
-    <Layout showHeader={false}>
-      <div
+    <Layout>
+      {/* Navigation */}
+      <nav
         className={css({
-          background: "bg.0",
-          minHeight: "100vh",
+          background: "bg.1",
+          borderBottom: "1px solid",
+          borderColor: "bg.3",
+          paddingY: "12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         })}
       >
-        {/* Navigation */}
-        <nav
+        <div
           className={css({
-            background: "bg.1",
-            borderBottom: "1px solid",
-            borderColor: "bg.3",
-            padding: "content",
+            maxWidth: "900px",
+            width: "100%",
           })}
         >
           <Link
@@ -63,8 +66,15 @@ const PostDetail = () => {
           >
             ← Lazy Note に戻る
           </Link>
-        </nav>
+        </div>
+      </nav>
 
+      <div
+        className={css({
+          background: "bg.0",
+          minHeight: "100vh",
+        })}
+      >
         <div
           className={css({
             maxWidth: "article",

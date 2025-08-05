@@ -1,7 +1,8 @@
 import DOMPurify from "dompurify";
-import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
 import type { Post } from "../../lib/markdown";
+import { Link } from "../atoms/Link";
+import { Heading1 } from "../atoms/Typography";
 import { MetaInfo } from "../common/MetaInfo";
 
 interface PostDetailPageProps {
@@ -29,21 +30,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             width: "100%",
           })}
         >
-          <Link
-            to="/"
-            className={css({
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              color: "blue.light",
-              fontSize: "sm",
-              fontWeight: "600",
-              textDecoration: "none",
-              "&:hover": {
-                color: "aqua.light",
-              },
-            })}
-          >
+          <Link to="/" variant="navigation">
             ← Lazy Note に戻る
           </Link>
         </div>
@@ -80,16 +67,9 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                 padding: "section",
               })}
             >
-              <h1
-                className={css({
-                  fontSize: "3xl",
-                  fontWeight: "bold",
-                  lineHeight: "1.2",
-                  marginBottom: "card",
-                })}
-              >
+              <Heading1 variant="page">
                 {post.title || "無題の記事"}
-              </h1>
+              </Heading1>
 
               <MetaInfo
                 createdAt={post.createdAt}

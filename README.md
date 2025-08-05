@@ -75,6 +75,20 @@ pnpm prepare
 
 ```
 src/
+├── components/       # 共通コンポーネント
+│   ├── common/       # 汎用コンポーネント
+│   │   ├── EmptyState.tsx
+│   │   ├── LoadingSpinner.tsx
+│   │   └── MetaInfo.tsx
+│   ├── pages/        # ページ用コンポーネント
+│   │   ├── HomePage.tsx
+│   │   └── PostDetailPage.tsx
+│   ├── Header.tsx
+│   ├── Footer.tsx
+│   └── Layout.tsx
+├── hooks/            # カスタムフック
+│   ├── usePost.ts
+│   └── usePosts.ts
 ├── lib/              # ユーティリティ関数
 │   ├── __tests__/    # libのテスト
 │   └── markdown.ts   # Markdown解析ロジック
@@ -82,7 +96,7 @@ src/
 │   ├── __tests__/    # pagesのテスト
 │   ├── index.tsx     # トップページ（記事一覧）
 │   └── posts/
-│       └── [timestamp].tsx  # 記事詳細ページ
+│       └── Post.tsx  # 記事詳細ページ
 ├── test/            # テスト共通設定
 └── main.tsx         # アプリケーションエントリーポイント
 

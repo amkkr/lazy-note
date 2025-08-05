@@ -1,6 +1,7 @@
-import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
 import type { Post } from "../../lib/markdown";
+import { Link } from "../atoms/Link";
+import { Heading2 } from "../atoms/Typography";
 import { EmptyState } from "../common/EmptyState";
 import { MetaInfo } from "../common/MetaInfo";
 
@@ -65,27 +66,10 @@ export const HomePage = ({ posts }: HomePageProps) => {
               </div>
 
               <div className={css({ padding: "card" })}>
-                <Link
-                  to={`/posts/${post.id}`}
-                  className={css({
-                    display: "block",
-                    textDecoration: "none",
-                    color: "inherit",
-                  })}
-                >
-                  <h2
-                    className={css({
-                      fontSize: "xl",
-                      fontWeight: "bold",
-                      color: "fg.1",
-                      lineHeight: "1.4",
-                      "&:hover": {
-                        color: "blue.light",
-                      },
-                    })}
-                  >
+                <Link to={`/posts/${post.id}`} variant="card">
+                  <Heading2 variant="card">
                     {post.title || "無題の記事"}
-                  </h2>
+                  </Heading2>
                 </Link>
               </div>
             </article>

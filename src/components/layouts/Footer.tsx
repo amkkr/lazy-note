@@ -1,5 +1,5 @@
-import { css } from "../../styled-system/css";
-import { BrandName } from "./common/BrandName";
+import { css } from "../../../styled-system/css";
+import { BrandName } from "../common/BrandName";
 
 export const Footer = () => {
   return (

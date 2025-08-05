@@ -12,6 +12,7 @@ React 19 + TypeScript + Panda CSSを使用したシンプルなブログアプ�
 ## 技術スタック
 
 ### フロントエンド
+
 - **React 19** - UIライブラリ
 - **TypeScript** - 型安全な開発
 - **Vite 6** - 高速なビルドツール
@@ -19,17 +20,20 @@ React 19 + TypeScript + Panda CSSを使用したシンプルなブログアプ�
 - **React Router DOM** - クライアントサイドルーティング
 
 ### テスト
+
 - **Vitest** - 高速なテストランナー
 - **React Testing Library** - Reactコンポーネントのテスト
 - **jsdom** - ブラウザ環境のシミュレーション
 
 ### コード品質
+
 - **Biome** - リンター・フォーマッター（ESLint + Prettierの代替）
 - **GitHub Actions** - CI/CDパイプライン
 
 ## セットアップ
 
 ### 前提条件
+
 - Node.js 20以上
 - pnpm
 
@@ -76,23 +80,33 @@ pnpm prepare
 ```
 src/
 ├── components/       # 共通コンポーネント
+│   ├── atoms/        # 基本的なUIコンポーネント
+│   │   ├── Button.tsx
+│   │   ├── Link.tsx
+│   │   └── Typography.tsx
 │   ├── common/       # 汎用コンポーネント
+│   │   ├── BrandName.tsx
 │   │   ├── EmptyState.tsx
+│   │   ├── GradientBox.tsx
 │   │   ├── LoadingSpinner.tsx
-│   │   └── MetaInfo.tsx
-│   ├── pages/        # ページ用コンポーネント
-│   │   ├── HomePage.tsx
-│   │   └── PostDetailPage.tsx
-│   ├── Header.tsx
-│   ├── Footer.tsx
-│   └── Layout.tsx
+│   │   ├── MetaInfo.tsx
+│   │   └── __tests__/    # commonコンポーネントのテスト
+│   ├── layouts/      # レイアウトコンポーネント
+│   │   ├── Footer.tsx
+│   │   ├── Header.tsx
+│   │   └── Layout.tsx
+│   └── pages/        # ページ用コンポーネント
+│       ├── HomePage.tsx
+│       └── PostDetailPage.tsx
 ├── hooks/            # カスタムフック
+│   ├── __tests__/    # hooksのテスト
 │   ├── usePost.ts
 │   └── usePosts.ts
 ├── lib/              # ユーティリティ関数
 │   ├── __tests__/    # libのテスト
+│   ├── design-tokens.ts  # デザイントークン定義
 │   └── markdown.ts   # Markdown解析ロジック
-├── pages/            # ページコンポーネント
+├── pages/            # ファイルベースルーティング用
 │   ├── __tests__/    # pagesのテスト
 │   ├── index.tsx     # トップページ（記事一覧）
 │   └── posts/
@@ -111,6 +125,7 @@ styled-system/       # Panda CSS自動生成ファイル
 **ファイル名**: `YYYYMMDDHHMMSS.md`（例: `20240101120000.md`）
 
 **内容**:
+
 ```markdown
 # 記事タイトル
 
@@ -131,7 +146,9 @@ styled-system/       # Panda CSS自動生成ファイル
 テストファイルは各ディレクトリの`__tests__`フォルダに配置されています：
 
 - `src/lib/__tests__/` - ユーティリティ関数のテスト
-- `src/pages/__tests__/` - Reactコンポーネントのテスト
+- `src/hooks/__tests__/` - カスタムフックのテスト
+- `src/pages/__tests__/` - ページコンポーネントのテスト
+- `src/components/common/__tests__/` - 共通コンポーネントのテスト
 
 全てのテストケース名は日本語で記述されており、TDD（テスト駆動開発）の原則に従って開発されています。
 
@@ -151,7 +168,3 @@ GitHub Actionsを使用して以下の処理を自動化：
 - テスト実行
 - 型チェック
 - ビルド確認
-
-## ライセンス
-
-MIT

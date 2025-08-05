@@ -38,16 +38,16 @@ body {
 h1, h2, h3 {
   font-weight: bold;
   color: #ebdbb2;
-  line-height: 1.2;
+  line-height: 1.2; /* snug */
 }
 
 h1 {
   font-size: 3.2em;
-  line-height: 1.1;
+  line-height: 1.1; /* tight */
 }
 
 p {
-  line-height: 1.7;
+  line-height: 1.7; /* body */
   color: #d5c4a1;
 }
 

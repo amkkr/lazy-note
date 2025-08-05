@@ -93,27 +93,27 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             <main
               className={css({
                 padding: "section",
-                lineHeight: "1.7",
+                lineHeight: "body",
                 fontSize: "base",
                 color: "fg.1",
                 "& h1, & h2, & h3": {
                   color: "fg.0",
                   fontWeight: "bold",
-                  marginTop: "32px",
-                  marginBottom: "16px",
+                  marginTop: "xl",
+                  marginBottom: "md",
                 },
-                "& h1": { fontSize: "28px" },
-                "& h2": { fontSize: "24px" },
-                "& h3": { fontSize: "20px" },
+                "& h1": { fontSize: "2xl" },
+                "& h2": { fontSize: "xl" },
+                "& h3": { fontSize: "lg" },
                 "& p": {
-                  marginBottom: "16px",
+                  marginBottom: "md",
                 },
                 "& ul, & ol": {
-                  paddingLeft: "24px",
-                  marginBottom: "16px",
+                  paddingLeft: "lg",
+                  marginBottom: "md",
                 },
                 "& li": {
-                  marginBottom: "8px",
+                  marginBottom: "sm",
                 },
                 "& a": {
                   color: "blue.light",
@@ -125,17 +125,17 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                 "& code": {
                   background: "bg.2",
                   color: "orange.light",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  fontSize: "14px",
+                  padding: "2xs xs-sm",
+                  borderRadius: "xs",
+                  fontSize: "sm-lg",
                 },
                 "& pre": {
                   background: "bg.0",
                   color: "fg.1",
-                  padding: "24px",
-                  borderRadius: "8px",
+                  padding: "lg",
+                  borderRadius: "sm",
                   overflow: "auto",
-                  margin: "24px 0",
+                  margin: "lg 0",
                 },
               })}
             >

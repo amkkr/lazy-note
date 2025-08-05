@@ -31,7 +31,9 @@ export const Heading1 = ({
   };
 
   return (
-    <h1 className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}>
+    <h1
+      className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}
+    >
       {children}
     </h1>
   );
@@ -48,21 +50,23 @@ export const Heading2 = ({
   const baseStyles = css({});
 
   const variantStyles = {
-    page: css({ fontSize: "2xl", lineHeight: "1.3" }),
+    page: css({ fontSize: "2xl", lineHeight: "normal" }),
     article: css({
       fontSize: "xl",
-      lineHeight: "1.4",
+      lineHeight: "relaxed",
     }),
     card: css({
       fontSize: "xl",
-      lineHeight: "1.4",
+      lineHeight: "relaxed",
       color: "fg.1",
       "&:hover": { color: "blue.light" },
     }),
   };
 
   return (
-    <h2 className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}>
+    <h2
+      className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}
+    >
       {children}
     </h2>
   );
@@ -79,16 +83,18 @@ export const Heading3 = ({
   const baseStyles = css({});
 
   const variantStyles = {
-    page: css({ fontSize: "xl", lineHeight: "1.3" }),
+    page: css({ fontSize: "xl", lineHeight: "normal" }),
     article: css({
       fontSize: "lg",
-      lineHeight: "1.4",
+      lineHeight: "relaxed",
     }),
-    card: css({ fontSize: "lg", lineHeight: "1.4" }),
+    card: css({ fontSize: "lg", lineHeight: "relaxed" }),
   };
 
   return (
-    <h3 className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}>
+    <h3
+      className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}
+    >
       {children}
     </h3>
   );
@@ -103,27 +109,25 @@ export const Paragraph = ({
   className,
 }: ParagraphProps) => {
   const variantStyles = {
-    body: css({
-      fontSize: "base",
-      lineHeight: "1.7",
-      color: "fg.1",
-    }),
     small: css({
       fontSize: "sm",
-      lineHeight: "1.6",
+      lineHeight: "relaxed",
       color: "fg.2",
+    }),
+    body: css({
+      fontSize: "base",
+      lineHeight: "loose",
+      color: "fg.1",
     }),
     large: css({
       fontSize: "lg",
-      lineHeight: "1.8",
+      lineHeight: "body",
       color: "fg.1",
     }),
   };
 
   return (
-    <p className={`${variantStyles[variant]} ${className || ""}`}>
-      {children}
-    </p>
+    <p className={`${variantStyles[variant]} ${className || ""}`}>{children}</p>
   );
 };
 

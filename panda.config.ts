@@ -16,6 +16,7 @@ export default defineConfig({
       fontSizes: {
         xs: { value: "1.2em" },
         sm: { value: "1.4em" },
+        "sm-lg": { value: "1.4rem" }, // 14px equivalent
         base: { value: "1.6em" },
         lg: { value: "1.8em" },
         xl: { value: "2em" },
@@ -24,6 +25,14 @@ export default defineConfig({
         "4xl": { value: "3.6em" },
         "5xl": { value: "4.8em" },
         "6xl": { value: "6em" },
+      },
+      lineHeights: {
+        tight: { value: "1.1" },
+        snug: { value: "1.2" },
+        normal: { value: "1.3" },
+        relaxed: { value: "1.4" },
+        loose: { value: "1.6" },
+        body: { value: "1.7" },
       },
     },
     extend: {
@@ -89,10 +98,12 @@ export default defineConfig({
           },
         },
         spacing: {
+          "2xs": { value: "2px" },
           xs: { value: "4px" },
           "xs-sm": { value: "6px" },
           sm: { value: "8px" },
           "sm-md": { value: "12px" },
+          "sm-lg": { value: "14px" },
           md: { value: "16px" },
           lg: { value: "24px" },
           xl: { value: "32px" },

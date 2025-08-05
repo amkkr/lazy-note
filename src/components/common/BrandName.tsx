@@ -14,11 +14,11 @@ export const BrandName = ({
   return (
     <div
       className={css({
-        fontSize: isHeader ? "20px" : "14px",
+        fontSize: isHeader ? "lg" : "sm",
         fontWeight: "bold",
         color: isHeader ? "fg.0" : "fg.2",
         ...(variant === "footer" && {
-          marginBottom: "4px",
+          marginBottom: "xs",
         }),
       })}
     >

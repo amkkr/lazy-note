@@ -29,7 +29,7 @@ export const MetaInfo = ({
           display: "flex",
           alignItems: "center",
           gap: "sm",
-          fontSize: "sm-px",
+          fontSize: "sm",
           color: isHeader ? "white" : "#6b7280",
           ...(isHeader && {
             background: "rgba(255, 255, 255, 0.2)",
@@ -47,7 +47,7 @@ export const MetaInfo = ({
           display: "flex",
           alignItems: "center",
           gap: "sm",
-          fontSize: "sm-px",
+          fontSize: "sm",
           color: isHeader ? "white" : "#6b7280",
           ...(isHeader && {
             background: "rgba(255, 255, 255, 0.2)",

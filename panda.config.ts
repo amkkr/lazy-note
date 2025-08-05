@@ -16,7 +16,6 @@ export default defineConfig({
       fontSizes: {
         xs: { value: "1.2em" },
         sm: { value: "1.4em" },
-        "sm-lg": { value: "1.4rem" }, // 14px equivalent
         base: { value: "1.6em" },
         lg: { value: "1.8em" },
         xl: { value: "2em" },
@@ -111,6 +110,13 @@ export default defineConfig({
           content: { value: "32px" },
           section: { value: "48px" },
           card: { value: "24px" },
+        },
+        radii: {
+          sm: { value: "4px" },
+          md: { value: "8px" },
+          lg: { value: "12px" },
+          xl: { value: "20px" },
+          full: { value: "9999px" },
         },
         sizes: {
           container: { value: "1200px" },

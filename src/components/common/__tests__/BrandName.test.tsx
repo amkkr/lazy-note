@@ -8,8 +8,8 @@ describe("BrandName", () => {
 
     const brandName = screen.getByText("✨ Lazy Note");
     expect(brandName).toBeInTheDocument();
-    // Panda CSSはfs_20pxのようなクラス名を生成する
-    expect(brandName.className).toContain("fs_20px");
+    // Panda CSSはfs_lgのようなクラス名を生成する
+    expect(brandName.className).toContain("fs_lg");
   });
 
   it("フッターバリアントで正しく表示される", () => {
@@ -17,8 +17,8 @@ describe("BrandName", () => {
 
     const brandName = screen.getByText("✨ Lazy Note");
     expect(brandName).toBeInTheDocument();
-    // Panda CSSはfs_14pxのようなクラス名を生成する
-    expect(brandName.className).toContain("fs_14px");
+    // Panda CSSはfs_smのようなクラス名を生成する
+    expect(brandName.className).toContain("fs_sm");
   });
 
   it("デフォルトでヘッダーバリアントが使用される", () => {

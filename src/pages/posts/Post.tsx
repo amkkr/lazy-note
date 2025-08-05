@@ -5,7 +5,7 @@ import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { PostDetailPage } from "../../components/pages/PostDetailPage";
 import { usePost } from "../../hooks/usePost";
 
-const PostDetail = () => {
+const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
   const { post, loading, notFound } = usePost(timestamp);
 
@@ -34,4 +34,4 @@ const PostDetail = () => {
   );
 };
 
-export default PostDetail;
+export default Post;

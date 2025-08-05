@@ -1,8 +1,8 @@
 import DOMPurify from "dompurify";
 import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
-import { MetaInfo } from "../common/MetaInfo";
 import type { Post } from "../../lib/markdown";
+import { MetaInfo } from "../common/MetaInfo";
 
 interface PostDetailPageProps {
   post: Post;
@@ -99,10 +99,12 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             </header>
 
             {/* Divider */}
-            <div className={css({
-              height: "1px",
-              background: "surface.200"
-            })} />
+            <div
+              className={css({
+                height: "1px",
+                background: "surface.200",
+              })}
+            />
 
             {/* Article Content */}
             <main

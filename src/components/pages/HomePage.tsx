@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
+import type { Post } from "../../lib/markdown";
 import { EmptyState } from "../common/EmptyState";
 import { MetaInfo } from "../common/MetaInfo";
-import type { Post } from "../../lib/markdown";
 
 interface HomePageProps {
   posts: Post[];

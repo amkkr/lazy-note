@@ -1,36 +1,16 @@
 import DOMPurify from "dompurify";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
-import { Layout } from "../../components/Layout";
-import { EmptyState } from "../../components/common/EmptyState";
-import { LoadingSpinner } from "../../components/common/LoadingSpinner";
-import { MetaInfo } from "../../components/common/MetaInfo";
-import { usePost } from "../../hooks/usePost";
+import type { Post } from "../../lib/markdown";
+import { MetaInfo } from "../common/MetaInfo";
 
-const PostDetail = () => {
-  const { timestamp } = useParams<{ timestamp: string }>();
-  const { post, loading, notFound } = usePost(timestamp);
+interface PostDetailPageProps {
+  post: Post;
+}
 
-  if (loading) {
-    return <LoadingSpinner message="記事を読み込み中..." />;
-  }
-
-  if (notFound || !post) {
-    return (
-      <EmptyState
-        icon="😕"
-        title="記事が見つかりません"
-        description="お探しの記事は削除されたか、URLが間違っている可能性があります。"
-        action={{
-          label: "← 記事一覧に戻る",
-          href: "/",
-        }}
-      />
-    );
-  }
-
+export const PostDetailPage = ({ post }: PostDetailPageProps) => {
   return (
-    <Layout>
+    <>
       {/* Navigation */}
       <nav
         className={css({
@@ -119,10 +99,12 @@ const PostDetail = () => {
             </header>
 
             {/* Divider */}
-            <div className={css({
-              height: "1px",
-              background: "surface.200"
-            })} />
+            <div
+              className={css({
+                height: "1px",
+                background: "surface.200",
+              })}
+            />
 
             {/* Article Content */}
             <main
@@ -184,8 +166,6 @@ const PostDetail = () => {
           </article>
         </div>
       </div>
-    </Layout>
+    </>
   );
 };
-
-export default PostDetail;

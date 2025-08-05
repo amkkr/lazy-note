@@ -22,16 +22,12 @@ export const Heading1 = ({
   variant = "page",
   className,
 }: HeadingProps) => {
-  const baseStyles = css({
-    fontWeight: "bold",
-    lineHeight: "1.2",
-    color: "fg.0",
-  });
+  const baseStyles = css({});
 
   const variantStyles = {
-    page: css({ fontSize: "3xl", marginBottom: "card" }),
-    article: css({ fontSize: "28px", marginTop: "32px", marginBottom: "16px" }),
-    card: css({ fontSize: "2xl", marginBottom: "16px" }),
+    page: css({ fontSize: "3xl" }),
+    article: css({ fontSize: "28px" }),
+    card: css({ fontSize: "2xl" }),
   };
 
   return (
@@ -49,23 +45,17 @@ export const Heading2 = ({
   variant = "article",
   className,
 }: HeadingProps) => {
-  const baseStyles = css({
-    fontWeight: "bold",
-    color: "fg.0",
-  });
+  const baseStyles = css({});
 
   const variantStyles = {
-    page: css({ fontSize: "2xl", lineHeight: "1.3", marginBottom: "card" }),
+    page: css({ fontSize: "2xl", lineHeight: "1.3" }),
     article: css({
       fontSize: "24px",
       lineHeight: "1.4",
-      marginTop: "32px",
-      marginBottom: "16px",
     }),
     card: css({
       fontSize: "xl",
       lineHeight: "1.4",
-      marginBottom: "12px",
       color: "fg.1",
       "&:hover": { color: "blue.light" },
     }),
@@ -86,20 +76,15 @@ export const Heading3 = ({
   variant = "article",
   className,
 }: HeadingProps) => {
-  const baseStyles = css({
-    fontWeight: "bold",
-    color: "fg.0",
-  });
+  const baseStyles = css({});
 
   const variantStyles = {
-    page: css({ fontSize: "xl", lineHeight: "1.3", marginBottom: "16px" }),
+    page: css({ fontSize: "xl", lineHeight: "1.3" }),
     article: css({
       fontSize: "20px",
       lineHeight: "1.4",
-      marginTop: "32px",
-      marginBottom: "16px",
     }),
-    card: css({ fontSize: "lg", lineHeight: "1.4", marginBottom: "8px" }),
+    card: css({ fontSize: "lg", lineHeight: "1.4" }),
   };
 
   return (
@@ -122,19 +107,16 @@ export const Paragraph = ({
       fontSize: "base",
       lineHeight: "1.7",
       color: "fg.1",
-      marginBottom: "16px",
     }),
     small: css({
       fontSize: "sm",
       lineHeight: "1.6",
       color: "fg.2",
-      marginBottom: "12px",
     }),
     large: css({
       fontSize: "lg",
       lineHeight: "1.8",
       color: "fg.1",
-      marginBottom: "20px",
     }),
   };
 

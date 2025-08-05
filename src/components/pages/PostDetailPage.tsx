@@ -67,7 +67,10 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                 padding: "section",
               })}
             >
-              <Heading1 variant="page">
+              <Heading1 
+                variant="page"
+                className={css({ marginBottom: "card" })}
+              >
                 {post.title || "無題の記事"}
               </Heading1>
 

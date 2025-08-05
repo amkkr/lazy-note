@@ -23,21 +23,7 @@ export const Button = ({
   type = "button",
   className,
 }: ButtonProps) => {
-  const baseStyles = css({
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "600",
-    borderRadius: "8px",
-    border: "none",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    textDecoration: "none",
-    "&:disabled": {
-      opacity: "0.5",
-      cursor: "not-allowed",
-    },
-  });
+  const baseStyles = css({});
 
   const variantStyles = {
     primary: css({

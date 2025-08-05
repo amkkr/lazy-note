@@ -20,7 +20,7 @@ export const Header = ({ postCount }: HeaderProps) => {
     >
       <div
         className={css({
-          maxWidth: "900px",
+          maxWidth: "content",
           width: "100%",
           display: "flex",
           alignItems: "center",
@@ -33,7 +33,7 @@ export const Header = ({ postCount }: HeaderProps) => {
           className={css({
             background: "bg.2",
             color: "fg.1",
-            padding: "8px 16px",
+            padding: "sm",
             borderRadius: "20px",
             fontSize: "sm",
             fontWeight: "bold",

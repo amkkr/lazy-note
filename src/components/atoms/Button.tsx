@@ -56,19 +56,19 @@ export const Button = ({
 
   const sizeStyles = {
     small: css({
-      padding: "8px 12px",
+      padding: "sm sm-md",
       fontSize: "sm",
-      gap: "4px",
+      gap: "xs",
     }),
     medium: css({
-      padding: "12px 16px",
+      padding: "sm-md md",
       fontSize: "base",
-      gap: "6px",
+      gap: "xs-sm",
     }),
     large: css({
-      padding: "16px 24px",
+      padding: "md lg",
       fontSize: "lg",
-      gap: "8px",
+      gap: "sm",
     }),
   };
 

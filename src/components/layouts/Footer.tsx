@@ -20,7 +20,7 @@ export const Footer = () => {
         className={css({
           fontSize: "sm",
           fontWeight: "600",
-          marginBottom: "4px",
+          marginBottom: "xs",
           color: "fg.2",
         })}
       >

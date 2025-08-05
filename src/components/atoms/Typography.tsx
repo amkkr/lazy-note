@@ -26,7 +26,7 @@ export const Heading1 = ({
 
   const variantStyles = {
     page: css({ fontSize: "3xl" }),
-    article: css({ fontSize: "28px" }),
+    article: css({ fontSize: "2xl" }),
     card: css({ fontSize: "2xl" }),
   };
 
@@ -50,7 +50,7 @@ export const Heading2 = ({
   const variantStyles = {
     page: css({ fontSize: "2xl", lineHeight: "1.3" }),
     article: css({
-      fontSize: "24px",
+      fontSize: "xl",
       lineHeight: "1.4",
     }),
     card: css({
@@ -81,7 +81,7 @@ export const Heading3 = ({
   const variantStyles = {
     page: css({ fontSize: "xl", lineHeight: "1.3" }),
     article: css({
-      fontSize: "20px",
+      fontSize: "lg",
       lineHeight: "1.4",
     }),
     card: css({ fontSize: "lg", lineHeight: "1.4" }),

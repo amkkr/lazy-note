@@ -6,6 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 基本コマンド
 
+**重要**: `pnpm dev`を実行する前に、必ず`pnpm i`で最新の依存関係をインストールしてください。
+
+- `pnpm i` - 依存関係のインストール（最初に必ず実行）
 - `pnpm dev` - 開発サーバー起動（Panda CSS ウォッチモード付き）
 - `pnpm build` - プロダクションビルド（Panda CSS生成 → TypeScript型チェック → Viteビルド）
 - `pnpm test` - テストをウォッチモードで実行
@@ -24,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **テスト**: Vitest + React Testing Library + jsdom
 - **スタイリング**: Panda CSS（型安全なCSS-in-JS）
 - **ルーティング**: React Router DOM + vite-plugin-pages（ファイルベースルーティング対応）
-- **コード品質**: Biome（ESLint + Prettierの代替）
+- **コード品質**: Biome（高速なフォーマッタ・リンター）
 
 ### ディレクトリ構造
 
@@ -77,6 +80,30 @@ chore/update-dependencies
 new-feature
 修正
 my-branch
+```
+
+### コミットメッセージのルール
+
+コミットする際は以下のルールに従うこと：
+
+1. **ファイルごとの変更理由を記載**: 複数のファイルを変更した場合、各ファイルの変更理由を個別に記載する
+2. **変更内容の明確化**: なぜその変更を行ったのか、目的と理由を明確に記述する
+
+#### コミットメッセージの例
+
+```bash
+# 良い例（複数ファイルの変更）
+feat: ユーザー認証機能の実装
+
+- src/auth/login.ts: ログイン処理のロジックを実装
+- src/auth/logout.ts: ログアウト処理とセッションクリアを追加
+- src/components/LoginForm.tsx: ログインフォームUIコンポーネントを作成
+- src/hooks/useAuth.ts: 認証状態管理のカスタムフックを実装
+
+# 良い例（単一ファイルの変更）
+fix: ログイン時のエラーハンドリングを修正
+
+- src/auth/login.ts: APIエラー時の例外処理を追加し、ユーザーに適切なメッセージを表示するように修正
 ```
 
 ### コンフリクト解決の手順

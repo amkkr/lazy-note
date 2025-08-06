@@ -27,7 +27,7 @@ React 19 + TypeScript + Panda CSSを使用したシンプルなブログアプ�
 
 ### コード品質
 
-- **Biome** - リンター・フォーマッター（ESLint + Prettierの代替）
+- **Biome** - 高速なリンター・フォーマッター
 - **GitHub Actions** - CI/CDパイプライン
 
 ## セットアップ

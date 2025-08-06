@@ -6,6 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 基本コマンド
 
+**重要**: `pnpm dev`を実行する前に、必ず`pnpm i`で最新の依存関係をインストールしてください。
+
+- `pnpm i` - 依存関係のインストール（最初に必ず実行）
 - `pnpm dev` - 開発サーバー起動（Panda CSS ウォッチモード付き）
 - `pnpm build` - プロダクションビルド（Panda CSS生成 → TypeScript型チェック → Viteビルド）
 - `pnpm test` - テストをウォッチモードで実行

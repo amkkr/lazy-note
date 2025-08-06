@@ -24,7 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **テスト**: Vitest + React Testing Library + jsdom
 - **スタイリング**: Panda CSS（型安全なCSS-in-JS）
 - **ルーティング**: React Router DOM + vite-plugin-pages（ファイルベースルーティング対応）
-- **コード品質**: Biome（ESLint + Prettierの代替）
+- **コード品質**: Biome（高速なフォーマッタ・リンター）
 
 ### ディレクトリ構造
 

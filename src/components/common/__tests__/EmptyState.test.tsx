@@ -31,7 +31,7 @@ describe("EmptyState", () => {
     description: "最初の記事を作成してみましょう",
   };
 
-  it("アイコン、タイトル、説明文が正しく表示される", () => {
+  it("アイコン、タイトル、説明文が表示できる", () => {
     render(<EmptyState {...defaultProps} />);
 
     expect(screen.getByText("📝")).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe("EmptyState", () => {
     ).toBeInTheDocument();
   });
 
-  it("アクションボタンが設定されている場合、正しく表示される", () => {
+  it("アクションボタンが設定されている場合、表示できる", () => {
     const action = {
       label: "記事を作成",
       href: "/posts/new",
@@ -60,14 +60,14 @@ describe("EmptyState", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("異なるアイコンが正しく表示される", () => {
+  it("異なるアイコンが表示できる", () => {
     render(<EmptyState {...defaultProps} icon="🔍" />);
 
     expect(screen.getByText("🔍")).toBeInTheDocument();
     expect(screen.queryByText("📝")).not.toBeInTheDocument();
   });
 
-  it("長いテキストでも正しくレイアウトされる", () => {
+  it("長いテキストでもレイアウトできる", () => {
     const longProps = {
       icon: "📚",
       title:

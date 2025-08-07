@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MetaInfo } from "../MetaInfo";
 
 describe("MetaInfo", () => {
-  it("作成日と著者が正しく表示される", () => {
+  it("作成日と著者が表示できる", () => {
     render(<MetaInfo createdAt="2024-01-01" author="山田太郎" />);
 
     expect(screen.getByText("2024-01-01")).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe("MetaInfo", () => {
     expect(metaInfo.className).toContain("pt_0");
   });
 
-  it("headerバリアントが正しく適用される", () => {
+  it("headerバリアントが適用できる", () => {
     const { container } = render(
       <MetaInfo createdAt="2024-01-01" author="山田太郎" variant="header" />,
     );
@@ -62,7 +62,7 @@ describe("MetaInfo", () => {
     expect(screen.getByText("匿名")).toBeInTheDocument();
   });
 
-  it("長いテキストでも正しくレイアウトされる", () => {
+  it("長いテキストでもレイアウトできる", () => {
     render(
       <MetaInfo
         createdAt="2024年12月31日 23時59分59秒"

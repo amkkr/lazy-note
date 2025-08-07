@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { Button } from "../Button";
 
 describe("Button", () => {
-  it("子要素が正しくレンダリングされる", () => {
+  it("ボタンテキストを表示できる", () => {
     render(<Button>Click me</Button>);
     expect(screen.getByRole("button", { name: "Click me" })).toBeInTheDocument();
   });
 
-  it("クリックイベントが正しく発火する", () => {
+  it("クリックできる", () => {
     const handleClick = vi.fn();
     render(<Button onClick={handleClick}>Click me</Button>);
     
@@ -18,7 +18,7 @@ describe("Button", () => {
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
-  it("disabled属性が正しく適用される", () => {
+  it("ボタンを非活性にできる", () => {
     render(<Button disabled>Disabled Button</Button>);
     
     const button = screen.getByRole("button", { name: "Disabled Button" });
@@ -60,49 +60,49 @@ describe("Button", () => {
     expect(button).toHaveAttribute("type", "reset");
   });
 
-  it("カスタムclassNameが適用される", () => {
+  it("カスタムCSSクラスを追加できる", () => {
     render(<Button className="custom-class">Custom Class</Button>);
     
     const button = screen.getByRole("button", { name: "Custom Class" });
     expect(button.className).toContain("custom-class");
   });
 
-  it("variant=primaryがデフォルトで適用される", () => {
+  it("デフォルトでprimaryスタイルになる", () => {
     const { container } = render(<Button>Primary Button</Button>);
     
     const button = container.querySelector("button");
     expect(button?.className).toBeDefined();
   });
 
-  it("variant=secondaryが適用される", () => {
+  it("secondaryスタイルに変更できる", () => {
     const { container } = render(<Button variant="secondary">Secondary Button</Button>);
     
     const button = container.querySelector("button");
     expect(button?.className).toBeDefined();
   });
 
-  it("variant=ghostが適用される", () => {
+  it("ghostスタイルに変更できる", () => {
     const { container } = render(<Button variant="ghost">Ghost Button</Button>);
     
     const button = container.querySelector("button");
     expect(button?.className).toBeDefined();
   });
 
-  it("size=mediumがデフォルトで適用される", () => {
+  it("デフォルトでmediumサイズになる", () => {
     const { container } = render(<Button>Medium Button</Button>);
     
     const button = container.querySelector("button");
     expect(button?.className).toBeDefined();
   });
 
-  it("size=smallが適用される", () => {
+  it("smallサイズに変更できる", () => {
     const { container } = render(<Button size="small">Small Button</Button>);
     
     const button = container.querySelector("button");
     expect(button?.className).toBeDefined();
   });
 
-  it("size=largeが適用される", () => {
+  it("largeサイズに変更できる", () => {
     const { container } = render(<Button size="large">Large Button</Button>);
     
     const button = container.querySelector("button");

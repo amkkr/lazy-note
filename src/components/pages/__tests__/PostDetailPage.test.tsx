@@ -14,7 +14,7 @@ const mockPost: Post = {
 };
 
 describe("PostDetailPage", () => {
-  it("記事のタイトルが表示される", () => {
+  it("記事タイトルを表示できる", () => {
     render(
       <MemoryRouter>
         <PostDetailPage post={mockPost} />
@@ -24,7 +24,7 @@ describe("PostDetailPage", () => {
     expect(screen.getByRole("heading", { name: "テスト記事タイトル" })).toBeInTheDocument();
   });
 
-  it("記事の著者と作成日が表示される", () => {
+  it("記事のメタ情報を表示できる", () => {
     render(
       <MemoryRouter>
         <PostDetailPage post={mockPost} />
@@ -35,7 +35,7 @@ describe("PostDetailPage", () => {
     expect(screen.getByText("2024-01-15")).toBeInTheDocument();
   });
 
-  it("記事の内容が表示される", () => {
+  it("記事コンテンツを表示できる", () => {
     render(
       <MemoryRouter>
         <PostDetailPage post={mockPost} />
@@ -47,7 +47,7 @@ describe("PostDetailPage", () => {
     expect(screen.getByText("追加のコンテンツ")).toBeInTheDocument();
   });
 
-  it("トップページへの戻るリンクが表示される", () => {
+  it("トップページへのリンクを表示できる", () => {
     render(
       <MemoryRouter>
         <PostDetailPage post={mockPost} />
@@ -74,7 +74,7 @@ describe("PostDetailPage", () => {
     expect(screen.getByRole("heading", { name: "無題の記事" })).toBeInTheDocument();
   });
 
-  it("HTMLコンテンツが正しくレンダリングされる", () => {
+  it("HTMLコンテンツを表示できる", () => {
     const postWithHtml: Post = {
       ...mockPost,
       content: '<p>パラグラフ</p><ul><li>リスト項目1</li><li>リスト項目2</li></ul><a href="#">リンク</a>',

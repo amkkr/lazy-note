@@ -39,7 +39,7 @@ describe("HomePage", () => {
     ).toBeInTheDocument();
   });
 
-  it("記事がある場合は記事一覧が表示される", () => {
+  it("記事一覧を表示できる", () => {
     render(
       <MemoryRouter>
         <HomePage posts={mockPosts} />
@@ -50,7 +50,7 @@ describe("HomePage", () => {
     expect(screen.getByText("テスト記事2")).toBeInTheDocument();
   });
 
-  it("各記事に著者と作成日が表示される", () => {
+  it("各記事のメタ情報を表示できる", () => {
     render(
       <MemoryRouter>
         <HomePage posts={mockPosts} />
@@ -63,7 +63,7 @@ describe("HomePage", () => {
     expect(screen.getByText("2024-01-02")).toBeInTheDocument();
   });
 
-  it("記事タイトルがリンクとして表示される", () => {
+  it("記事タイトルをリンクにできる", () => {
     render(
       <MemoryRouter>
         <HomePage posts={mockPosts} />

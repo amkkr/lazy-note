@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { Link } from "../Link";
 
 describe("Link", () => {
-  it("子要素が正しくレンダリングされる", () => {
+  it("リンクテキストを表示できる", () => {
     render(
       <MemoryRouter>
         <Link to="/about">About Page</Link>
@@ -13,7 +13,7 @@ describe("Link", () => {
     expect(screen.getByRole("link", { name: "About Page" })).toBeInTheDocument();
   });
 
-  it("内部リンクが正しく設定される", () => {
+  it("内部リンクとして機能する", () => {
     render(
       <MemoryRouter>
         <Link to="/contact">Contact</Link>
@@ -39,7 +39,7 @@ describe("Link", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  it("variant=defaultがデフォルトで適用される", () => {
+  it("デフォルトでdefaultスタイルになる", () => {
     const { container } = render(
       <MemoryRouter>
         <Link to="/home">Home</Link>
@@ -50,7 +50,7 @@ describe("Link", () => {
     expect(link?.className).toBeDefined();
   });
 
-  it("variant=navigationが適用される", () => {
+  it("navigationスタイルに変更できる", () => {
     const { container } = render(
       <MemoryRouter>
         <Link to="/nav" variant="navigation">
@@ -63,7 +63,7 @@ describe("Link", () => {
     expect(link?.className).toBeDefined();
   });
 
-  it("variant=buttonが適用される", () => {
+  it("buttonスタイルに変更できる", () => {
     const { container } = render(
       <MemoryRouter>
         <Link to="/action" variant="button">
@@ -76,7 +76,7 @@ describe("Link", () => {
     expect(link?.className).toBeDefined();
   });
 
-  it("variant=cardが適用される", () => {
+  it("cardスタイルに変更できる", () => {
     const { container } = render(
       <MemoryRouter>
         <Link to="/card" variant="card">
@@ -89,7 +89,7 @@ describe("Link", () => {
     expect(link?.className).toBeDefined();
   });
 
-  it("カスタムclassNameが適用される", () => {
+  it("カスタムCSSクラスを追加できる", () => {
     render(
       <MemoryRouter>
         <Link to="/custom" className="custom-link-class">
@@ -116,7 +116,7 @@ describe("Link", () => {
     expect(screen.getByText("Text")).toBeInTheDocument();
   });
 
-  it("外部リンクでvariantが適用される", () => {
+  it("外部リンクにvariantを設定できる", () => {
     const { container } = render(
       <MemoryRouter>
         <Link to="https://example.com" external variant="button">
@@ -130,7 +130,7 @@ describe("Link", () => {
     expect(link).toHaveAttribute("target", "_blank");
   });
 
-  it("ルート相対パスが正しく処理される", () => {
+  it("ルート相対パスでリンクできる", () => {
     render(
       <MemoryRouter>
         <Link to="/">Home</Link>
@@ -141,7 +141,7 @@ describe("Link", () => {
     expect(link).toHaveAttribute("href", "/");
   });
 
-  it("ハッシュリンクが正しく処理される", () => {
+  it("ページ内アンカーリンクとして機能する", () => {
     render(
       <MemoryRouter>
         <Link to="#section">Section</Link>

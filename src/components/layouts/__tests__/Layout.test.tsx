@@ -15,7 +15,7 @@ vi.mock("../Footer", () => ({
 }));
 
 describe("Layout", () => {
-  it("子要素が正しくレンダリングされる", () => {
+  it("子要素を表示できる", () => {
     render(
       <MemoryRouter>
         <Layout>
@@ -88,7 +88,7 @@ describe("Layout", () => {
     expect(screen.getByText("Header with 0 posts")).toBeInTheDocument();
   });
 
-  it("複数の子要素が正しくレンダリングされる", () => {
+  it("複数の子要素を含められる", () => {
     render(
       <MemoryRouter>
         <Layout>

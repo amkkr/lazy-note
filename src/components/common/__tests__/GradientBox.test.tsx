@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { GradientBox } from "../GradientBox";
 
 describe("GradientBox", () => {
-  it("子要素が正しくレンダリングされる", () => {
+  it("子要素がレンダリングできる", () => {
     render(
       <GradientBox>
         <div>テストコンテンツ</div>
@@ -26,7 +26,7 @@ describe("GradientBox", () => {
     expect(gradientBox.className).toContain("pos_relative");
   });
 
-  it("accentバリアントが正しく適用される", () => {
+  it("accentバリアントが適用できる", () => {
     const { container } = render(
       <GradientBox variant="accent">
         <div>コンテンツ</div>

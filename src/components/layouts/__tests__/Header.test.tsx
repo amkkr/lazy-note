@@ -22,7 +22,7 @@ describe("Header", () => {
     expect(screen.getByText("BrandName (header)")).toBeInTheDocument();
   });
 
-  it("記事数が正しく表示される", () => {
+  it("記事数を表示できる", () => {
     render(
       <MemoryRouter>
         <Header postCount={5} />
@@ -32,7 +32,7 @@ describe("Header", () => {
     expect(screen.getByText("📚 5記事")).toBeInTheDocument();
   });
 
-  it("記事数が0の場合も正しく表示される", () => {
+  it("記事数が0でも表示できる", () => {
     render(
       <MemoryRouter>
         <Header postCount={0} />
@@ -42,7 +42,7 @@ describe("Header", () => {
     expect(screen.getByText("📚 0記事")).toBeInTheDocument();
   });
 
-  it("記事数が大きい値でも正しく表示される", () => {
+  it("大きな記事数でも表示できる", () => {
     render(
       <MemoryRouter>
         <Header postCount={999} />

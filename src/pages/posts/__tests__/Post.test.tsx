@@ -22,6 +22,7 @@ const mockPost: PostType = {
   content: "<p>モック記事の内容</p>",
   author: "モック著者",
   createdAt: "2024-01-20",
+  rawContent: "# モックテスト記事\n\nモック記事の内容",
 };
 
 describe("Post", () => {
@@ -30,6 +31,7 @@ describe("Post", () => {
       post: null,
       loading: true,
       notFound: false,
+      error: null,
     });
 
     render(
@@ -48,6 +50,7 @@ describe("Post", () => {
       post: null,
       loading: false,
       notFound: true,
+      error: null,
     });
 
     render(
@@ -73,6 +76,7 @@ describe("Post", () => {
       post: mockPost,
       loading: false,
       notFound: false,
+      error: null,
     });
 
     render(
@@ -94,6 +98,7 @@ describe("Post", () => {
       post: null,
       loading: false,
       notFound: false,
+      error: null,
     });
 
     render(

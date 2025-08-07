@@ -58,7 +58,7 @@ describe("Indexコンポーネント", () => {
     expect(screen.getByText("読み込み中...")).toBeInTheDocument();
   });
 
-  it("記事一覧を正しく表示する", async () => {
+  it("記事一覧を表示できる", async () => {
     mockUsePosts.mockReturnValue({
       posts: mockPosts,
       loading: false,
@@ -123,7 +123,7 @@ describe("Indexコンポーネント", () => {
     expect(screen.getByText("新しい記事をお楽しみに")).toBeInTheDocument();
   });
 
-  it("記事のリンクが正しく設定されている", async () => {
+  it("記事リンクを設定できる", async () => {
     mockUsePosts.mockReturnValue({
       posts: mockPosts,
       loading: false,

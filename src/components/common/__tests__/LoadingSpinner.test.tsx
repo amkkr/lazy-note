@@ -35,7 +35,7 @@ describe("LoadingSpinner", () => {
     expect(messageElement).toBeInTheDocument();
   });
 
-  it("長いメッセージでも正しく表示される", () => {
+  it("長いメッセージでも表示できる", () => {
     const longMessage =
       "これは非常に長いローディングメッセージです。複数行にわたる可能性があります。";
     render(<LoadingSpinner message={longMessage} />);

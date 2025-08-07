@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { BrandName } from "../BrandName";
 
 describe("BrandName", () => {
-  it("ヘッダーバリアントで正しく表示される", () => {
+  it("ヘッダースタイルで表示できる", () => {
     render(<BrandName variant="header" />);
 
     const brandName = screen.getByText("✨ Lazy Note");
@@ -12,7 +12,7 @@ describe("BrandName", () => {
     expect(brandName.className).toContain("fs_lg");
   });
 
-  it("フッターバリアントで正しく表示される", () => {
+  it("フッタースタイルで表示できる", () => {
     render(<BrandName variant="footer" />);
 
     const brandName = screen.getByText("✨ Lazy Note");

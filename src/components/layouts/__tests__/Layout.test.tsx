@@ -21,7 +21,7 @@ describe("Layout", () => {
         <Layout>
           <div data-testid="child">テストコンテンツ</div>
         </Layout>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId("child")).toBeInTheDocument();
@@ -34,7 +34,7 @@ describe("Layout", () => {
         <Layout>
           <div>コンテンツ</div>
         </Layout>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId("header")).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe("Layout", () => {
         <Layout showHeader={false}>
           <div>コンテンツ</div>
         </Layout>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.queryByTestId("header")).not.toBeInTheDocument();
@@ -58,7 +58,7 @@ describe("Layout", () => {
         <Layout>
           <div>コンテンツ</div>
         </Layout>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId("footer")).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe("Layout", () => {
         <Layout postCount={5}>
           <div>コンテンツ</div>
         </Layout>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("Header with 5 posts")).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("Layout", () => {
         <Layout>
           <div>コンテンツ</div>
         </Layout>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("Header with 0 posts")).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe("Layout", () => {
           <div data-testid="child2">子要素2</div>
           <div data-testid="child3">子要素3</div>
         </Layout>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId("child1")).toBeInTheDocument();

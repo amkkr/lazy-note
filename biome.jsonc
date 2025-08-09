@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.1.4/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -7,8 +7,12 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": [],
-    "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx"]
+    "includes": [
+      "**/src/**/*.ts",
+      "**/src/**/*.tsx",
+      "**/src/**/*.js",
+      "**/src/**/*.jsx"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -16,9 +20,7 @@
     "indentWidth": 2,
     "lineEnding": "lf"
   },
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
@@ -40,11 +42,11 @@
         "noUnusedFunctionParameters": "error",
         "noUnusedImports": "error",
         "noUnusedLabels": "error",
-        "noUnusedPrivateClassMembers": "error",
-        "useArrayLiterals": "error"
+        "noUnusedPrivateClassMembers": "error"
       },
       "style": {
-        "useBlockStatements": "error"
+        "useBlockStatements": "error",
+        "useArrayLiterals": "error"
       },
       "security": {
         "noDangerouslySetInnerHtml": "warn"
@@ -55,7 +57,7 @@
     "formatter": {
       "quoteStyle": "double",
       "jsxQuoteStyle": "double",
-      "semicolons":"always"
+      "semicolons": "always"
     }
   }
 }

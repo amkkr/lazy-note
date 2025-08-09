@@ -15,7 +15,7 @@ describe("Footer", () => {
     render(
       <MemoryRouter>
         <Footer />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId("brand-name")).toBeInTheDocument();
@@ -26,17 +26,19 @@ describe("Footer", () => {
     render(
       <MemoryRouter>
         <Footer />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    expect(screen.getByText("© 2025 Lazy Note. All rights reserved.")).toBeInTheDocument();
+    expect(
+      screen.getByText("© 2025 Lazy Note. All rights reserved."),
+    ).toBeInTheDocument();
   });
 
   it("footerタグが使用されている", () => {
     const { container } = render(
       <MemoryRouter>
         <Footer />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const footerElement = container.querySelector("footer");

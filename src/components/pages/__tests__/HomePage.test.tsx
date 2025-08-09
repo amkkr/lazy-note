@@ -28,14 +28,14 @@ describe("HomePage", () => {
     render(
       <MemoryRouter>
         <HomePage posts={[]} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("新しい記事をお楽しみに")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。"
-      )
+        "まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -43,7 +43,7 @@ describe("HomePage", () => {
     render(
       <MemoryRouter>
         <HomePage posts={mockPosts} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("テスト記事1")).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe("HomePage", () => {
     render(
       <MemoryRouter>
         <HomePage posts={mockPosts} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("著者1")).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe("HomePage", () => {
     render(
       <MemoryRouter>
         <HomePage posts={mockPosts} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const link1 = screen.getByRole("link", { name: "テスト記事1" });
@@ -92,7 +92,7 @@ describe("HomePage", () => {
     render(
       <MemoryRouter>
         <HomePage posts={postsWithoutTitle} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("無題の記事")).toBeInTheDocument();

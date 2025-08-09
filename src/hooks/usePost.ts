@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type Post, getPost } from "../lib/markdown";
+import { getPost, type Post } from "../lib/markdown";
 
 interface UsePostReturn {
   post: Post | null;

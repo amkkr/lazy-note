@@ -15,7 +15,7 @@ describe("Header", () => {
     render(
       <MemoryRouter>
         <Header postCount={0} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByTestId("brand-name")).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe("Header", () => {
     render(
       <MemoryRouter>
         <Header postCount={5} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("📚 5記事")).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe("Header", () => {
     render(
       <MemoryRouter>
         <Header postCount={0} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("📚 0記事")).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe("Header", () => {
     render(
       <MemoryRouter>
         <Header postCount={999} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("📚 999記事")).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe("Header", () => {
     const { container } = render(
       <MemoryRouter>
         <Header postCount={3} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const headerElement = container.querySelector("header");

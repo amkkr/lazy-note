@@ -11,7 +11,9 @@ vi.mock("../../../hooks/usePost", () => ({
 
 // Layoutコンポーネントをモック
 vi.mock("../../../components/layouts/Layout", () => ({
-  Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Layout: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 import { usePost } from "../../../hooks/usePost";
@@ -39,7 +41,7 @@ describe("Post", () => {
         <Routes>
           <Route path="/posts/:timestamp" element={<Post />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("記事を読み込み中...")).toBeInTheDocument();
@@ -58,14 +60,16 @@ describe("Post", () => {
         <Routes>
           <Route path="/posts/:timestamp" element={<Post />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("記事が見つかりません")).toBeInTheDocument();
     expect(
-      screen.getByText("お探しの記事は削除されたか、URLが間違っている可能性があります。")
+      screen.getByText(
+        "お探しの記事は削除されたか、URLが間違っている可能性があります。",
+      ),
     ).toBeInTheDocument();
-    
+
     const backLink = screen.getByRole("link", { name: "← 記事一覧に戻る" });
     expect(backLink).toBeInTheDocument();
     expect(backLink).toHaveAttribute("href", "/");
@@ -84,11 +88,13 @@ describe("Post", () => {
         <Routes>
           <Route path="/posts/:timestamp" element={<Post />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     // PostDetailPageコンポーネントがレンダリングされることを確認
-    expect(screen.getByRole("heading", { name: "モックテスト記事" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "モックテスト記事" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("モック著者")).toBeInTheDocument();
     expect(screen.getByText("2024-01-20")).toBeInTheDocument();
   });
@@ -106,7 +112,7 @@ describe("Post", () => {
         <Routes>
           <Route path="/posts/:timestamp" element={<Post />} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("記事が見つかりません")).toBeInTheDocument();

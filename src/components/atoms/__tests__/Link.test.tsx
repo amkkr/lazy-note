@@ -8,18 +8,20 @@ describe("Link", () => {
     render(
       <MemoryRouter>
         <Link to="/about">About Page</Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    expect(screen.getByRole("link", { name: "About Page" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "About Page" }),
+    ).toBeInTheDocument();
   });
 
   it("内部リンクとして機能する", () => {
     render(
       <MemoryRouter>
         <Link to="/contact">Contact</Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = screen.getByRole("link", { name: "Contact" });
     expect(link).toHaveAttribute("href", "/contact");
   });
@@ -30,9 +32,9 @@ describe("Link", () => {
         <Link to="https://example.com" external>
           External Site
         </Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = screen.getByRole("link", { name: "External Site" });
     expect(link).toHaveAttribute("href", "https://example.com");
     expect(link).toHaveAttribute("target", "_blank");
@@ -43,9 +45,9 @@ describe("Link", () => {
     const { container } = render(
       <MemoryRouter>
         <Link to="/home">Home</Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = container.querySelector("a");
     expect(link?.className).toBeDefined();
   });
@@ -56,9 +58,9 @@ describe("Link", () => {
         <Link to="/nav" variant="navigation">
           Navigation Link
         </Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = container.querySelector("a");
     expect(link?.className).toBeDefined();
   });
@@ -69,9 +71,9 @@ describe("Link", () => {
         <Link to="/action" variant="button">
           Button Link
         </Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = container.querySelector("a");
     expect(link?.className).toBeDefined();
   });
@@ -82,9 +84,9 @@ describe("Link", () => {
         <Link to="/card" variant="card">
           Card Link
         </Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = container.querySelector("a");
     expect(link?.className).toBeDefined();
   });
@@ -95,9 +97,9 @@ describe("Link", () => {
         <Link to="/custom" className="custom-link-class">
           Custom Class Link
         </Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = screen.getByRole("link", { name: "Custom Class Link" });
     expect(link.className).toContain("custom-link-class");
   });
@@ -109,9 +111,9 @@ describe("Link", () => {
           <span>Icon</span>
           <span>Text</span>
         </Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     expect(screen.getByText("Icon")).toBeInTheDocument();
     expect(screen.getByText("Text")).toBeInTheDocument();
   });
@@ -122,9 +124,9 @@ describe("Link", () => {
         <Link to="https://example.com" external variant="button">
           External Button
         </Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = container.querySelector("a");
     expect(link?.className).toBeDefined();
     expect(link).toHaveAttribute("target", "_blank");
@@ -134,9 +136,9 @@ describe("Link", () => {
     render(
       <MemoryRouter>
         <Link to="/">Home</Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = screen.getByRole("link", { name: "Home" });
     expect(link).toHaveAttribute("href", "/");
   });
@@ -145,9 +147,9 @@ describe("Link", () => {
     render(
       <MemoryRouter>
         <Link to="#section">Section</Link>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    
+
     const link = screen.getByRole("link", { name: "Section" });
     expect(link).toHaveAttribute("href", "/#section");
   });

@@ -67,7 +67,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                 padding: "section",
               })}
             >
-              <Heading1 
+              <Heading1
                 variant="page"
                 className={css({ marginBottom: "card" })}
               >

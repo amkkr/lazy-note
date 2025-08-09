@@ -7,10 +7,12 @@ import { PostDetailPage } from "../PostDetailPage";
 const mockPost: Post = {
   id: "test-post",
   title: "テスト記事タイトル",
-  content: "<p>これはテスト記事の内容です。</p><h2>見出し</h2><p>追加のコンテンツ</p>",
+  content:
+    "<p>これはテスト記事の内容です。</p><h2>見出し</h2><p>追加のコンテンツ</p>",
   author: "テスト著者",
   createdAt: "2024-01-15",
-  rawContent: "# テスト記事タイトル\n\nこれはテスト記事の内容です。\n\n## 見出し\n\n追加のコンテンツ",
+  rawContent:
+    "# テスト記事タイトル\n\nこれはテスト記事の内容です。\n\n## 見出し\n\n追加のコンテンツ",
 };
 
 describe("PostDetailPage", () => {
@@ -18,17 +20,19 @@ describe("PostDetailPage", () => {
     render(
       <MemoryRouter>
         <PostDetailPage post={mockPost} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: "テスト記事タイトル" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "テスト記事タイトル" }),
+    ).toBeInTheDocument();
   });
 
   it("記事のメタ情報を表示できる", () => {
     render(
       <MemoryRouter>
         <PostDetailPage post={mockPost} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("テスト著者")).toBeInTheDocument();
@@ -39,10 +43,12 @@ describe("PostDetailPage", () => {
     render(
       <MemoryRouter>
         <PostDetailPage post={mockPost} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    expect(screen.getByText("これはテスト記事の内容です。")).toBeInTheDocument();
+    expect(
+      screen.getByText("これはテスト記事の内容です。"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "見出し" })).toBeInTheDocument();
     expect(screen.getByText("追加のコンテンツ")).toBeInTheDocument();
   });
@@ -51,7 +57,7 @@ describe("PostDetailPage", () => {
     render(
       <MemoryRouter>
         <PostDetailPage post={mockPost} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const backLink = screen.getByRole("link", { name: /Lazy Note に戻る/ });
@@ -68,22 +74,25 @@ describe("PostDetailPage", () => {
     render(
       <MemoryRouter>
         <PostDetailPage post={postWithoutTitle} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: "無題の記事" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "無題の記事" }),
+    ).toBeInTheDocument();
   });
 
   it("HTMLコンテンツを表示できる", () => {
     const postWithHtml: Post = {
       ...mockPost,
-      content: '<p>パラグラフ</p><ul><li>リスト項目1</li><li>リスト項目2</li></ul><a href="#">リンク</a>',
+      content:
+        '<p>パラグラフ</p><ul><li>リスト項目1</li><li>リスト項目2</li></ul><a href="#">リンク</a>',
     };
 
     render(
       <MemoryRouter>
         <PostDetailPage post={postWithHtml} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("パラグラフ")).toBeInTheDocument();

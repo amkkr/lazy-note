@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type Post, getAllPosts } from "../lib/markdown";
+import { getAllPosts, type Post } from "../lib/markdown";
 
 interface UsePostsReturn {
   posts: Post[];

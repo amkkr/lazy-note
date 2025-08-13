@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPostsMiddleware } from "../posts";
-import type { IncomingMessage, ServerResponse } from "http";
-import fs from "fs";
-import path from "path";
 
 // fsモジュールをモック
 vi.mock("fs");
@@ -33,16 +33,19 @@ describe("createPostsMiddleware", () => {
 
   it("GET リクエストで投稿一覧を返す", () => {
     const mockFiles = ["20250101.md", "20250102.md", "test.txt"];
-    vi.mocked(fs.readdirSync).mockReturnValue(mockFiles as any);
+    vi.mocked(fs.readdirSync).mockReturnValue(mockFiles as unknown as fs.Dirent[]);
 
     middleware(req as IncomingMessage, res as ServerResponse, next);
 
     expect(fs.readdirSync).toHaveBeenCalledWith(
-      path.join(process.cwd(), "datasources")
+      path.join(process.cwd(), "datasources"),
     );
-    expect(res.setHeader).toHaveBeenCalledWith("Content-Type", "application/json");
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "Content-Type",
+      "application/json",
+    );
     expect(res.end).toHaveBeenCalledWith(
-      JSON.stringify(["20250101", "20250102"])
+      JSON.stringify(["20250101", "20250102"]),
     );
     expect(next).not.toHaveBeenCalled();
   });
@@ -67,20 +70,18 @@ describe("createPostsMiddleware", () => {
     expect(res.end).toHaveBeenCalledWith(
       JSON.stringify({
         error: "Failed to read datasources directory",
-      })
+      }),
     );
     expect(next).not.toHaveBeenCalled();
   });
 
   it("Markdown ファイルのみをフィルタリングする", () => {
     const mockFiles = ["post.md", "image.png", "data.json", "note.md"];
-    vi.mocked(fs.readdirSync).mockReturnValue(mockFiles as any);
+    vi.mocked(fs.readdirSync).mockReturnValue(mockFiles as unknown as fs.Dirent[]);
 
     middleware(req as IncomingMessage, res as ServerResponse, next);
 
-    expect(res.end).toHaveBeenCalledWith(
-      JSON.stringify(["post", "note"])
-    );
+    expect(res.end).toHaveBeenCalledWith(JSON.stringify(["post", "note"]));
   });
 
   it("空のディレクトリの場合、空の配列を返す", () => {

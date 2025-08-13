@@ -1,6 +1,6 @@
-import { createPostsMiddleware } from "./posts";
-import { createDatasourcesMiddleware } from "./datasources";
 import type { ViteDevServer } from "vite";
+import { createDatasourcesMiddleware } from "./datasources";
+import { createPostsMiddleware } from "./posts";
 
 /**
  * APIミドルウェアをViteサーバーに登録

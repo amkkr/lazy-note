@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDatasourcesMiddleware } from "../datasources";
-import type { IncomingMessage, ServerResponse } from "http";
-import fs from "fs";
-import path from "path";
 
 // fsモジュールをモック
 vi.mock("fs");
@@ -39,7 +39,7 @@ describe("createDatasourcesMiddleware", () => {
 
     expect(fs.readFileSync).toHaveBeenCalledWith(
       path.join(process.cwd(), "datasources", "/20250101.md"),
-      "utf8"
+      "utf8",
     );
     expect(res.setHeader).toHaveBeenCalledWith("Content-Type", "text/plain");
     expect(res.end).toHaveBeenCalledWith(mockContent);
@@ -75,7 +75,7 @@ describe("createDatasourcesMiddleware", () => {
 
     expect(fs.readFileSync).toHaveBeenCalledWith(
       path.join(process.cwd(), "datasources", "/subfolder/test.md"),
-      "utf8"
+      "utf8",
     );
     expect(res.end).toHaveBeenCalledWith(mockContent);
   });

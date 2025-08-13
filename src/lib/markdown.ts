@@ -81,7 +81,7 @@ export const getAllPosts = async (): Promise<Post[]> => {
 
     const posts = await Promise.all(
       timestamps.map(async (timestamp: string) => {
-        const fileResponse = await fetch(`/datasources/${timestamp}.md`);
+        const fileResponse = await fetch(`/api/posts/${timestamp}`);
 
         if (!fileResponse.ok) {
           return null;
@@ -103,7 +103,7 @@ export const getAllPosts = async (): Promise<Post[]> => {
 
 export const getPost = async (timestamp: string): Promise<Post | null> => {
   try {
-    const response = await fetch(`/datasources/${timestamp}.md`);
+    const response = await fetch(`/api/posts/${timestamp}`);
     if (!response.ok) {
       return null;
     }

@@ -1,5 +1,4 @@
 import type { ViteDevServer } from "vite";
-import { createDatasourcesMiddleware } from "./datasources";
 import { createPostsMiddleware } from "./posts";
 
 /**
@@ -7,11 +6,8 @@ import { createPostsMiddleware } from "./posts";
  * @param server Vite開発サーバーインスタンス
  */
 export const registerApiMiddlewares = (server: ViteDevServer) => {
-  // 投稿一覧API
+  // 投稿API（一覧と個別取得の両方を処理）
   server.middlewares.use("/api/posts", createPostsMiddleware());
-
-  // データソースファイル取得API
-  server.middlewares.use("/datasources", createDatasourcesMiddleware());
 };
 
-export { createPostsMiddleware, createDatasourcesMiddleware };
+export { createPostsMiddleware };

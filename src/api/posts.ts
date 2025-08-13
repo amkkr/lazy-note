@@ -3,14 +3,38 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 
 /**
- * 投稿一覧を取得するミドルウェアを作成
+ * 投稿APIミドルウェアを作成
+ * - GET /api/posts: 投稿一覧を取得
+ * - GET /api/posts/:id: 個別投稿を取得
  * @returns Viteサーバーミドルウェア関数
  */
 export const createPostsMiddleware = () => {
   return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-    if (req.method === "GET") {
-      const datasourcesPath = path.join(process.cwd(), "datasources");
+    if (req.method !== "GET") {
+      next();
+      return;
+    }
 
+    const datasourcesPath = path.join(process.cwd(), "datasources");
+
+    // URLから投稿IDを抽出（/api/posts/20250101 -> 20250101）
+    const urlPath = req.url || "";
+    const postId = urlPath.replace(/^\//, "").replace(/\.md$/, "");
+
+    // 個別投稿の取得
+    if (postId) {
+      const filePath = path.join(datasourcesPath, `${postId}.md`);
+
+      try {
+        const content = fs.readFileSync(filePath, "utf8");
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.end(content);
+      } catch (_error) {
+        res.statusCode = 404;
+        res.end("Post not found");
+      }
+    } else {
+      // 投稿一覧の取得
       try {
         const files = fs
           .readdirSync(datasourcesPath)
@@ -27,8 +51,6 @@ export const createPostsMiddleware = () => {
           }),
         );
       }
-    } else {
-      next();
     }
   };
 };

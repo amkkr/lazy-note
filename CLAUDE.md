@@ -445,3 +445,25 @@ const value = someValue ?? defaultValue;
 // Optional Chaining
 const name = user?.profile?.name;
 ```
+
+### テストファイルでのモック
+
+テストファイル（`*.test.ts`、`*.test.tsx`）では、モックの戻り値に`any`型の使用を許可します。
+ただし、Biomeのエラーを回避するため、必ず以下のアノテーションコメントを追加すること：
+
+```typescript
+// 良い例
+it("テストケース名", () => {
+  const mockData = ["item1", "item2"];
+  // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+  vi.mocked(someFunction).mockReturnValue(mockData as any);
+});
+
+// 悪い例（アノテーションなし）
+it("テストケース名", () => {
+  const mockData = ["item1", "item2"];
+  vi.mocked(someFunction).mockReturnValue(mockData as any); // エラーになる
+});
+```
+
+**重要**: この例外はテストファイルのモックに限定されます。プロダクションコードでは`any`型の使用は引き続き禁止です。

@@ -35,9 +35,8 @@ describe("createPostsMiddleware", () => {
   describe("投稿一覧の取得", () => {
     it("GET /api/posts で投稿一覧を返す", () => {
       const mockFiles = ["20250101.md", "20250102.md", "test.txt"];
-      vi.mocked(fs.readdirSync).mockReturnValue(
-        mockFiles as unknown as fs.Dirent[],
-      );
+      // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+      vi.mocked(fs.readdirSync).mockReturnValue(mockFiles as any);
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
@@ -56,9 +55,8 @@ describe("createPostsMiddleware", () => {
 
     it("Markdown ファイルのみをフィルタリングする", () => {
       const mockFiles = ["post.md", "image.png", "data.json", "note.md"];
-      vi.mocked(fs.readdirSync).mockReturnValue(
-        mockFiles as unknown as fs.Dirent[],
-      );
+      // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+      vi.mocked(fs.readdirSync).mockReturnValue(mockFiles as any);
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 

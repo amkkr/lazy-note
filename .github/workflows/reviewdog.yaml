@@ -7,11 +7,10 @@ jobs:
     name: yamllint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Run yamllint
-        uses: reviewdog/action-yamllint@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: yamllint
+        uses: reviewdog/action-yamllint@f01d8a48fd8d89f89895499fca2cff09f9e9e8c0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-review
-          fail_level: error
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review # Change reporter.
+          yamllint_flags: ".github/"

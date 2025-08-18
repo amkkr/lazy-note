@@ -1,0 +1,19 @@
+name: reviewdog
+
+on:
+  pull_request:
+
+jobs:
+  yamllint:
+    name: yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run yamllint
+        uses: reviewdog/action-yamllint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          yamllint_flags: "-d relaxed ."
+          fail_on_error: true

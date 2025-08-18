@@ -15,5 +15,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
-          yamllint_flags: "-d relaxed ."
           fail_on_error: true

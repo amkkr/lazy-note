@@ -144,7 +144,7 @@ describe("markdown.ts", () => {
 
       const result = parseMarkdown(content, "20240101100000");
 
-      expect(result.content).toBe("<p>1行目です。\n2行目です。</p>\n");
+      expect(result.content).toBe("<p>1行目です。<br>2行目です。</p>\n");
     });
   });
 });

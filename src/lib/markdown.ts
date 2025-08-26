@@ -1,5 +1,11 @@
 import { marked } from "marked";
 
+// markedの設定
+marked.use({
+  breaks: true,  // 改行を<br>タグに変換
+  gfm: true,     // GitHub Flavored Markdownを有効化
+});
+
 export interface Post {
   id: string;
   title: string;

@@ -33,7 +33,8 @@ export const Header = ({ postCount }: HeaderProps) => {
           className={css({
             background: "bg.2",
             color: "fg.1",
-            padding: "sm",
+            paddingY: "sm",
+            paddingX: "md",
             borderRadius: "20px",
             fontSize: "sm",
             fontWeight: "bold",

@@ -92,7 +92,9 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             {/* Article Content */}
             <main
               className={css({
-                padding: "section",
+                paddingRight: "section",
+                paddingLeft: "section",
+                paddingBottom: "section",
                 lineHeight: "body",
                 fontSize: "base",
                 color: "fg.1",

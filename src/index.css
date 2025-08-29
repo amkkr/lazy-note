@@ -51,6 +51,21 @@ p {
   color: #d5c4a1;
 }
 
+/* List Base Styles */
+ul, ol {
+  padding-left: 2em;
+  margin: 1em 0;
+}
+
+ul {
+  list-style-type: disc;
+}
+
+li {
+  margin: 0.5em 0;
+  line-height: 1.7;
+}
+
 /* Button Base Styles */
 button {
   display: inline-flex;

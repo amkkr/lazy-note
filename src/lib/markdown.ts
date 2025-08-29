@@ -2,8 +2,8 @@ import { marked } from "marked";
 
 // markedの設定
 marked.use({
-  breaks: true,  // 改行を<br>タグに変換
-  gfm: true,     // GitHub Flavored Markdownを有効化
+  breaks: true, // 改行を<br>タグに変換
+  gfm: true, // GitHub Flavored Markdownを有効化
 });
 
 export interface Post {
@@ -106,16 +106,16 @@ export const getAllPosts = async (): Promise<Post[]> => {
     } else {
       // 本番環境では動的インポートを使用して静的ファイルを読み込み
       const posts: Post[] = [];
-      
+
       // 既知のMarkdownファイルを動的にインポート
       try {
-        const modules = import.meta.glob("/datasources/*.md", { 
-          query: "?raw", 
-          import: "default" 
+        const modules = import.meta.glob("/datasources/*.md", {
+          query: "?raw",
+          import: "default",
         });
-        
+
         for (const path in modules) {
-          const content = await modules[path]() as string;
+          const content = (await modules[path]()) as string;
           const timestamp = path.split("/").pop()?.replace(".md", "") || "";
           if (timestamp) {
             posts.push(parseMarkdown(content, timestamp));

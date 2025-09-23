@@ -17,3 +17,11 @@ updates:
     allow:
       - dependency-type: "direct"
       - dependency-type: "indirect"
+
+  - package-ecosystem: "github-actions"
+    directory: ".github/workflows/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "06:30"
+      timezone: "Asia/Tokyo"

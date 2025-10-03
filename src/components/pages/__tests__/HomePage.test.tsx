@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Post } from "../../../lib/markdown";
 import { HomePage } from "../HomePage";
 
@@ -23,11 +23,18 @@ const mockPosts: Post[] = [
   },
 ];
 
+const mockOnPageChange = vi.fn();
+
 describe("HomePage", () => {
   it("記事がない場合はEmptyStateが表示される", () => {
     render(
       <MemoryRouter>
-        <HomePage posts={[]} />
+        <HomePage
+          posts={[]}
+          currentPage={1}
+          totalPages={1}
+          onPageChange={mockOnPageChange}
+        />
       </MemoryRouter>,
     );
 
@@ -42,7 +49,12 @@ describe("HomePage", () => {
   it("記事一覧を表示できる", () => {
     render(
       <MemoryRouter>
-        <HomePage posts={mockPosts} />
+        <HomePage
+          posts={mockPosts}
+          currentPage={1}
+          totalPages={1}
+          onPageChange={mockOnPageChange}
+        />
       </MemoryRouter>,
     );
 
@@ -53,7 +65,12 @@ describe("HomePage", () => {
   it("各記事のメタ情報を表示できる", () => {
     render(
       <MemoryRouter>
-        <HomePage posts={mockPosts} />
+        <HomePage
+          posts={mockPosts}
+          currentPage={1}
+          totalPages={1}
+          onPageChange={mockOnPageChange}
+        />
       </MemoryRouter>,
     );
 
@@ -66,7 +83,12 @@ describe("HomePage", () => {
   it("記事タイトルをリンクにできる", () => {
     render(
       <MemoryRouter>
-        <HomePage posts={mockPosts} />
+        <HomePage
+          posts={mockPosts}
+          currentPage={1}
+          totalPages={1}
+          onPageChange={mockOnPageChange}
+        />
       </MemoryRouter>,
     );
 
@@ -91,7 +113,12 @@ describe("HomePage", () => {
 
     render(
       <MemoryRouter>
-        <HomePage posts={postsWithoutTitle} />
+        <HomePage
+          posts={postsWithoutTitle}
+          currentPage={1}
+          totalPages={1}
+          onPageChange={mockOnPageChange}
+        />
       </MemoryRouter>,
     );
 

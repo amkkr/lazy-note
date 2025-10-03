@@ -47,6 +47,9 @@ describe("Indexコンポーネント", () => {
       posts: [],
       loading: true,
       error: null,
+      currentPage: 1,
+      totalPages: 1,
+      setCurrentPage: vi.fn(),
     });
 
     render(
@@ -63,6 +66,9 @@ describe("Indexコンポーネント", () => {
       posts: mockPosts,
       loading: false,
       error: null,
+      currentPage: 1,
+      totalPages: 1,
+      setCurrentPage: vi.fn(),
     });
 
     render(
@@ -96,6 +102,9 @@ describe("Indexコンポーネント", () => {
       posts: [],
       loading: false,
       error: null,
+      currentPage: 1,
+      totalPages: 1,
+      setCurrentPage: vi.fn(),
     });
 
     render(
@@ -112,6 +121,9 @@ describe("Indexコンポーネント", () => {
       posts: [],
       loading: false,
       error: "ネットワークエラー",
+      currentPage: 1,
+      totalPages: 1,
+      setCurrentPage: vi.fn(),
     });
 
     render(
@@ -128,6 +140,9 @@ describe("Indexコンポーネント", () => {
       posts: mockPosts,
       loading: false,
       error: null,
+      currentPage: 1,
+      totalPages: 1,
+      setCurrentPage: vi.fn(),
     });
 
     render(
@@ -148,6 +163,9 @@ describe("Indexコンポーネント", () => {
       posts: mockPosts,
       loading: false,
       error: null,
+      currentPage: 1,
+      totalPages: 1,
+      setCurrentPage: vi.fn(),
     });
 
     render(

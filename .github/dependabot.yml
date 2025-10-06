@@ -7,7 +7,7 @@ updates:
       day: "saturday"
       time: "06:30"
       timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     assignees:
       - "amkkr"
     commit-message:
@@ -25,3 +25,4 @@ updates:
       day: "saturday"
       time: "06:30"
       timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 10

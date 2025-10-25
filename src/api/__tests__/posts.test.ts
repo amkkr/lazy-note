@@ -36,19 +36,19 @@ describe("createPostsMiddleware", () => {
     it("GET /api/posts で投稿一覧を返す", () => {
       const mockFiles = ["20250101.md", "20250102.md", "test.txt"];
       // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
-      vi.mocked(fs.readdirSync).mockReturnValue(mockFiles as any);
+      vi.spyOn(fs, "readdirSync").mockReturnValue(mockFiles as any);
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
       expect(fs.readdirSync).toHaveBeenCalledWith(
-        path.join(process.cwd(), "datasources"),
+        path.join(process.cwd(), "datasources")
       );
       expect(res.setHeader).toHaveBeenCalledWith(
         "Content-Type",
-        "application/json",
+        "application/json"
       );
       expect(res.end).toHaveBeenCalledWith(
-        JSON.stringify(["20250101", "20250102"]),
+        JSON.stringify(["20250101", "20250102"])
       );
       expect(next).not.toHaveBeenCalled();
     });
@@ -56,7 +56,7 @@ describe("createPostsMiddleware", () => {
     it("Markdown ファイルのみをフィルタリングする", () => {
       const mockFiles = ["post.md", "image.png", "data.json", "note.md"];
       // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
-      vi.mocked(fs.readdirSync).mockReturnValue(mockFiles as any);
+      vi.spyOn(fs, "readdirSync").mockReturnValue(mockFiles as any);
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
@@ -64,7 +64,7 @@ describe("createPostsMiddleware", () => {
     });
 
     it("空のディレクトリの場合、空の配列を返す", () => {
-      vi.mocked(fs.readdirSync).mockReturnValue([]);
+      vi.spyOn(fs, "readdirSync").mockReturnValue([]);
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
@@ -72,7 +72,7 @@ describe("createPostsMiddleware", () => {
     });
 
     it("ディレクトリ読み取りエラー時に 500 エラーを返す", () => {
-      vi.mocked(fs.readdirSync).mockImplementation(() => {
+      vi.spyOn(fs, "readdirSync").mockImplementation(() => {
         throw new Error("Directory not found");
       });
 
@@ -82,7 +82,7 @@ describe("createPostsMiddleware", () => {
       expect(res.end).toHaveBeenCalledWith(
         JSON.stringify({
           error: "Failed to read datasources directory",
-        }),
+        })
       );
       expect(next).not.toHaveBeenCalled();
     });
@@ -92,17 +92,17 @@ describe("createPostsMiddleware", () => {
     it("GET /api/posts/:id で個別投稿を返す", () => {
       req.url = "/20250101";
       const mockContent = "# Test Post\n\nThis is a test content.";
-      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+      vi.spyOn(fs, "readFileSync").mockReturnValue(mockContent);
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
       expect(fs.readFileSync).toHaveBeenCalledWith(
         path.join(process.cwd(), "datasources", "20250101.md"),
-        "utf8",
+        "utf8"
       );
       expect(res.setHeader).toHaveBeenCalledWith(
         "Content-Type",
-        "text/plain; charset=utf-8",
+        "text/plain; charset=utf-8"
       );
       expect(res.end).toHaveBeenCalledWith(mockContent);
     });
@@ -110,20 +110,20 @@ describe("createPostsMiddleware", () => {
     it(".md 拡張子付きのURLでも正しく処理する", () => {
       req.url = "/20250101.md";
       const mockContent = "# Test Post";
-      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+      vi.spyOn(fs, "readFileSync").mockReturnValue(mockContent);
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
       expect(fs.readFileSync).toHaveBeenCalledWith(
         path.join(process.cwd(), "datasources", "20250101.md"),
-        "utf8",
+        "utf8"
       );
       expect(res.end).toHaveBeenCalledWith(mockContent);
     });
 
     it("投稿が存在しない場合、404 エラーを返す", () => {
       req.url = "/nonexistent";
-      vi.mocked(fs.readFileSync).mockImplementation(() => {
+      vi.spyOn(fs, "readFileSync").mockImplementation(() => {
         throw new Error("File not found");
       });
 
@@ -136,7 +136,7 @@ describe("createPostsMiddleware", () => {
     it("日本語を含む投稿を正しく処理する", () => {
       req.url = "/20250101";
       const mockContent = "# テスト投稿\n\nこれはテストコンテンツです。";
-      vi.mocked(fs.readFileSync).mockReturnValue(mockContent);
+      vi.spyOn(fs, "readFileSync").mockReturnValue(mockContent);
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
@@ -145,13 +145,13 @@ describe("createPostsMiddleware", () => {
 
     it("空のファイルを正しく処理する", () => {
       req.url = "/20250101";
-      vi.mocked(fs.readFileSync).mockReturnValue("");
+      vi.spyOn(fs, "readFileSync").mockReturnValue("");
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
       expect(res.setHeader).toHaveBeenCalledWith(
         "Content-Type",
-        "text/plain; charset=utf-8",
+        "text/plain; charset=utf-8"
       );
       expect(res.end).toHaveBeenCalledWith("");
     });

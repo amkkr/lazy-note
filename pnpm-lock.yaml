@@ -32,7 +32,7 @@ importers:
         version: 2.3.0
       '@pandacss/dev':
         specifier: ^1.4.3
-        version: 1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)
+        version: 1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -55,8 +55,8 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0(vite@7.1.10(lightningcss@1.25.1)(yaml@2.8.0))
       jsdom:
-        specifier: ^27.0.0
-        version: 27.0.0(postcss@8.5.6)
+        specifier: ^27.0.1
+        version: 27.0.1(postcss@8.5.6)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -65,18 +65,18 @@ importers:
         version: 7.1.10(lightningcss@1.25.1)(yaml@2.8.0)
       vitest:
         specifier: ^3.2.4
-        version: 3.2.4(@types/debug@4.1.12)(jsdom@27.0.0(postcss@8.5.6))(lightningcss@1.25.1)(yaml@2.8.0)
+        version: 3.2.4(@types/debug@4.1.12)(jsdom@27.0.1(postcss@8.5.6))(lightningcss@1.25.1)(yaml@2.8.0)
 
 packages:
 
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
 
-  '@asamuzakjp/css-color@4.0.4':
-    resolution: {integrity: sha512-cKjSKvWGmAziQWbCouOsFwb14mp1betm8Y7Fn+yglDMUUu3r9DCbJ9iJbeFDenLMqFbIMC0pQP8K+B8LAxX3OQ==}
+  '@asamuzakjp/css-color@4.0.5':
+    resolution: {integrity: sha512-lMrXidNhPGsDjytDy11Vwlb6OIGrT3CmLg3VWNFyWkLWtijKl7xjvForlh8vuj0SHGjgl4qZEQzUmYTeQA2JFQ==}
 
-  '@asamuzakjp/dom-selector@6.5.5':
-    resolution: {integrity: sha512-kI2MX9pmImjxWT8nxDZY+MuN6r1jJGe7WxizEbsAEPB/zxfW5wYLIiPG1v3UKgEOOP8EsDkp0ZL99oRFAdPM8g==}
+  '@asamuzakjp/dom-selector@6.7.3':
+    resolution: {integrity: sha512-kiGFeY+Hxf5KbPpjRLf+ffWbkos1aGo8MBfd91oxS3O57RgU3XhZrt/6UzoVF9VMpWbC3v87SRc9jxGrc9qHtQ==}
 
   '@asamuzakjp/nwsapi@2.3.9':
     resolution: {integrity: sha512-n8GuYSrI9bF7FFZ/SjhwevlHc8xaVlb/7HmHelnc/PZXBD2ZR49NnN9sMMuDdEGPeeRQ5d0hqlSlEpgCX3Wl0Q==}
@@ -980,8 +980,8 @@ packages:
     peerDependencies:
       postcss: ^8.4.32
 
-  cssstyle@5.3.0:
-    resolution: {integrity: sha512-RveJPnk3m7aarYQ2bJ6iw+Urh55S6FzUiqtBq+TihnTDP4cI8y/TYDqGOyqgnG1J1a6BxJXZsV9JFSTulm9Z7g==}
+  cssstyle@5.3.1:
+    resolution: {integrity: sha512-g5PC9Aiph9eiczFpcgUhd9S4UUO3F+LHGRIi5NUMZ+4xtoIYbHNZwZnWA2JsFGe8OU8nl4WyaEFiZuGuxlutJQ==}
     engines: {node: '>=20'}
 
   csstype@3.1.3:
@@ -1186,8 +1186,8 @@ packages:
   js-tokens@9.0.1:
     resolution: {integrity: sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==}
 
-  jsdom@27.0.0:
-    resolution: {integrity: sha512-lIHeR1qlIRrIN5VMccd8tI2Sgw6ieYXSVktcSHaNe3Z5nE/tcPQYQWOq00wxMvYOsz+73eAkNenVvmPC6bba9A==}
+  jsdom@27.0.1:
+    resolution: {integrity: sha512-SNSQteBL1IlV2zqhwwolaG9CwhIhTvVHWg3kTss/cLE7H/X4644mtPQqYvCfsSrGQWt9hSZcgOXX8bOZaMN+kA==}
     engines: {node: '>=20'}
     peerDependencies:
       canvas: ^3.0.0
@@ -1291,8 +1291,8 @@ packages:
   loupe@3.2.0:
     resolution: {integrity: sha512-2NCfZcT5VGVNX9mSZIxLRkEAegDGBpuQZBy13desuHeVORmBDyAET4TkJr4SjqQy3A8JDofMN6LpkK8Xcm/dlw==}
 
-  lru-cache@11.2.1:
-    resolution: {integrity: sha512-r8LA6i4LP4EeWOhqBaZZjDWwehd1xUJPCJd9Sv300H0ZmcUER4+JPh7bqqZeqs1o5pgtgvXm+d9UGrB5zZGDiQ==}
+  lru-cache@11.2.2:
+    resolution: {integrity: sha512-F9ODfyqML2coTIsQpSkRHnLSZMtkU8Q+mSfcaIyKwy58u+8k5nvAYeiNhsyMARvzNcXJ9QfWVrcPsC9e9rAxtg==}
     engines: {node: 20 || >=22}
 
   lru-cache@5.1.1:
@@ -1364,8 +1364,8 @@ packages:
   package-manager-detector@0.1.0:
     resolution: {integrity: sha512-qRwvZgEE7geMY6xPChI3T0qrM0PL4s/AKiLnNVjhg3GdN2/fUUSrpGA5Z8mejMXauT1BS6RJIgWvSGAdqg8NnQ==}
 
-  parse5@7.3.0:
-    resolution: {integrity: sha512-IInvU7fabl34qmi9gY8XOVxhYyMyuH2xUNpb2q8/Y+7552KlejkRvqvD19nMoUW/uQGGbqNpA6Tufu5FL5BZgw==}
+  parse5@8.0.0:
+    resolution: {integrity: sha512-9m4m5GSgXjL4AjumKzq1Fgfp3Z8rsvjRNbnkVwfu2ImRqE5D0LnY2QfDen18FSY9C573YU5XxSapdHZTZ2WolA==}
 
   path-browserify@1.0.1:
     resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
@@ -1617,11 +1617,11 @@ packages:
     resolution: {integrity: sha512-t2T/WLB2WRgZ9EpE4jgPJ9w+i66UZfDc8wHh0xrwiRNN+UwH98GIJkTeZqX9rg0i0ptwzqW+uYeIF0T4F8LR7A==}
     engines: {node: '>=14.0.0'}
 
-  tldts-core@7.0.14:
-    resolution: {integrity: sha512-viZGNK6+NdluOJWwTO9olaugx0bkKhscIdriQQ+lNNhwitIKvb+SvhbYgnCz6j9p7dX3cJntt4agQAKMXLjJ5g==}
+  tldts-core@7.0.17:
+    resolution: {integrity: sha512-DieYoGrP78PWKsrXr8MZwtQ7GLCUeLxihtjC1jZsW1DnvSMdKPitJSe8OSYDM2u5H6g3kWJZpePqkp43TfLh0g==}
 
-  tldts@7.0.14:
-    resolution: {integrity: sha512-lMNHE4aSI3LlkMUMicTmAG3tkkitjOQGDTFboPJwAg2kJXKP1ryWEyqujktg5qhrFZOkk5YFzgkxg3jErE+i5w==}
+  tldts@7.0.17:
+    resolution: {integrity: sha512-Y1KQBgDd/NUc+LfOtKS6mNsC9CCaH+m2P1RoIZy7RAPo3C3/t8X45+zgut31cRZtZ3xKPjfn3TkGTrctC2TQIQ==}
     hasBin: true
 
   to-regex-range@5.0.1:
@@ -1826,20 +1826,21 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@asamuzakjp/css-color@4.0.4':
+  '@asamuzakjp/css-color@4.0.5':
     dependencies:
       '@csstools/css-calc': 2.1.4(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-color-parser': 3.1.0(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
-      lru-cache: 11.2.1
+      lru-cache: 11.2.2
 
-  '@asamuzakjp/dom-selector@6.5.5':
+  '@asamuzakjp/dom-selector@6.7.3':
     dependencies:
       '@asamuzakjp/nwsapi': 2.3.9
       bidi-js: 1.0.3
       css-tree: 3.1.0
       is-potential-custom-element-name: 1.0.1
+      lru-cache: 11.2.2
 
   '@asamuzakjp/nwsapi@2.3.9': {}
 
@@ -2227,13 +2228,13 @@ snapshots:
       postcss-selector-parser: 7.1.0
       ts-pattern: 5.8.0
 
-  '@pandacss/dev@1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)':
+  '@pandacss/dev@1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)':
     dependencies:
       '@clack/prompts': 0.9.1
       '@pandacss/config': 1.4.3
       '@pandacss/logger': 1.4.3
-      '@pandacss/node': 1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)
-      '@pandacss/postcss': 1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)
+      '@pandacss/node': 1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)
+      '@pandacss/postcss': 1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)
       '@pandacss/preset-base': 1.4.3
       '@pandacss/preset-panda': 1.4.3
       '@pandacss/shared': 1.4.3
@@ -2244,10 +2245,10 @@ snapshots:
       - jsdom
       - typescript
 
-  '@pandacss/extractor@1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)':
+  '@pandacss/extractor@1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)':
     dependencies:
       '@pandacss/shared': 1.4.3
-      ts-evaluator: 1.2.0(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)
+      ts-evaluator: 1.2.0(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)
       ts-morph: 26.0.0
     transitivePeerDependencies:
       - jsdom
@@ -2274,13 +2275,13 @@ snapshots:
       '@pandacss/types': 1.4.3
       kleur: 4.1.5
 
-  '@pandacss/node@1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)':
+  '@pandacss/node@1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)':
     dependencies:
       '@pandacss/config': 1.4.3
       '@pandacss/core': 1.4.3
       '@pandacss/generator': 1.4.3
       '@pandacss/logger': 1.4.3
-      '@pandacss/parser': 1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)
+      '@pandacss/parser': 1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)
       '@pandacss/reporter': 1.4.3
       '@pandacss/shared': 1.4.3
       '@pandacss/token-dictionary': 1.4.3
@@ -2308,11 +2309,11 @@ snapshots:
       - jsdom
       - typescript
 
-  '@pandacss/parser@1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)':
+  '@pandacss/parser@1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)':
     dependencies:
       '@pandacss/config': 1.4.3
       '@pandacss/core': 1.4.3
-      '@pandacss/extractor': 1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)
+      '@pandacss/extractor': 1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)
       '@pandacss/logger': 1.4.3
       '@pandacss/shared': 1.4.3
       '@pandacss/types': 1.4.3
@@ -2324,9 +2325,9 @@ snapshots:
       - jsdom
       - typescript
 
-  '@pandacss/postcss@1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)':
+  '@pandacss/postcss@1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)':
     dependencies:
-      '@pandacss/node': 1.4.3(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3)
+      '@pandacss/node': 1.4.3(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3)
       postcss: 8.5.6
     transitivePeerDependencies:
       - jsdom
@@ -2803,9 +2804,9 @@ snapshots:
     dependencies:
       postcss: 8.5.6
 
-  cssstyle@5.3.0(postcss@8.5.6):
+  cssstyle@5.3.1(postcss@8.5.6):
     dependencies:
-      '@asamuzakjp/css-color': 4.0.4
+      '@asamuzakjp/css-color': 4.0.5
       '@csstools/css-syntax-patches-for-csstree': 1.0.14(postcss@8.5.6)
       css-tree: 3.1.0
     transitivePeerDependencies:
@@ -2988,17 +2989,17 @@ snapshots:
 
   js-tokens@9.0.1: {}
 
-  jsdom@27.0.0(postcss@8.5.6):
+  jsdom@27.0.1(postcss@8.5.6):
     dependencies:
-      '@asamuzakjp/dom-selector': 6.5.5
-      cssstyle: 5.3.0(postcss@8.5.6)
+      '@asamuzakjp/dom-selector': 6.7.3
+      cssstyle: 5.3.1(postcss@8.5.6)
       data-urls: 6.0.0
       decimal.js: 10.6.0
       html-encoding-sniffer: 4.0.0
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       is-potential-custom-element-name: 1.0.1
-      parse5: 7.3.0
+      parse5: 8.0.0
       rrweb-cssom: 0.8.0
       saxes: 6.0.0
       symbol-tree: 3.2.4
@@ -3083,7 +3084,7 @@ snapshots:
 
   loupe@3.2.0: {}
 
-  lru-cache@11.2.1: {}
+  lru-cache@11.2.2: {}
 
   lru-cache@5.1.1:
     dependencies:
@@ -3138,7 +3139,7 @@ snapshots:
 
   package-manager-detector@0.1.0: {}
 
-  parse5@7.3.0:
+  parse5@8.0.0:
     dependencies:
       entities: 6.0.1
 
@@ -3375,11 +3376,11 @@ snapshots:
 
   tinyspy@4.0.3: {}
 
-  tldts-core@7.0.14: {}
+  tldts-core@7.0.17: {}
 
-  tldts@7.0.14:
+  tldts@7.0.17:
     dependencies:
-      tldts-core: 7.0.14
+      tldts-core: 7.0.17
 
   to-regex-range@5.0.1:
     dependencies:
@@ -3387,20 +3388,20 @@ snapshots:
 
   tough-cookie@6.0.0:
     dependencies:
-      tldts: 7.0.14
+      tldts: 7.0.17
 
   tr46@6.0.0:
     dependencies:
       punycode: 2.3.1
 
-  ts-evaluator@1.2.0(jsdom@27.0.0(postcss@8.5.6))(typescript@5.9.3):
+  ts-evaluator@1.2.0(jsdom@27.0.1(postcss@8.5.6))(typescript@5.9.3):
     dependencies:
       ansi-colors: 4.1.3
       crosspath: 2.0.0
       object-path: 0.11.8
       typescript: 5.9.3
     optionalDependencies:
-      jsdom: 27.0.0(postcss@8.5.6)
+      jsdom: 27.0.1(postcss@8.5.6)
 
   ts-morph@26.0.0:
     dependencies:
@@ -3473,7 +3474,7 @@ snapshots:
       lightningcss: 1.25.1
       yaml: 2.8.0
 
-  vitest@3.2.4(@types/debug@4.1.12)(jsdom@27.0.0(postcss@8.5.6))(lightningcss@1.25.1)(yaml@2.8.0):
+  vitest@3.2.4(@types/debug@4.1.12)(jsdom@27.0.1(postcss@8.5.6))(lightningcss@1.25.1)(yaml@2.8.0):
     dependencies:
       '@types/chai': 5.2.2
       '@vitest/expect': 3.2.4
@@ -3500,7 +3501,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.12
-      jsdom: 27.0.0(postcss@8.5.6)
+      jsdom: 27.0.1(postcss@8.5.6)
     transitivePeerDependencies:
       - jiti
       - less

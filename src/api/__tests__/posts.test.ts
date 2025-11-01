@@ -10,7 +10,7 @@ vi.mock("fs");
 describe("createPostsMiddleware", () => {
   let req: Partial<IncomingMessage>;
   let res: Partial<ServerResponse>;
-  let next: ReturnType<typeof vi.fn>;
+  const next = vi.fn();
   let middleware: ReturnType<typeof createPostsMiddleware>;
 
   beforeEach(() => {
@@ -23,7 +23,6 @@ describe("createPostsMiddleware", () => {
       end: vi.fn(),
       statusCode: 200,
     };
-    next = vi.fn();
     middleware = createPostsMiddleware();
     vi.clearAllMocks();
   });
@@ -41,14 +40,14 @@ describe("createPostsMiddleware", () => {
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
       expect(fs.readdirSync).toHaveBeenCalledWith(
-        path.join(process.cwd(), "datasources")
+        path.join(process.cwd(), "datasources"),
       );
       expect(res.setHeader).toHaveBeenCalledWith(
         "Content-Type",
-        "application/json"
+        "application/json",
       );
       expect(res.end).toHaveBeenCalledWith(
-        JSON.stringify(["20250101", "20250102"])
+        JSON.stringify(["20250101", "20250102"]),
       );
       expect(next).not.toHaveBeenCalled();
     });
@@ -82,7 +81,7 @@ describe("createPostsMiddleware", () => {
       expect(res.end).toHaveBeenCalledWith(
         JSON.stringify({
           error: "Failed to read datasources directory",
-        })
+        }),
       );
       expect(next).not.toHaveBeenCalled();
     });
@@ -98,11 +97,11 @@ describe("createPostsMiddleware", () => {
 
       expect(fs.readFileSync).toHaveBeenCalledWith(
         path.join(process.cwd(), "datasources", "20250101.md"),
-        "utf8"
+        "utf8",
       );
       expect(res.setHeader).toHaveBeenCalledWith(
         "Content-Type",
-        "text/plain; charset=utf-8"
+        "text/plain; charset=utf-8",
       );
       expect(res.end).toHaveBeenCalledWith(mockContent);
     });
@@ -116,7 +115,7 @@ describe("createPostsMiddleware", () => {
 
       expect(fs.readFileSync).toHaveBeenCalledWith(
         path.join(process.cwd(), "datasources", "20250101.md"),
-        "utf8"
+        "utf8",
       );
       expect(res.end).toHaveBeenCalledWith(mockContent);
     });
@@ -151,7 +150,7 @@ describe("createPostsMiddleware", () => {
 
       expect(res.setHeader).toHaveBeenCalledWith(
         "Content-Type",
-        "text/plain; charset=utf-8"
+        "text/plain; charset=utf-8",
       );
       expect(res.end).toHaveBeenCalledWith("");
     });

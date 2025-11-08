@@ -60,7 +60,7 @@ describe("PostDetailPage", () => {
       </MemoryRouter>,
     );
 
-    const backLink = screen.getByRole("link", { name: /Lazy Note に戻る/ });
+    const backLink = screen.getByRole("link", { name: /TOPに戻る/ });
     expect(backLink).toBeInTheDocument();
     expect(backLink).toHaveAttribute("href", "/");
   });

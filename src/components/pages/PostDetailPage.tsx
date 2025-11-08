@@ -31,7 +31,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
           })}
         >
           <Link to="/" variant="navigation">
-            ← Lazy Note に戻る
+            ← TOPに戻る
           </Link>
         </div>
       </nav>

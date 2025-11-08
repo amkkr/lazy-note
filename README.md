@@ -15,13 +15,15 @@ React 19 + TypeScript + Panda CSSを使用したシンプルなブログアプ�
 
 - **React 19** - UIライブラリ
 - **TypeScript** - 型安全な開発
-- **Vite 6** - 高速なビルドツール
+- **Vite 7** - 高速なビルドツール
 - **Panda CSS** - 型安全なCSS-in-JS
 - **React Router DOM** - クライアントサイドルーティング
+- **Headless UI** - アクセシブルなUIコンポーネント
+- **DOMPurify** - HTMLサニタイズライブラリ
 
 ### テスト
 
-- **Vitest** - 高速なテストランナー
+- **Vitest 4** - 高速なテストランナー
 - **React Testing Library** - Reactコンポーネントのテスト
 - **jsdom** - ブラウザ環境のシミュレーション
 
@@ -53,7 +55,7 @@ pnpm dev
 # 開発サーバー起動（Panda CSS ウォッチモード付き）
 pnpm dev
 
-# プロダクションビルド
+# プロダクションビルド（リント・テスト・型チェック・ビルドを順次実行）
 pnpm build
 
 # テスト実行（ウォッチモード）
@@ -71,14 +73,24 @@ pnpm lint
 # フォーマット実行
 pnpm fmt
 
+# 型チェック実行
+pnpm type-check
+
 # Panda CSSコード生成
 pnpm prepare
+
+# 新しい記事を作成
+pnpm new-post
 ```
 
 ## プロジェクト構造
 
 ```
 src/
+├── api/              # APIミドルウェア
+│   ├── __tests__/    # APIのテスト
+│   ├── index.ts      # ミドルウェア登録
+│   └── posts.ts      # 記事取得API
 ├── components/       # 共通コンポーネント
 │   ├── atoms/        # 基本的なUIコンポーネント
 │   │   ├── Button.tsx
@@ -115,6 +127,8 @@ src/
 └── main.tsx         # アプリケーションエントリーポイント
 
 datasources/         # Markdownファイル（記事データ）
+scripts/             # ユーティリティスクリプト
+└── newPost.ts       # 新規記事作成スクリプト
 styled-system/       # Panda CSS自動生成ファイル
 ```
 

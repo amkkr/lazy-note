@@ -42,6 +42,16 @@ describe("Header", () => {
     expect(screen.getByText("📚 0記事")).toBeInTheDocument();
   });
 
+  it("postCountがundefinedの場合は件数表示が非表示になる", () => {
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText(/記事/)).not.toBeInTheDocument();
+  });
+
   it("大きな記事数でも表示できる", () => {
     render(
       <MemoryRouter>

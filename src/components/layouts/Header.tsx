@@ -2,7 +2,7 @@ import { css } from "../../../styled-system/css";
 import { BrandName } from "../common/BrandName";
 
 interface HeaderProps {
-  postCount: number;
+  postCount?: number;
 }
 
 export const Header = ({ postCount }: HeaderProps) => {
@@ -29,20 +29,22 @@ export const Header = ({ postCount }: HeaderProps) => {
       >
         <BrandName variant="header" />
 
-        <div
-          className={css({
-            background: "bg.2",
-            color: "fg.1",
-            paddingY: "sm",
-            paddingX: "md",
-            borderRadius: "20px",
-            fontSize: "sm",
-            fontWeight: "bold",
-            boxShadow: "card",
-          })}
-        >
-          📚 {postCount}記事
-        </div>
+        {postCount !== undefined && (
+          <div
+            className={css({
+              background: "bg.2",
+              color: "fg.1",
+              paddingY: "sm",
+              paddingX: "md",
+              borderRadius: "20px",
+              fontSize: "sm",
+              fontWeight: "bold",
+              boxShadow: "card",
+            })}
+          >
+            📚 {postCount}記事
+          </div>
+        )}
       </div>
     </header>
   );

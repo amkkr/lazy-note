@@ -11,7 +11,7 @@ interface LayoutProps {
 
 export const Layout = ({
   children,
-  postCount = 0,
+  postCount,
   showHeader = true,
 }: LayoutProps) => {
   return (

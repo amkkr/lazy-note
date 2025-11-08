@@ -5,8 +5,10 @@ import { Layout } from "../Layout";
 
 // HeaderとFooterコンポーネントをモック
 vi.mock("../Header", () => ({
-  Header: ({ postCount }: { postCount: number }) => (
-    <header data-testid="header">Header with {postCount} posts</header>
+  Header: ({ postCount }: { postCount?: number }) => (
+    <header data-testid="header">
+      Header with {postCount !== undefined ? postCount : "no"} posts
+    </header>
   ),
 }));
 
@@ -76,7 +78,7 @@ describe("Layout", () => {
     expect(screen.getByText("Header with 5 posts")).toBeInTheDocument();
   });
 
-  it("postCountのデフォルト値は0", () => {
+  it("postCountを渡さない場合はundefinedが渡される", () => {
     render(
       <MemoryRouter>
         <Layout>
@@ -85,7 +87,7 @@ describe("Layout", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("Header with 0 posts")).toBeInTheDocument();
+    expect(screen.getByText("Header with no posts")).toBeInTheDocument();
   });
 
   it("複数の子要素を含められる", () => {

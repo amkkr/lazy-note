@@ -4,15 +4,21 @@ import { HomePage } from "../components/pages/HomePage";
 import { usePosts } from "../hooks/usePosts";
 
 const Index = () => {
-  const { posts, loading, currentPage, totalPages, setCurrentPage } =
-    usePosts();
+  const {
+    posts,
+    loading,
+    currentPage,
+    totalPages,
+    totalPosts,
+    setCurrentPage,
+  } = usePosts();
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
   return (
-    <Layout postCount={posts.length}>
+    <Layout postCount={totalPosts}>
       <HomePage
         posts={posts}
         currentPage={currentPage}

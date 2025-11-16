@@ -9,6 +9,7 @@ interface UsePostsReturn {
   error: string | null;
   currentPage: number;
   totalPages: number;
+  totalPosts: number;
   setCurrentPage: (page: number) => void;
 }
 
@@ -42,10 +43,19 @@ export const usePosts = (): UsePostsReturn => {
     loadPosts();
   }, []);
 
-  const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
+  const totalPosts = allPosts.length;
+  const totalPages = Math.ceil(totalPosts / POSTS_PER_PAGE);
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
   const endIndex = startIndex + POSTS_PER_PAGE;
   const posts = allPosts.slice(startIndex, endIndex);
 
-  return { posts, loading, error, currentPage, totalPages, setCurrentPage };
+  return {
+    posts,
+    loading,
+    error,
+    currentPage,
+    totalPages,
+    totalPosts,
+    setCurrentPage,
+  };
 };

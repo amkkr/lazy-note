@@ -49,6 +49,7 @@ describe("Indexコンポーネント", () => {
       error: null,
       currentPage: 1,
       totalPages: 1,
+      totalPosts: 0,
       setCurrentPage: vi.fn(),
     });
 
@@ -68,6 +69,7 @@ describe("Indexコンポーネント", () => {
       error: null,
       currentPage: 1,
       totalPages: 1,
+      totalPosts: 2,
       setCurrentPage: vi.fn(),
     });
 
@@ -104,6 +106,7 @@ describe("Indexコンポーネント", () => {
       error: null,
       currentPage: 1,
       totalPages: 1,
+      totalPosts: 0,
       setCurrentPage: vi.fn(),
     });
 
@@ -123,6 +126,7 @@ describe("Indexコンポーネント", () => {
       error: "ネットワークエラー",
       currentPage: 1,
       totalPages: 1,
+      totalPosts: 0,
       setCurrentPage: vi.fn(),
     });
 
@@ -142,6 +146,7 @@ describe("Indexコンポーネント", () => {
       error: null,
       currentPage: 1,
       totalPages: 1,
+      totalPosts: 2,
       setCurrentPage: vi.fn(),
     });
 
@@ -165,6 +170,7 @@ describe("Indexコンポーネント", () => {
       error: null,
       currentPage: 1,
       totalPages: 1,
+      totalPosts: 2,
       setCurrentPage: vi.fn(),
     });
 

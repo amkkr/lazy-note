@@ -139,6 +139,13 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                   overflow: "auto",
                   margin: "lg 0",
                 },
+                "& img": {
+                  maxWidth: "100%",
+                  height: "auto",
+                  borderRadius: "sm",
+                  margin: "md 0",
+                  display: "block",
+                },
               })}
             >
               <div

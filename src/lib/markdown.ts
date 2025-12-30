@@ -1,9 +1,33 @@
 import { marked } from "marked";
 
+/**
+ * 画像パスをアプリケーションのベースパスに変換する
+ * @param src 画像のソースパス
+ * @returns 変換後のパス
+ */
+const resolveImagePath = (src: string): string => {
+  // images/ で始まる相対パスを /datasources/images/ に変換
+  if (src.startsWith("images/")) {
+    const base = import.meta.env.DEV ? "" : "/lazy-note";
+    return `${base}/datasources/${src}`;
+  }
+  // それ以外はそのまま返す（外部URLなど）
+  return src;
+};
+
+// カスタムレンダラーを作成
+const renderer = new marked.Renderer();
+renderer.image = ({ href, title, text }) => {
+  const resolvedHref = resolveImagePath(href);
+  const titleAttr = title ? ` title="${title}"` : "";
+  return `<img src="${resolvedHref}" alt="${text}"${titleAttr}>`;
+};
+
 // markedの設定
 marked.use({
   breaks: true, // 改行を<br>タグに変換
   gfm: true, // GitHub Flavored Markdownを有効化
+  renderer,
 });
 
 export interface Post {

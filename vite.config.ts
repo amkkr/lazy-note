@@ -24,12 +24,31 @@ export default defineConfig({
         if (fs.existsSync(datasourcesPath)) {
           fs.mkdirSync(outputPath, { recursive: true });
           const files = fs.readdirSync(datasourcesPath);
-          
+
           for (const file of files) {
             if (file.endsWith(".md")) {
               const sourcePath = path.join(datasourcesPath, file);
               const destPath = path.join(outputPath, file);
               fs.copyFileSync(sourcePath, destPath);
+            }
+          }
+
+          // 画像ファイルをコピー
+          const imagesPath = path.join(datasourcesPath, "images");
+          const imagesOutputPath = path.join(outputPath, "images");
+          const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"];
+
+          if (fs.existsSync(imagesPath)) {
+            fs.mkdirSync(imagesOutputPath, { recursive: true });
+            const imageFiles = fs.readdirSync(imagesPath);
+
+            for (const file of imageFiles) {
+              const ext = path.extname(file).toLowerCase();
+              if (imageExtensions.includes(ext)) {
+                const sourcePath = path.join(imagesPath, file);
+                const destPath = path.join(imagesOutputPath, file);
+                fs.copyFileSync(sourcePath, destPath);
+              }
             }
           }
         }

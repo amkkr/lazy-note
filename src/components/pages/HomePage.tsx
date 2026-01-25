@@ -104,3 +104,5 @@ export const HomePage = memo(({
     </div>
   );
 });
+
+HomePage.displayName = "HomePage";

@@ -84,3 +84,5 @@ export const Pagination = memo(({
     </nav>
   );
 });
+
+Pagination.displayName = "Pagination";

@@ -40,12 +40,12 @@ marked.use({
   renderer,
 });
 
-export interface Post {
-  id: string;
-  title: string;
-  createdAt: string;
+/**
+ * 投稿の完全なデータ（詳細ページで使用）
+ * PostSummaryを継承して型の一貫性を保証
+ */
+export interface Post extends PostSummary {
   content: string;
-  author: string;
   rawContent: string;
 }
 

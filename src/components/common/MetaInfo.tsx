@@ -57,3 +57,5 @@ export const MetaInfo = memo(({
     </div>
   );
 });
+
+MetaInfo.displayName = "MetaInfo";

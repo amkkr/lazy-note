@@ -11,7 +11,24 @@ interface ButtonProps {
   className?: string;
 }
 
-// スタイルをコンポーネント外に定数として定義（毎レンダリングでの再生成を防ぐ）
+// ベーススタイル（全バリアント共通）
+const baseButtonStyles = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "md",
+  fontWeight: "medium",
+  transition: "all 0.2s ease",
+  cursor: "pointer",
+  border: "none",
+  outline: "none",
+  "&:disabled": {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  },
+});
+
+// バリアントスタイル
 const variantStyles = {
   primary: css({
     background: "blue.light",
@@ -76,9 +93,11 @@ export const Button = memo(({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${variantStyles[variant]} ${sizeStyles[size]} ${className || ""}`}
+      className={`${baseButtonStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className || ""}`}
     >
       {children}
     </button>
   );
 });
+
+Button.displayName = "Button";

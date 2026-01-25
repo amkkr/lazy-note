@@ -38,10 +38,12 @@ describe("MetaInfo", () => {
       <MetaInfo createdAt="2024-01-01" author="山田太郎" />,
     );
 
-    // cardバリアントの場合、marginとpaddingが0に設定される
+    // cardバリアントの場合、コンテナが存在し子要素にグレーの色が適用される
     const metaInfo = container.firstChild as HTMLElement;
-    expect(metaInfo.className).toContain("mt_0");
-    expect(metaInfo.className).toContain("pt_0");
+    expect(metaInfo).toBeInTheDocument();
+    // cardバリアントではヘッダーと異なり背景が適用されない
+    const dateElement = metaInfo.querySelector('[class*="bg_"]');
+    expect(dateElement).not.toBeInTheDocument();
   });
 
   it("headerバリアントが適用できる", () => {

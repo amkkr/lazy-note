@@ -1,10 +1,11 @@
 import fs from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
+import { extractSummaryFromContent } from "../lib/markdownParser";
 
 /**
  * 投稿APIミドルウェアを作成
- * - GET /api/posts: 投稿一覧を取得
+ * - GET /api/posts: 投稿一覧（メタデータ付き）を取得
  * - GET /api/posts/:id: 個別投稿を取得
  * @returns Viteサーバーミドルウェア関数
  */
@@ -34,15 +35,24 @@ export const createPostsMiddleware = () => {
         res.end("Post not found");
       }
     } else {
-      // 投稿一覧の取得
+      // 投稿一覧の取得（メタデータ付き）
       try {
         const files = fs
           .readdirSync(datasourcesPath)
-          .filter((file: string) => file.endsWith(".md"))
-          .map((file: string) => file.replace(".md", ""));
+          .filter((file: string) => file.endsWith(".md"));
+
+        const posts = files.map((file: string) => {
+          const timestamp = file.replace(".md", "");
+          const filePath = path.join(datasourcesPath, file);
+          const content = fs.readFileSync(filePath, "utf8");
+          return extractSummaryFromContent(content, timestamp);
+        });
+
+        // IDで降順ソート（新しい投稿が先）
+        posts.sort((a, b) => b.id.localeCompare(a.id));
 
         res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify(files));
+        res.end(JSON.stringify(posts));
       } catch (_error) {
         res.statusCode = 500;
         res.end(

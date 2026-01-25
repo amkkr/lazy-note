@@ -1,4 +1,14 @@
 import { marked } from "marked";
+import {
+  extractBodyContent,
+  extractSectionContent,
+  extractSummaryFromContent,
+  extractTitle,
+  type PostSummary,
+} from "./markdownParser";
+
+// PostSummary型を再エクスポート
+export type { PostSummary };
 
 /**
  * 画像パスをアプリケーションのベースパスに変換する
@@ -30,57 +40,14 @@ marked.use({
   renderer,
 });
 
-export interface Post {
-  id: string;
-  title: string;
-  createdAt: string;
+/**
+ * 投稿の完全なデータ（詳細ページで使用）
+ * PostSummaryを継承して型の一貫性を保証
+ */
+export interface Post extends PostSummary {
   content: string;
-  author: string;
   rawContent: string;
 }
-
-const extractTitle = (lines: string[]): string => {
-  const titleLine = lines.find((line) => line.startsWith("# "));
-  return titleLine ? titleLine.substring(2).trim() : "";
-};
-
-const extractSectionContent = (
-  lines: string[],
-  sectionName: string,
-): string => {
-  const sectionIndex = lines.findIndex((line) =>
-    line.startsWith(`## ${sectionName}`),
-  );
-  if (sectionIndex === -1) {
-    return "";
-  }
-
-  const nextSectionIndex = lines.findIndex(
-    (line, index) => index > sectionIndex && line.startsWith("## "),
-  );
-
-  const endIndex = nextSectionIndex === -1 ? lines.length : nextSectionIndex;
-  const sectionLines = lines.slice(sectionIndex + 1, endIndex);
-
-  const listItem = sectionLines.find((line) => line.startsWith("- "));
-  return listItem ? listItem.substring(2).trim() : "";
-};
-
-const extractBodyContent = (lines: string[]): string => {
-  const bodyStartIndex = lines.findIndex((line) => line.startsWith("## 本文"));
-  if (bodyStartIndex === -1) {
-    return "";
-  }
-
-  const nextSectionIndex = lines.findIndex(
-    (line, index) => index > bodyStartIndex && line.startsWith("## "),
-  );
-
-  const endIndex = nextSectionIndex === -1 ? lines.length : nextSectionIndex;
-  const bodyLines = lines.slice(bodyStartIndex + 1, endIndex);
-
-  return bodyLines.filter((line) => line.trim() !== "").join("\n");
-};
 
 export const parseMarkdown = (content: string, timestamp: string): Post => {
   const lines = content.split("\n");
@@ -100,27 +67,70 @@ export const parseMarkdown = (content: string, timestamp: string): Post => {
   };
 };
 
-export const getAllPosts = async (): Promise<Post[]> => {
+/**
+ * 本番環境で静的ファイルからサマリーを取得する
+ */
+const getStaticPostSummaries = async (): Promise<PostSummary[]> => {
+  const summaries: PostSummary[] = [];
+  const modules = import.meta.glob("/datasources/*.md", {
+    query: "?raw",
+    import: "default",
+  });
+
+  for (const filePath in modules) {
+    const content = (await modules[filePath]()) as string;
+    const timestamp = filePath.split("/").pop()?.replace(".md", "") || "";
+    if (timestamp) {
+      summaries.push(extractSummaryFromContent(content, timestamp));
+    }
+  }
+
+  return summaries.sort((a, b) => b.id.localeCompare(a.id));
+};
+
+/**
+ * 全投稿のメタデータを取得（一覧表示用、高速化のためcontentを含まない）
+ */
+export const getAllPostSummaries = async (): Promise<PostSummary[]> => {
   try {
-    // 開発環境ではAPIを使用、本番環境では静的ファイルを使用
     if (import.meta.env.DEV) {
+      // 開発環境ではAPIを使用（メタデータが直接返される）
       const response = await fetch("/api/posts");
       if (!response.ok) {
         return [];
       }
+      // APIはソート済みのメタデータ配列を返す
+      return await response.json();
+    }
+    // 本番環境では動的インポートを使用
+    return await getStaticPostSummaries();
+  } catch (error) {
+    console.error("Error loading posts:", error);
+    return [];
+  }
+};
 
-      const timestamps = await response.json();
+/**
+ * 全投稿を取得（後方互換性のため維持、詳細ページで使用）
+ */
+export const getAllPosts = async (): Promise<Post[]> => {
+  try {
+    // 開発環境ではAPIを使用、本番環境では静的ファイルを使用
+    if (import.meta.env.DEV) {
+      // まずメタデータを取得
+      const summaries = await getAllPostSummaries();
 
+      // 各投稿の本文を取得
       const posts = await Promise.all(
-        timestamps.map(async (timestamp: string) => {
-          const fileResponse = await fetch(`/api/posts/${timestamp}`);
+        summaries.map(async (summary) => {
+          const fileResponse = await fetch(`/api/posts/${summary.id}`);
 
           if (!fileResponse.ok) {
             return null;
           }
 
           const content = await fileResponse.text();
-          return parseMarkdown(content, timestamp);
+          return parseMarkdown(content, summary.id);
         }),
       );
 
@@ -138,9 +148,9 @@ export const getAllPosts = async (): Promise<Post[]> => {
           import: "default",
         });
 
-        for (const path in modules) {
-          const content = (await modules[path]()) as string;
-          const timestamp = path.split("/").pop()?.replace(".md", "") || "";
+        for (const filePath in modules) {
+          const content = (await modules[filePath]()) as string;
+          const timestamp = filePath.split("/").pop()?.replace(".md", "") || "";
           if (timestamp) {
             posts.push(parseMarkdown(content, timestamp));
           }

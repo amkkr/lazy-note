@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import { css } from "../../../styled-system/css";
 
 interface ButtonProps {
@@ -11,10 +11,75 @@ interface ButtonProps {
   className?: string;
 }
 
+// ベーススタイル（全バリアント共通）
+const baseButtonStyles = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "md",
+  fontWeight: "medium",
+  transition: "all 0.2s ease",
+  cursor: "pointer",
+  border: "none",
+  outline: "none",
+  "&:disabled": {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  },
+});
+
+// バリアントスタイル
+const variantStyles = {
+  primary: css({
+    background: "blue.light",
+    color: "white",
+    "&:hover:not(:disabled)": {
+      background: "blue.dark",
+      transform: "translateY(-1px)",
+    },
+  }),
+  secondary: css({
+    background: "bg.2",
+    color: "fg.1",
+    border: "1px solid",
+    borderColor: "bg.3",
+    "&:hover:not(:disabled)": {
+      background: "bg.3",
+      transform: "translateY(-1px)",
+    },
+  }),
+  ghost: css({
+    background: "transparent",
+    color: "blue.light",
+    "&:hover:not(:disabled)": {
+      background: "bg.1",
+      color: "aqua.light",
+    },
+  }),
+} as const;
+
+const sizeStyles = {
+  small: css({
+    padding: "sm sm-md",
+    fontSize: "sm",
+    gap: "xs",
+  }),
+  medium: css({
+    padding: "sm-md md",
+    fontSize: "base",
+    gap: "xs-sm",
+  }),
+  large: css({
+    padding: "md lg",
+    fontSize: "lg",
+    gap: "sm",
+  }),
+} as const;
+
 /**
- * ボタンコンポーネント
+ * ボタンコンポーネント（CSS定数抽出 + React.memoでメモ化）
  */
-export const Button = ({
+export const Button = memo(({
   children,
   variant = "primary",
   size = "medium",
@@ -23,63 +88,16 @@ export const Button = ({
   type = "button",
   className,
 }: ButtonProps) => {
-  const baseStyles = css({});
-
-  const variantStyles = {
-    primary: css({
-      background: "blue.light",
-      color: "white",
-      "&:hover:not(:disabled)": {
-        background: "blue.dark",
-        transform: "translateY(-1px)",
-      },
-    }),
-    secondary: css({
-      background: "bg.2",
-      color: "fg.1",
-      border: "1px solid",
-      borderColor: "bg.3",
-      "&:hover:not(:disabled)": {
-        background: "bg.3",
-        transform: "translateY(-1px)",
-      },
-    }),
-    ghost: css({
-      background: "transparent",
-      color: "blue.light",
-      "&:hover:not(:disabled)": {
-        background: "bg.1",
-        color: "aqua.light",
-      },
-    }),
-  };
-
-  const sizeStyles = {
-    small: css({
-      padding: "sm sm-md",
-      fontSize: "sm",
-      gap: "xs",
-    }),
-    medium: css({
-      padding: "sm-md md",
-      fontSize: "base",
-      gap: "xs-sm",
-    }),
-    large: css({
-      padding: "md lg",
-      fontSize: "lg",
-      gap: "sm",
-    }),
-  };
-
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className || ""}`}
+      className={`${baseButtonStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className || ""}`}
     >
       {children}
     </button>
   );
-};
+});
+
+Button.displayName = "Button";

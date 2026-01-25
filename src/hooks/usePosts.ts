@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { getAllPosts, type Post } from "../lib/markdown";
+import { getAllPostSummaries, type PostSummary } from "../lib/markdown";
 
 const POSTS_PER_PAGE = 10;
 
 interface UsePostsReturn {
-  posts: Post[];
+  posts: PostSummary[];
   loading: boolean;
   error: string | null;
   currentPage: number;
@@ -15,10 +15,11 @@ interface UsePostsReturn {
 
 /**
  * 記事一覧を取得するカスタムフック（ページング機能付き）
+ * 高速化のためメタデータのみを取得（本文は含まない）
  * @returns 記事一覧、ローディング状態、エラー状態、ページング情報
  */
 export const usePosts = (): UsePostsReturn => {
-  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const [allPosts, setAllPosts] = useState<PostSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,7 +29,7 @@ export const usePosts = (): UsePostsReturn => {
       try {
         setLoading(true);
         setError(null);
-        const posts = await getAllPosts();
+        const posts = await getAllPostSummaries();
         setAllPosts(posts);
       } catch (err) {
         console.error("Failed to load posts:", err);

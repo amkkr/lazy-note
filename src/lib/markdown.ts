@@ -1,4 +1,14 @@
 import { marked } from "marked";
+import {
+  extractBodyContent,
+  extractSectionContent,
+  extractSummaryFromContent,
+  extractTitle,
+  type PostSummary,
+} from "./markdownParser";
+
+// PostSummary型を再エクスポート
+export type { PostSummary };
 
 /**
  * 画像パスをアプリケーションのベースパスに変換する
@@ -39,59 +49,6 @@ export interface Post {
   rawContent: string;
 }
 
-/**
- * 投稿のメタデータ（一覧表示用、本文を含まない）
- */
-export interface PostSummary {
-  id: string;
-  title: string;
-  createdAt: string;
-  author: string;
-}
-
-const extractTitle = (lines: string[]): string => {
-  const titleLine = lines.find((line) => line.startsWith("# "));
-  return titleLine ? titleLine.substring(2).trim() : "";
-};
-
-const extractSectionContent = (
-  lines: string[],
-  sectionName: string,
-): string => {
-  const sectionIndex = lines.findIndex((line) =>
-    line.startsWith(`## ${sectionName}`),
-  );
-  if (sectionIndex === -1) {
-    return "";
-  }
-
-  const nextSectionIndex = lines.findIndex(
-    (line, index) => index > sectionIndex && line.startsWith("## "),
-  );
-
-  const endIndex = nextSectionIndex === -1 ? lines.length : nextSectionIndex;
-  const sectionLines = lines.slice(sectionIndex + 1, endIndex);
-
-  const listItem = sectionLines.find((line) => line.startsWith("- "));
-  return listItem ? listItem.substring(2).trim() : "";
-};
-
-const extractBodyContent = (lines: string[]): string => {
-  const bodyStartIndex = lines.findIndex((line) => line.startsWith("## 本文"));
-  if (bodyStartIndex === -1) {
-    return "";
-  }
-
-  const nextSectionIndex = lines.findIndex(
-    (line, index) => index > bodyStartIndex && line.startsWith("## "),
-  );
-
-  const endIndex = nextSectionIndex === -1 ? lines.length : nextSectionIndex;
-  const bodyLines = lines.slice(bodyStartIndex + 1, endIndex);
-
-  return bodyLines.filter((line) => line.trim() !== "").join("\n");
-};
-
 export const parseMarkdown = (content: string, timestamp: string): Post => {
   const lines = content.split("\n");
 
@@ -108,21 +65,6 @@ export const parseMarkdown = (content: string, timestamp: string): Post => {
     author,
     rawContent: content,
   };
-};
-
-/**
- * Markdownコンテンツからサマリーを抽出する
- */
-const extractSummaryFromContent = (
-  content: string,
-  timestamp: string,
-): PostSummary => {
-  const lines = content.split("\n");
-  const titleLine = lines.find((line) => line.startsWith("# "));
-  const title = titleLine ? titleLine.substring(2).trim() : "";
-  const createdAt = extractSectionContent(lines, "投稿日時");
-  const author = extractSectionContent(lines, "筆者名");
-  return { id: timestamp, title, createdAt, author };
 };
 
 /**

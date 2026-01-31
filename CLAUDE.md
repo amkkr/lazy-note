@@ -68,6 +68,7 @@ Panda CSSを使用しているため、スタイルは以下のパターンで�
 7. **Pull Request必須**: マージは必ずGithubにpushして、Pull Requestを通して行うこと
 8. **rebase禁止**: `git rebase`コマンドは使用しない。コンフリクト解決時は`git merge`を使用すること
 9. **PRテンプレート使用**: Pull Requestの内容は`.github/pull_request_template.md`を元に作成すること
+10. **既存ブランチへの無関係な変更禁止**: 既存のブランチ（特にdependabotなどの自動生成ブランチ）に、そのブランチの目的と無関係な変更を追加してはならない。異なる目的の変更は、必ずmasterから新しいブランチを切って別々のPRにすること
 
 ### ブランチ名の例
 

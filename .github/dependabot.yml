@@ -25,4 +25,13 @@ updates:
       day: "saturday"
       time: "06:30"
       timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"

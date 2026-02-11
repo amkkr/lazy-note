@@ -79,25 +79,27 @@ const sizeStyles = {
 /**
  * ボタンコンポーネント（CSS定数抽出 + React.memoでメモ化）
  */
-export const Button = memo(({
-  children,
-  variant = "primary",
-  size = "medium",
-  onClick,
-  disabled = false,
-  type = "button",
-  className,
-}: ButtonProps) => {
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      className={`${baseButtonStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className || ""}`}
-    >
-      {children}
-    </button>
-  );
-});
+export const Button = memo(
+  ({
+    children,
+    variant = "primary",
+    size = "medium",
+    onClick,
+    disabled = false,
+    type = "button",
+    className,
+  }: ButtonProps) => {
+    return (
+      <button
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        className={`${baseButtonStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className || ""}`}
+      >
+        {children}
+      </button>
+    );
+  },
+);
 
 Button.displayName = "Button";

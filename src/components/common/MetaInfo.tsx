@@ -37,25 +37,24 @@ const itemHeaderStyles = css({
 /**
  * メタ情報コンポーネント（CSS定数抽出 + React.memoでメモ化）
  */
-export const MetaInfo = memo(({
-  createdAt,
-  author,
-  variant = "card",
-}: MetaInfoProps) => {
-  const itemVariantStyles = variant === "header" ? itemHeaderStyles : itemCardStyles;
+export const MetaInfo = memo(
+  ({ createdAt, author, variant = "card" }: MetaInfoProps) => {
+    const itemVariantStyles =
+      variant === "header" ? itemHeaderStyles : itemCardStyles;
 
-  return (
-    <div className={containerStyles}>
-      <div className={`${itemBaseStyles} ${itemVariantStyles}`}>
-        <span>📅</span>
-        <span>{createdAt || "日付未設定"}</span>
+    return (
+      <div className={containerStyles}>
+        <div className={`${itemBaseStyles} ${itemVariantStyles}`}>
+          <span>📅</span>
+          <span>{createdAt || "日付未設定"}</span>
+        </div>
+        <div className={`${itemBaseStyles} ${itemVariantStyles}`}>
+          <span>✍️</span>
+          <span>{author || "匿名"}</span>
+        </div>
       </div>
-      <div className={`${itemBaseStyles} ${itemVariantStyles}`}>
-        <span>✍️</span>
-        <span>{author || "匿名"}</span>
-      </div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 MetaInfo.displayName = "MetaInfo";

@@ -56,53 +56,50 @@ const articleContentStyles = css({
 /**
  * ホームページコンポーネント（CSS定数抽出 + React.memoでメモ化）
  */
-export const HomePage = memo(({
-  posts,
-  currentPage,
-  totalPages,
-  onPageChange,
-}: HomePageProps) => {
-  return (
-    <div className={containerStyles}>
-      {posts.length === 0 ? (
-        <EmptyState
-          icon="📝"
-          title="新しい記事をお楽しみに"
-          description="まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。"
-        />
-      ) : (
-        <>
-          <div className={postListStyles}>
-            {posts.map((post) => (
-              <article key={post.id} className={articleStyles}>
-                <div className={articleHeaderStyles}>
-                  <MetaInfo
-                    createdAt={post.createdAt}
-                    author={post.author}
-                    variant="card"
-                  />
-                </div>
-
-                <div className={articleContentStyles}>
-                  <Link to={`/posts/${post.id}`} variant="card">
-                    <Heading2 variant="card">
-                      {post.title || "無題の記事"}
-                    </Heading2>
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
+export const HomePage = memo(
+  ({ posts, currentPage, totalPages, onPageChange }: HomePageProps) => {
+    return (
+      <div className={containerStyles}>
+        {posts.length === 0 ? (
+          <EmptyState
+            icon="📝"
+            title="新しい記事をお楽しみに"
+            description="まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。"
           />
-        </>
-      )}
-    </div>
-  );
-});
+        ) : (
+          <>
+            <div className={postListStyles}>
+              {posts.map((post) => (
+                <article key={post.id} className={articleStyles}>
+                  <div className={articleHeaderStyles}>
+                    <MetaInfo
+                      createdAt={post.createdAt}
+                      author={post.author}
+                      variant="card"
+                    />
+                  </div>
+
+                  <div className={articleContentStyles}>
+                    <Link to={`/posts/${post.id}`} variant="card">
+                      <Heading2 variant="card">
+                        {post.title || "無題の記事"}
+                      </Heading2>
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={onPageChange}
+            />
+          </>
+        )}
+      </div>
+    );
+  },
+);
 
 HomePage.displayName = "HomePage";

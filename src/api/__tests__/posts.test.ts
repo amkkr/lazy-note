@@ -40,16 +40,18 @@ describe("createPostsMiddleware", () => {
         "# テスト記事2\n\n## 投稿日時\n- 2025-01-02\n\n## 筆者名\n- 花子";
       // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
       vi.spyOn(fs, "readdirSync").mockReturnValue(mockFiles as any);
-      vi.spyOn(fs, "readFileSync").mockImplementation((filePath: fs.PathOrFileDescriptor) => {
-        const pathStr = String(filePath);
-        if (pathStr.includes("20250101")) {
-          return mockContent1;
-        }
-        if (pathStr.includes("20250102")) {
-          return mockContent2;
-        }
-        return "";
-      });
+      vi.spyOn(fs, "readFileSync").mockImplementation(
+        (filePath: fs.PathOrFileDescriptor) => {
+          const pathStr = String(filePath);
+          if (pathStr.includes("20250101")) {
+            return mockContent1;
+          }
+          if (pathStr.includes("20250102")) {
+            return mockContent2;
+          }
+          return "";
+        },
+      );
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
@@ -61,8 +63,18 @@ describe("createPostsMiddleware", () => {
         "application/json",
       );
       const expectedPosts = [
-        { id: "20250102", title: "テスト記事2", createdAt: "2025-01-02", author: "花子" },
-        { id: "20250101", title: "テスト記事1", createdAt: "2025-01-01", author: "太郎" },
+        {
+          id: "20250102",
+          title: "テスト記事2",
+          createdAt: "2025-01-02",
+          author: "花子",
+        },
+        {
+          id: "20250101",
+          title: "テスト記事1",
+          createdAt: "2025-01-01",
+          author: "太郎",
+        },
       ];
       expect(res.end).toHaveBeenCalledWith(JSON.stringify(expectedPosts));
       expect(next).not.toHaveBeenCalled();
@@ -70,7 +82,8 @@ describe("createPostsMiddleware", () => {
 
     it("Markdown ファイルのみをフィルタリングする", () => {
       const mockFiles = ["post.md", "image.png", "data.json", "note.md"];
-      const mockContent = "# テスト\n\n## 投稿日時\n- 2025-01-01\n\n## 筆者名\n- 太郎";
+      const mockContent =
+        "# テスト\n\n## 投稿日時\n- 2025-01-01\n\n## 筆者名\n- 太郎";
       // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
       vi.spyOn(fs, "readdirSync").mockReturnValue(mockFiles as any);
       vi.spyOn(fs, "readFileSync").mockReturnValue(mockContent);

@@ -11,25 +11,42 @@ describe("Heading1", () => {
   });
 
   it("デフォルトでpageスタイルになる", () => {
-    const { container } = render(<Heading1>Page Heading</Heading1>);
-    const heading = container.querySelector("h1");
-    expect(heading?.className).toBeDefined();
+    const { container: defaultContainer } = render(
+      <Heading1>Page Heading</Heading1>,
+    );
+    const { container: articleContainer } = render(
+      <Heading1 variant="article">Article Heading</Heading1>,
+    );
+    const defaultClass = defaultContainer.querySelector("h1")?.className;
+    const articleClass = articleContainer.querySelector("h1")?.className;
+    expect(defaultClass).not.toBe("");
+    expect(defaultClass).not.toBe(articleClass);
   });
 
   it("articleスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: articleContainer } = render(
       <Heading1 variant="article">Article Heading</Heading1>,
     );
-    const heading = container.querySelector("h1");
-    expect(heading?.className).toBeDefined();
+    const { container: defaultContainer } = render(
+      <Heading1>Default Heading</Heading1>,
+    );
+    const articleClass = articleContainer.querySelector("h1")?.className;
+    const defaultClass = defaultContainer.querySelector("h1")?.className;
+    expect(articleClass).not.toBe("");
+    expect(articleClass).not.toBe(defaultClass);
   });
 
   it("cardスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: cardContainer } = render(
       <Heading1 variant="card">Card Heading</Heading1>,
     );
-    const heading = container.querySelector("h1");
-    expect(heading?.className).toBeDefined();
+    const { container: defaultContainer } = render(
+      <Heading1>Default Heading</Heading1>,
+    );
+    const cardClass = cardContainer.querySelector("h1")?.className;
+    const defaultClass = defaultContainer.querySelector("h1")?.className;
+    expect(cardClass).not.toBe("");
+    expect(cardClass).not.toBe(defaultClass);
   });
 
   it("カスタムCSSクラスを追加できる", () => {
@@ -51,25 +68,42 @@ describe("Heading2", () => {
   });
 
   it("デフォルトでarticleスタイルになる", () => {
-    const { container } = render(<Heading2>Article Heading</Heading2>);
-    const heading = container.querySelector("h2");
-    expect(heading?.className).toBeDefined();
+    const { container: defaultContainer } = render(
+      <Heading2>Article Heading</Heading2>,
+    );
+    const { container: pageContainer } = render(
+      <Heading2 variant="page">Page Heading</Heading2>,
+    );
+    const defaultClass = defaultContainer.querySelector("h2")?.className;
+    const pageClass = pageContainer.querySelector("h2")?.className;
+    expect(defaultClass).not.toBe("");
+    expect(defaultClass).not.toBe(pageClass);
   });
 
   it("pageスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: pageContainer } = render(
       <Heading2 variant="page">Page Heading</Heading2>,
     );
-    const heading = container.querySelector("h2");
-    expect(heading?.className).toBeDefined();
+    const { container: cardContainer } = render(
+      <Heading2 variant="card">Card Heading</Heading2>,
+    );
+    const pageClass = pageContainer.querySelector("h2")?.className;
+    const cardClass = cardContainer.querySelector("h2")?.className;
+    expect(pageClass).not.toBe("");
+    expect(pageClass).not.toBe(cardClass);
   });
 
   it("cardスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: cardContainer } = render(
       <Heading2 variant="card">Card Heading</Heading2>,
     );
-    const heading = container.querySelector("h2");
-    expect(heading?.className).toBeDefined();
+    const { container: defaultContainer } = render(
+      <Heading2>Default Heading</Heading2>,
+    );
+    const cardClass = cardContainer.querySelector("h2")?.className;
+    const defaultClass = defaultContainer.querySelector("h2")?.className;
+    expect(cardClass).not.toBe("");
+    expect(cardClass).not.toBe(defaultClass);
   });
 
   it("カスタムCSSクラスを追加できる", () => {
@@ -91,25 +125,42 @@ describe("Heading3", () => {
   });
 
   it("デフォルトでarticleスタイルになる", () => {
-    const { container } = render(<Heading3>Article Heading</Heading3>);
-    const heading = container.querySelector("h3");
-    expect(heading?.className).toBeDefined();
+    const { container: defaultContainer } = render(
+      <Heading3>Article Heading</Heading3>,
+    );
+    const { container: pageContainer } = render(
+      <Heading3 variant="page">Page Heading</Heading3>,
+    );
+    const defaultClass = defaultContainer.querySelector("h3")?.className;
+    const pageClass = pageContainer.querySelector("h3")?.className;
+    expect(defaultClass).not.toBe("");
+    expect(defaultClass).not.toBe(pageClass);
   });
 
   it("pageスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: pageContainer } = render(
       <Heading3 variant="page">Page Heading</Heading3>,
     );
-    const heading = container.querySelector("h3");
-    expect(heading?.className).toBeDefined();
+    const { container: cardContainer } = render(
+      <Heading3 variant="card">Card Heading</Heading3>,
+    );
+    const pageClass = pageContainer.querySelector("h3")?.className;
+    const cardClass = cardContainer.querySelector("h3")?.className;
+    expect(pageClass).not.toBe("");
+    expect(pageClass).not.toBe(cardClass);
   });
 
   it("cardスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: cardContainer } = render(
       <Heading3 variant="card">Card Heading</Heading3>,
     );
-    const heading = container.querySelector("h3");
-    expect(heading?.className).toBeDefined();
+    const { container: pageContainer } = render(
+      <Heading3 variant="page">Page Heading</Heading3>,
+    );
+    const cardClass = cardContainer.querySelector("h3")?.className;
+    const pageClass = pageContainer.querySelector("h3")?.className;
+    expect(cardClass).not.toBe("");
+    expect(cardClass).not.toBe(pageClass);
   });
 
   it("カスタムCSSクラスを追加できる", () => {
@@ -136,25 +187,42 @@ describe("Paragraph", () => {
   });
 
   it("デフォルトでbodyスタイルになる", () => {
-    const { container } = render(<Paragraph>Body Text</Paragraph>);
-    const paragraph = container.querySelector("p");
-    expect(paragraph?.className).toBeDefined();
+    const { container: defaultContainer } = render(
+      <Paragraph>Body Text</Paragraph>,
+    );
+    const { container: smallContainer } = render(
+      <Paragraph variant="small">Small Text</Paragraph>,
+    );
+    const defaultClass = defaultContainer.querySelector("p")?.className;
+    const smallClass = smallContainer.querySelector("p")?.className;
+    expect(defaultClass).not.toBe("");
+    expect(defaultClass).not.toBe(smallClass);
   });
 
   it("smallスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: smallContainer } = render(
       <Paragraph variant="small">Small Text</Paragraph>,
     );
-    const paragraph = container.querySelector("p");
-    expect(paragraph?.className).toBeDefined();
+    const { container: largeContainer } = render(
+      <Paragraph variant="large">Large Text</Paragraph>,
+    );
+    const smallClass = smallContainer.querySelector("p")?.className;
+    const largeClass = largeContainer.querySelector("p")?.className;
+    expect(smallClass).not.toBe("");
+    expect(smallClass).not.toBe(largeClass);
   });
 
   it("largeスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: largeContainer } = render(
       <Paragraph variant="large">Large Text</Paragraph>,
     );
-    const paragraph = container.querySelector("p");
-    expect(paragraph?.className).toBeDefined();
+    const { container: defaultContainer } = render(
+      <Paragraph>Default Text</Paragraph>,
+    );
+    const largeClass = largeContainer.querySelector("p")?.className;
+    const defaultClass = defaultContainer.querySelector("p")?.className;
+    expect(largeClass).not.toBe("");
+    expect(largeClass).not.toBe(defaultClass);
   });
 
   it("カスタムCSSクラスを追加できる", () => {

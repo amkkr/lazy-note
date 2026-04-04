@@ -70,47 +70,89 @@ describe("Button", () => {
   });
 
   it("デフォルトでprimaryスタイルになる", () => {
-    const { container } = render(<Button>Primary Button</Button>);
-
-    const button = container.querySelector("button");
-    expect(button?.className).toBeDefined();
-  });
-
-  it("secondaryスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: primaryContainer } = render(
+      <Button>Primary Button</Button>,
+    );
+    const { container: secondaryContainer } = render(
       <Button variant="secondary">Secondary Button</Button>,
     );
 
-    const button = container.querySelector("button");
-    expect(button?.className).toBeDefined();
+    const primaryClass = primaryContainer.querySelector("button")?.className;
+    const secondaryClass =
+      secondaryContainer.querySelector("button")?.className;
+    expect(primaryClass).not.toBe("");
+    expect(primaryClass).not.toBe(secondaryClass);
+  });
+
+  it("secondaryスタイルに変更できる", () => {
+    const { container: secondaryContainer } = render(
+      <Button variant="secondary">Secondary Button</Button>,
+    );
+    const { container: ghostContainer } = render(
+      <Button variant="ghost">Ghost Button</Button>,
+    );
+
+    const secondaryClass =
+      secondaryContainer.querySelector("button")?.className;
+    const ghostClass = ghostContainer.querySelector("button")?.className;
+    expect(secondaryClass).not.toBe("");
+    expect(secondaryClass).not.toBe(ghostClass);
   });
 
   it("ghostスタイルに変更できる", () => {
-    const { container } = render(<Button variant="ghost">Ghost Button</Button>);
+    const { container: ghostContainer } = render(
+      <Button variant="ghost">Ghost Button</Button>,
+    );
+    const { container: primaryContainer } = render(
+      <Button>Primary Button</Button>,
+    );
 
-    const button = container.querySelector("button");
-    expect(button?.className).toBeDefined();
+    const ghostClass = ghostContainer.querySelector("button")?.className;
+    const primaryClass = primaryContainer.querySelector("button")?.className;
+    expect(ghostClass).not.toBe("");
+    expect(ghostClass).not.toBe(primaryClass);
   });
 
   it("デフォルトでmediumサイズになる", () => {
-    const { container } = render(<Button>Medium Button</Button>);
+    const { container: mediumContainer } = render(
+      <Button>Medium Button</Button>,
+    );
+    const { container: smallContainer } = render(
+      <Button size="small">Small Button</Button>,
+    );
 
-    const button = container.querySelector("button");
-    expect(button?.className).toBeDefined();
+    const mediumClass = mediumContainer.querySelector("button")?.className;
+    const smallClass = smallContainer.querySelector("button")?.className;
+    expect(mediumClass).not.toBe("");
+    expect(mediumClass).not.toBe(smallClass);
   });
 
   it("smallサイズに変更できる", () => {
-    const { container } = render(<Button size="small">Small Button</Button>);
+    const { container: smallContainer } = render(
+      <Button size="small">Small Button</Button>,
+    );
+    const { container: largeContainer } = render(
+      <Button size="large">Large Button</Button>,
+    );
 
-    const button = container.querySelector("button");
-    expect(button?.className).toBeDefined();
+    const smallClass = smallContainer.querySelector("button")?.className;
+    const largeClass = largeContainer.querySelector("button")?.className;
+    expect(smallClass).not.toBe("");
+    expect(smallClass).not.toBe(largeClass);
   });
 
   it("largeサイズに変更できる", () => {
-    const { container } = render(<Button size="large">Large Button</Button>);
+    const { container: largeContainer } = render(
+      <Button size="large">Large Button</Button>,
+    );
+    const { container: mediumContainer } = render(
+      <Button>Medium Button</Button>,
+    );
 
-    const button = container.querySelector("button");
-    expect(button?.className).toBeDefined();
+    const largeClass = largeContainer.querySelector("button")?.className;
+    const mediumClass = mediumContainer.querySelector("button")?.className;
+    expect(largeClass).not.toBe("");
+    expect(largeClass).not.toBe(mediumClass);
   });
 
   it("複数の子要素を受け入れる", () => {

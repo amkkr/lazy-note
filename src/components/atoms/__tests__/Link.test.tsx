@@ -42,18 +42,12 @@ describe("Link", () => {
   });
 
   it("デフォルトでdefaultスタイルになる", () => {
-    const { container } = render(
+    const { container: defaultContainer } = render(
       <MemoryRouter>
         <Link to="/home">Home</Link>
       </MemoryRouter>,
     );
-
-    const link = container.querySelector("a");
-    expect(link?.className).toBeDefined();
-  });
-
-  it("navigationスタイルに変更できる", () => {
-    const { container } = render(
+    const { container: navContainer } = render(
       <MemoryRouter>
         <Link to="/nav" variant="navigation">
           Navigation Link
@@ -61,12 +55,21 @@ describe("Link", () => {
       </MemoryRouter>,
     );
 
-    const link = container.querySelector("a");
-    expect(link?.className).toBeDefined();
+    const defaultClass = defaultContainer.querySelector("a")?.className;
+    const navClass = navContainer.querySelector("a")?.className;
+    expect(defaultClass).not.toBe("");
+    expect(defaultClass).not.toBe(navClass);
   });
 
-  it("buttonスタイルに変更できる", () => {
-    const { container } = render(
+  it("navigationスタイルに変更できる", () => {
+    const { container: navContainer } = render(
+      <MemoryRouter>
+        <Link to="/nav" variant="navigation">
+          Navigation Link
+        </Link>
+      </MemoryRouter>,
+    );
+    const { container: buttonContainer } = render(
       <MemoryRouter>
         <Link to="/action" variant="button">
           Button Link
@@ -74,12 +77,21 @@ describe("Link", () => {
       </MemoryRouter>,
     );
 
-    const link = container.querySelector("a");
-    expect(link?.className).toBeDefined();
+    const navClass = navContainer.querySelector("a")?.className;
+    const buttonClass = buttonContainer.querySelector("a")?.className;
+    expect(navClass).not.toBe("");
+    expect(navClass).not.toBe(buttonClass);
   });
 
-  it("cardスタイルに変更できる", () => {
-    const { container } = render(
+  it("buttonスタイルに変更できる", () => {
+    const { container: buttonContainer } = render(
+      <MemoryRouter>
+        <Link to="/action" variant="button">
+          Button Link
+        </Link>
+      </MemoryRouter>,
+    );
+    const { container: cardContainer } = render(
       <MemoryRouter>
         <Link to="/card" variant="card">
           Card Link
@@ -87,8 +99,30 @@ describe("Link", () => {
       </MemoryRouter>,
     );
 
-    const link = container.querySelector("a");
-    expect(link?.className).toBeDefined();
+    const buttonClass = buttonContainer.querySelector("a")?.className;
+    const cardClass = cardContainer.querySelector("a")?.className;
+    expect(buttonClass).not.toBe("");
+    expect(buttonClass).not.toBe(cardClass);
+  });
+
+  it("cardスタイルに変更できる", () => {
+    const { container: cardContainer } = render(
+      <MemoryRouter>
+        <Link to="/card" variant="card">
+          Card Link
+        </Link>
+      </MemoryRouter>,
+    );
+    const { container: defaultContainer } = render(
+      <MemoryRouter>
+        <Link to="/home">Home</Link>
+      </MemoryRouter>,
+    );
+
+    const cardClass = cardContainer.querySelector("a")?.className;
+    const defaultClass = defaultContainer.querySelector("a")?.className;
+    expect(cardClass).not.toBe("");
+    expect(cardClass).not.toBe(defaultClass);
   });
 
   it("カスタムCSSクラスを追加できる", () => {
@@ -119,17 +153,29 @@ describe("Link", () => {
   });
 
   it("外部リンクにvariantを設定できる", () => {
-    const { container } = render(
+    const { container: buttonContainer } = render(
       <MemoryRouter>
         <Link to="https://example.com" external variant="button">
           External Button
         </Link>
       </MemoryRouter>,
     );
+    const { container: defaultContainer } = render(
+      <MemoryRouter>
+        <Link to="https://example.com" external>
+          External Default
+        </Link>
+      </MemoryRouter>,
+    );
 
-    const link = container.querySelector("a");
-    expect(link?.className).toBeDefined();
-    expect(link).toHaveAttribute("target", "_blank");
+    const buttonClass = buttonContainer.querySelector("a")?.className;
+    const defaultClass = defaultContainer.querySelector("a")?.className;
+    expect(buttonClass).not.toBe("");
+    expect(buttonClass).not.toBe(defaultClass);
+    expect(buttonContainer.querySelector("a")).toHaveAttribute(
+      "target",
+      "_blank",
+    );
   });
 
   it("ルート相対パスでリンクできる", () => {

@@ -116,7 +116,6 @@ src/
 │   └── usePosts.ts
 ├── lib/              # ユーティリティ関数
 │   ├── __tests__/    # libのテスト
-│   ├── design-tokens.ts  # デザイントークン定義
 │   └── markdown.ts   # Markdown解析ロジック
 ├── pages/            # ファイルベースルーティング用
 │   ├── __tests__/    # pagesのテスト

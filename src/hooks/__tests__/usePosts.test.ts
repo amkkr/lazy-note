@@ -29,28 +29,42 @@ describe("usePosts", () => {
     vi.clearAllMocks();
   });
 
-  it("記事一覧を取得できる", async () => {
+  it("フック呼び出し直後にローディング状態になる", () => {
     mockGetAllPostSummaries.mockResolvedValue(mockPosts);
 
     const { result } = renderHook(() => usePosts());
 
-    // 初期状態の確認
     expect(result.current.loading).toBe(true);
     expect(result.current.posts).toEqual([]);
     expect(result.current.error).toBe(null);
+  });
 
-    // 読み込み完了まで待機
+  it("記事一覧データを取得できる", async () => {
+    mockGetAllPostSummaries.mockResolvedValue(mockPosts);
+
+    const { result } = renderHook(() => usePosts());
+
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
 
-    // 最終状態の確認
     expect(result.current.posts).toEqual(mockPosts);
-    expect(result.current.error).toBe(null);
     expect(mockGetAllPostSummaries).toHaveBeenCalledTimes(1);
   });
 
-  it("記事一覧が空の場合に空配列が返る", async () => {
+  it("取得完了後にローディングが解除される", async () => {
+    mockGetAllPostSummaries.mockResolvedValue(mockPosts);
+
+    const { result } = renderHook(() => usePosts());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.error).toBe(null);
+  });
+
+  it("記事一覧が空の場合に空配列を返す", async () => {
     mockGetAllPostSummaries.mockResolvedValue([]);
 
     const { result } = renderHook(() => usePosts());

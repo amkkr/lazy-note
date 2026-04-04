@@ -24,27 +24,41 @@ describe("usePost", () => {
     vi.clearAllMocks();
   });
 
+  it("フック呼び出し直後にローディング状態になる", () => {
+    mockGetPost.mockResolvedValue(mockPost);
+
+    const { result } = renderHook(() => usePost("20240101100000"));
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.post).toBe(null);
+    expect(result.current.error).toBe(null);
+    expect(result.current.notFound).toBe(false);
+  });
+
   it("記事データを取得できる", async () => {
     mockGetPost.mockResolvedValue(mockPost);
 
     const { result } = renderHook(() => usePost("20240101100000"));
 
-    // 初期状態の確認
-    expect(result.current.loading).toBe(true);
-    expect(result.current.post).toBe(null);
-    expect(result.current.error).toBe(null);
-    expect(result.current.notFound).toBe(false);
-
-    // 読み込み完了まで待機
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
 
-    // 最終状態の確認
     expect(result.current.post).toEqual(mockPost);
+    expect(mockGetPost).toHaveBeenCalledWith("20240101100000");
+  });
+
+  it("取得完了後にローディングが解除される", async () => {
+    mockGetPost.mockResolvedValue(mockPost);
+
+    const { result } = renderHook(() => usePost("20240101100000"));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(result.current.error).toBe(null);
     expect(result.current.notFound).toBe(false);
-    expect(mockGetPost).toHaveBeenCalledWith("20240101100000");
   });
 
   it("timestampがundefinedの場合にnotFoundを設定する", async () => {

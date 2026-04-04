@@ -58,7 +58,7 @@ export const extractBodyContent = (lines: string[]): string => {
   const endIndex = nextSectionIndex === -1 ? lines.length : nextSectionIndex;
   const bodyLines = lines.slice(bodyStartIndex + 1, endIndex);
 
-  return bodyLines.join("\n");
+  return bodyLines.join("\n").trim();
 };
 
 /**

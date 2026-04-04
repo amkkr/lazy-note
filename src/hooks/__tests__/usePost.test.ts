@@ -24,6 +24,17 @@ describe("usePost", () => {
     vi.clearAllMocks();
   });
 
+  it("フック呼び出し直後にローディング状態になる", () => {
+    mockGetPost.mockResolvedValue(mockPost);
+
+    const { result } = renderHook(() => usePost("20240101100000"));
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.post).toBe(null);
+    expect(result.current.error).toBe(null);
+    expect(result.current.notFound).toBe(false);
+  });
+
   it("記事データを取得できる", async () => {
     mockGetPost.mockResolvedValue(mockPost);
 

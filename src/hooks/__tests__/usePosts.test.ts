@@ -29,6 +29,16 @@ describe("usePosts", () => {
     vi.clearAllMocks();
   });
 
+  it("フック呼び出し直後にローディング状態になる", () => {
+    mockGetAllPostSummaries.mockResolvedValue(mockPosts);
+
+    const { result } = renderHook(() => usePosts());
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.posts).toEqual([]);
+    expect(result.current.error).toBe(null);
+  });
+
   it("記事一覧データを取得できる", async () => {
     mockGetAllPostSummaries.mockResolvedValue(mockPosts);
 

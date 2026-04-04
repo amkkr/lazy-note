@@ -43,7 +43,7 @@ export const extractSectionContent = (
 /**
  * Markdownの行配列から本文セクションの内容を抽出する
  * @param lines Markdownの行配列
- * @returns 本文の内容（空行を除く）
+ * @returns 本文の内容（空行は段落区切りとして保持）
  */
 export const extractBodyContent = (lines: string[]): string => {
   const bodyStartIndex = lines.findIndex((line) => line.startsWith("## 本文"));
@@ -58,7 +58,7 @@ export const extractBodyContent = (lines: string[]): string => {
   const endIndex = nextSectionIndex === -1 ? lines.length : nextSectionIndex;
   const bodyLines = lines.slice(bodyStartIndex + 1, endIndex);
 
-  return bodyLines.filter((line) => line.trim() !== "").join("\n");
+  return bodyLines.join("\n").trim();
 };
 
 /**

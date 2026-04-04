@@ -124,10 +124,10 @@ describe("markdown.ts", () => {
       expect(result.content).not.toContain("これは本文に含まれません。");
     });
 
-    it("空行は本文から除外される", () => {
+    it("空行が段落区切りとして保持される", () => {
       const content = `# テストタイトル
 
-## 投稿日時  
+## 投稿日時
 - 2024-01-01 10:00
 
 ## 筆者名
@@ -144,7 +144,9 @@ describe("markdown.ts", () => {
 
       const result = parseMarkdown(content, "20240101100000");
 
-      expect(result.content).toBe("<p>1行目です。<br>2行目です。</p>\n");
+      expect(result.content).toBe(
+        "<p>1行目です。</p>\n<p>2行目です。</p>\n",
+      );
     });
   });
 });

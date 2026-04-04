@@ -141,7 +141,7 @@ describe("createPostsMiddleware", () => {
       expect(res.end).toHaveBeenCalledWith(mockContent);
     });
 
-    it(".md 拡張子付きのURLでも正しく処理する", () => {
+    it(".md 拡張子付きのURLでも投稿を取得できる", () => {
       req.url = "/20250101.md";
       const mockContent = "# Test Post";
       vi.spyOn(fs, "readFileSync").mockReturnValue(mockContent);
@@ -167,7 +167,7 @@ describe("createPostsMiddleware", () => {
       expect(res.end).toHaveBeenCalledWith("Post not found");
     });
 
-    it("日本語を含む投稿を正しく処理する", () => {
+    it("日本語を含む投稿を取得できる", () => {
       req.url = "/20250101";
       const mockContent = "# テスト投稿\n\nこれはテストコンテンツです。";
       vi.spyOn(fs, "readFileSync").mockReturnValue(mockContent);
@@ -177,7 +177,7 @@ describe("createPostsMiddleware", () => {
       expect(res.end).toHaveBeenCalledWith(mockContent);
     });
 
-    it("空のファイルを正しく処理する", () => {
+    it("空のファイルでも空文字列として返せる", () => {
       req.url = "/20250101";
       vi.spyOn(fs, "readFileSync").mockReturnValue("");
 

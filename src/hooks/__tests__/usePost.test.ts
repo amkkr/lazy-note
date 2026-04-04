@@ -24,7 +24,7 @@ describe("usePost", () => {
     vi.clearAllMocks();
   });
 
-  it("記事詳細を正しく取得する", async () => {
+  it("記事データを取得できる", async () => {
     mockGetPost.mockResolvedValue(mockPost);
 
     const { result } = renderHook(() => usePost("20240101100000"));
@@ -75,7 +75,7 @@ describe("usePost", () => {
     expect(mockGetPost).toHaveBeenCalledWith("nonexistent");
   });
 
-  it("エラーが発生した場合を正しく処理する", async () => {
+  it("エラー発生時にエラーメッセージが設定される", async () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const errorMessage = "ネットワークエラー";
     mockGetPost.mockRejectedValue(new Error(errorMessage));

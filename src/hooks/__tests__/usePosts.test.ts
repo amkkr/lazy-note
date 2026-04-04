@@ -29,7 +29,7 @@ describe("usePosts", () => {
     vi.clearAllMocks();
   });
 
-  it("記事一覧を正しく取得する", async () => {
+  it("記事一覧を取得できる", async () => {
     mockGetAllPostSummaries.mockResolvedValue(mockPosts);
 
     const { result } = renderHook(() => usePosts());
@@ -50,7 +50,7 @@ describe("usePosts", () => {
     expect(mockGetAllPostSummaries).toHaveBeenCalledTimes(1);
   });
 
-  it("記事一覧が空の場合を正しく処理する", async () => {
+  it("記事一覧が空の場合に空配列が返る", async () => {
     mockGetAllPostSummaries.mockResolvedValue([]);
 
     const { result } = renderHook(() => usePosts());
@@ -63,7 +63,7 @@ describe("usePosts", () => {
     expect(result.current.error).toBe(null);
   });
 
-  it("エラーが発生した場合を正しく処理する", async () => {
+  it("エラー発生時にエラーメッセージが設定される", async () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const errorMessage = "ネットワークエラー";
     mockGetAllPostSummaries.mockRejectedValue(new Error(errorMessage));

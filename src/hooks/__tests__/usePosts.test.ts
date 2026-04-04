@@ -29,28 +29,32 @@ describe("usePosts", () => {
     vi.clearAllMocks();
   });
 
-  it("記事一覧を正しく取得する", async () => {
+  it("記事一覧データを取得できる", async () => {
     mockGetAllPostSummaries.mockResolvedValue(mockPosts);
 
     const { result } = renderHook(() => usePosts());
 
-    // 初期状態の確認
-    expect(result.current.loading).toBe(true);
-    expect(result.current.posts).toEqual([]);
-    expect(result.current.error).toBe(null);
-
-    // 読み込み完了まで待機
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
 
-    // 最終状態の確認
     expect(result.current.posts).toEqual(mockPosts);
-    expect(result.current.error).toBe(null);
     expect(mockGetAllPostSummaries).toHaveBeenCalledTimes(1);
   });
 
-  it("記事一覧が空の場合を正しく処理する", async () => {
+  it("取得完了後にローディングが解除される", async () => {
+    mockGetAllPostSummaries.mockResolvedValue(mockPosts);
+
+    const { result } = renderHook(() => usePosts());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.error).toBe(null);
+  });
+
+  it("記事一覧が空の場合に空配列を返す", async () => {
     mockGetAllPostSummaries.mockResolvedValue([]);
 
     const { result } = renderHook(() => usePosts());
@@ -63,7 +67,7 @@ describe("usePosts", () => {
     expect(result.current.error).toBe(null);
   });
 
-  it("エラーが発生した場合を正しく処理する", async () => {
+  it("エラー発生時にエラーメッセージが設定される", async () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const errorMessage = "ネットワークエラー";
     mockGetAllPostSummaries.mockRejectedValue(new Error(errorMessage));

@@ -62,7 +62,7 @@ describe("HomePage", () => {
     expect(screen.getByText("テスト記事2")).toBeInTheDocument();
   });
 
-  it("各記事のメタ情報を表示できる", () => {
+  it("各記事の著者名を表示できる", () => {
     render(
       <MemoryRouter>
         <HomePage
@@ -76,6 +76,20 @@ describe("HomePage", () => {
 
     expect(screen.getByText("著者1")).toBeInTheDocument();
     expect(screen.getByText("著者2")).toBeInTheDocument();
+  });
+
+  it("各記事の投稿日時を表示できる", () => {
+    render(
+      <MemoryRouter>
+        <HomePage
+          posts={mockPosts}
+          currentPage={1}
+          totalPages={1}
+          onPageChange={mockOnPageChange}
+        />
+      </MemoryRouter>,
+    );
+
     expect(screen.getByText("2024-01-01")).toBeInTheDocument();
     expect(screen.getByText("2024-01-02")).toBeInTheDocument();
   });

@@ -62,7 +62,7 @@ describe("Indexコンポーネント", () => {
     expect(screen.getByText("読み込み中...")).toBeInTheDocument();
   });
 
-  it("記事一覧を表示できる", async () => {
+  it("ヘッダーとフッターにブランド名を表示できる", async () => {
     mockUsePosts.mockReturnValue({
       posts: mockPosts,
       loading: false,
@@ -79,27 +79,77 @@ describe("Indexコンポーネント", () => {
       </TestWrapper>,
     );
 
-    // ブランド名の確認
-    expect(screen.getAllByText("✨ Lazy Note")).toHaveLength(2); // ヘッダーとフッター
+    expect(screen.getAllByText("✨ Lazy Note")).toHaveLength(2);
+  });
 
-    // 記事タイトルの確認
+  it("記事タイトルを見出しとして表示できる", async () => {
+    mockUsePosts.mockReturnValue({
+      posts: mockPosts,
+      loading: false,
+      error: null,
+      currentPage: 1,
+      totalPages: 1,
+      totalPosts: 2,
+      setCurrentPage: vi.fn(),
+    });
+
+    render(
+      <TestWrapper>
+        <Index />
+      </TestWrapper>,
+    );
+
     expect(
       screen.getByRole("heading", { name: "2つ目の記事" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "最初の記事" }),
     ).toBeInTheDocument();
+  });
 
-    // 投稿日時の確認
+  it("記事の投稿日時を表示できる", async () => {
+    mockUsePosts.mockReturnValue({
+      posts: mockPosts,
+      loading: false,
+      error: null,
+      currentPage: 1,
+      totalPages: 1,
+      totalPosts: 2,
+      setCurrentPage: vi.fn(),
+    });
+
+    render(
+      <TestWrapper>
+        <Index />
+      </TestWrapper>,
+    );
+
     expect(screen.getByText("2024-01-02 12:00")).toBeInTheDocument();
     expect(screen.getByText("2024-01-01 10:00")).toBeInTheDocument();
+  });
 
-    // 筆者名の確認
+  it("記事の筆者名を表示できる", async () => {
+    mockUsePosts.mockReturnValue({
+      posts: mockPosts,
+      loading: false,
+      error: null,
+      currentPage: 1,
+      totalPages: 1,
+      totalPosts: 2,
+      setCurrentPage: vi.fn(),
+    });
+
+    render(
+      <TestWrapper>
+        <Index />
+      </TestWrapper>,
+    );
+
     expect(screen.getByText("花子")).toBeInTheDocument();
     expect(screen.getByText("太郎")).toBeInTheDocument();
   });
 
-  it("記事がない場合に適切なメッセージを表示する", async () => {
+  it("記事がない場合に案内メッセージを表示する", async () => {
     mockUsePosts.mockReturnValue({
       posts: [],
       loading: false,

@@ -380,6 +380,56 @@ items.map((item) => <li key={item}>{item}</li>);
 items.map((item, index) => <li key={index}>{item}</li>);
 ```
 
+### テスト方針（TDDとアサーション規約）
+
+テストを書く際は以下の方針に従うこと。
+
+#### TDDの姿勢（t-wada的TDD）
+
+1. **Red-Green-Refactorを厳守する**: 失敗するテストを先に書き、最小実装で通し、リファクタリングで整える
+2. **振る舞い単位でテストを書く**: 実装詳細ではなく、外部から観測可能な振る舞いを検証する
+3. **一度に1つのテスト**: 同時に複数の振る舞いを扱わず、1サイクル1振る舞いに絞る
+4. **テストリストを先に作る**: 着手前に検証したい振る舞いを列挙し、優先度順に1つずつ消化する
+5. **仮実装→三角測量→実装の流れを許容する**: まずハードコードで通してから一般化する
+6. **テストが仕様書として読めること**: `it` の文言を読めば仕様が分かる状態を保つ（既存「テストケース名のルール」参照）
+
+TDDサイクルの詳細は `.claude/skills/tdd/SKILL.md` を参照。
+
+#### アサーション・ランナー規約
+
+本プロジェクトのテストは**Vitestに完全に寄せる**。以下を厳守すること。
+
+1. **`node:assert` の使用禁止**: `node:assert`、`assert`、`node:assert/strict` からの import は一切行わない
+2. **`expect` を使う**: アサーションは Vitest の `expect` を使用する
+3. **import 元は `vitest` に統一**: `describe` / `it` / `expect` / `vi` / `beforeEach` / `afterEach` などは全て `vitest` から import する
+4. **DOM系マッチャは `@testing-library/jest-dom` を利用**: `toBeInTheDocument` / `toBeDisabled` などはセットアップ済み（`src/test/` 参照）
+
+```typescript
+// 良い例: vitestに完全に寄せる
+import { describe, expect, it, vi } from "vitest";
+
+describe("add", () => {
+  it("2つの数値を加算できる", () => {
+    expect(add(1, 2)).toBe(3);
+  });
+});
+
+// 悪い例: node:assertを使っている
+import { strict as assert } from "node:assert";
+import { describe, it } from "vitest";
+
+describe("add", () => {
+  it("2つの数値を加算できる", () => {
+    assert.equal(add(1, 2), 3); // NG
+  });
+});
+```
+
+#### テスト配置とファイル命名
+
+- テストファイルは対象ファイルと同階層の `__tests__/` 以下に置き、`*.test.ts` / `*.test.tsx` とする(既存ディレクトリ構成を踏襲)
+- 共通セットアップは `src/test/` に集約する
+
 ### テストケース名のルール
 
 テストケース名は以下のルールに従うこと：

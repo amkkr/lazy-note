@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd $HOME/repos/lazy-note && pnpm test:run && pnpm lint && pnpm type-check && pnpm prepare"
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && pnpm test:run && pnpm lint && pnpm type-check && pnpm prepare"
           }
         ]
       }

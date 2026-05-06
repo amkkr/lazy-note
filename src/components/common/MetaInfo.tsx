@@ -12,7 +12,12 @@ const containerStyles = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: "md",
+  flexWrap: "wrap",
+  gap: "sm",
+  md: {
+    gap: "md",
+    flexWrap: "nowrap",
+  },
 });
 
 const itemBaseStyles = css({

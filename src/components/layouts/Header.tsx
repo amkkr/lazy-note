@@ -13,10 +13,14 @@ export const Header = ({ postCount }: HeaderProps) => {
         background: "bg.0",
         color: "fg.1",
         paddingY: "content",
+        paddingX: "md",
         minHeight: "header",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        md: {
+          paddingX: "0",
+        },
       })}
     >
       <div

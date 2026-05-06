@@ -16,10 +16,13 @@ interface HomePageProps {
 
 // スタイルをコンポーネント外に定数として定義
 const containerStyles = css({
-  maxWidth: "900px",
+  maxWidth: "content",
   margin: "0 auto",
   padding: "content",
-  paddingX: "xl",
+  paddingX: "md",
+  md: {
+    paddingX: "xl",
+  },
 });
 
 const postListStyles = css({
@@ -42,15 +45,22 @@ const articleStyles = css({
 });
 
 const articleHeaderStyles = css({
-  padding: "card",
+  padding: "sm-md",
   paddingBottom: "md",
-  paddingX: "sm-md",
   borderBottom: "1px solid",
   borderColor: "bg.3",
+  md: {
+    padding: "card",
+    paddingBottom: "md",
+    paddingX: "sm-md",
+  },
 });
 
 const articleContentStyles = css({
-  padding: "card",
+  padding: "sm-md",
+  md: {
+    padding: "card",
+  },
 });
 
 /**

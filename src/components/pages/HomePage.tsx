@@ -53,6 +53,13 @@ const articleContentStyles = css({
   padding: "card",
 });
 
+const excerptStyles = css({
+  fontSize: "sm",
+  color: "fg.3",
+  lineHeight: "body",
+  marginTop: "sm",
+});
+
 /**
  * ホームページコンポーネント（CSS定数抽出 + React.memoでメモ化）
  */
@@ -75,6 +82,7 @@ export const HomePage = memo(
                     <MetaInfo
                       createdAt={post.createdAt}
                       author={post.author}
+                      readingTimeMinutes={post.readingTimeMinutes}
                       variant="card"
                     />
                   </div>
@@ -85,6 +93,9 @@ export const HomePage = memo(
                         {post.title || "無題の記事"}
                       </Heading2>
                     </Link>
+                    {post.excerpt && (
+                      <p className={excerptStyles}>{post.excerpt}</p>
+                    )}
                   </div>
                 </article>
               ))}

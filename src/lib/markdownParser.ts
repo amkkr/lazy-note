@@ -69,7 +69,51 @@ export interface PostSummary {
   title: string;
   createdAt: string;
   author: string;
+  excerpt: string;
+  readingTimeMinutes: number;
 }
+
+/**
+ * 本文からMarkdown記法を除去し、先頭の指定文字数を抽出する
+ * @param bodyContent 本文のMarkdownコンテンツ
+ * @param maxLength 最大文字数（デフォルト: 150）
+ * @returns プレーンテキストの抜粋
+ */
+export const extractExcerpt = (
+  bodyContent: string,
+  maxLength = 150,
+): string => {
+  const plainText = bodyContent
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
+    .replace(/!\[.*?\]\(.+?\)/g, "")
+    .replace(/^[-*+]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/^>\s+/gm, "")
+    .replace(/---/g, "")
+    .replace(/\n{2,}/g, " ")
+    .replace(/\n/g, " ")
+    .trim();
+
+  if (plainText.length <= maxLength) {
+    return plainText;
+  }
+  return `${plainText.slice(0, maxLength)}...`;
+};
+
+/**
+ * 本文の文字数から読了時間を算出する（日本語400文字/分ベース）
+ * @param bodyContent 本文のMarkdownコンテンツ
+ * @returns 読了時間（分、最低1分）
+ */
+export const calculateReadingTime = (bodyContent: string): number => {
+  const charCount = bodyContent.replace(/\s/g, "").length;
+  const minutes = Math.ceil(charCount / 400);
+  return Math.max(1, minutes);
+};
 
 /**
  * Markdownコンテンツからサマリー（メタデータ）を抽出する
@@ -85,5 +129,13 @@ export const extractSummaryFromContent = (
   const title = extractTitle(lines);
   const createdAt = extractSectionContent(lines, "投稿日時");
   const author = extractSectionContent(lines, "筆者名");
-  return { id: timestamp, title, createdAt, author };
+  const bodyContent = extractBodyContent(lines);
+  return {
+    id: timestamp,
+    title,
+    createdAt,
+    author,
+    excerpt: extractExcerpt(bodyContent),
+    readingTimeMinutes: calculateReadingTime(bodyContent),
+  };
 };

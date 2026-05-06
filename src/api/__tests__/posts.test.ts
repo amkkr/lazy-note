@@ -68,12 +68,16 @@ describe("createPostsMiddleware", () => {
           title: "テスト記事2",
           createdAt: "2025-01-02",
           author: "花子",
+          excerpt: "",
+          readingTimeMinutes: 1,
         },
         {
           id: "20250101",
           title: "テスト記事1",
           createdAt: "2025-01-01",
           author: "太郎",
+          excerpt: "",
+          readingTimeMinutes: 1,
         },
       ];
       expect(res.end).toHaveBeenCalledWith(JSON.stringify(expectedPosts));

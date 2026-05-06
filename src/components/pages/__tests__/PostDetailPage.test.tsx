@@ -13,6 +13,8 @@ const mockPost: Post = {
   createdAt: "2024-01-15",
   rawContent:
     "# テスト記事タイトル\n\nこれはテスト記事の内容です。\n\n## 見出し\n\n追加のコンテンツ",
+  excerpt: "これはテスト記事の内容です。追加のコンテンツ",
+  readingTimeMinutes: 1,
 };
 
 describe("PostDetailPage", () => {

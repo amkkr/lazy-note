@@ -4,6 +4,7 @@ import { css } from "../../../styled-system/css";
 interface MetaInfoProps {
   createdAt?: string;
   author?: string;
+  readingTimeMinutes?: number;
   variant?: "card" | "header";
 }
 
@@ -38,7 +39,12 @@ const itemHeaderStyles = css({
  * メタ情報コンポーネント（CSS定数抽出 + React.memoでメモ化）
  */
 export const MetaInfo = memo(
-  ({ createdAt, author, variant = "card" }: MetaInfoProps) => {
+  ({
+    createdAt,
+    author,
+    readingTimeMinutes,
+    variant = "card",
+  }: MetaInfoProps) => {
     const itemVariantStyles =
       variant === "header" ? itemHeaderStyles : itemCardStyles;
 
@@ -52,6 +58,12 @@ export const MetaInfo = memo(
           <span>✍️</span>
           <span>{author || "匿名"}</span>
         </div>
+        {readingTimeMinutes !== undefined && (
+          <div className={`${itemBaseStyles} ${itemVariantStyles}`}>
+            <span>⏱</span>
+            <span>{readingTimeMinutes}分で読了</span>
+          </div>
+        )}
       </div>
     );
   },

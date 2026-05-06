@@ -1,5 +1,6 @@
 import { css } from "../../../styled-system/css";
 import { BrandName } from "../common/BrandName";
+import { ThemeToggle } from "../common/ThemeToggle";
 
 interface HeaderProps {
   postCount?: number;
@@ -29,22 +30,31 @@ export const Header = ({ postCount }: HeaderProps) => {
       >
         <BrandName variant="header" />
 
-        {postCount !== undefined && (
-          <div
-            className={css({
-              background: "bg.2",
-              color: "fg.1",
-              paddingY: "sm",
-              paddingX: "md",
-              borderRadius: "xl",
-              fontSize: "sm",
-              fontWeight: "bold",
-              boxShadow: "card",
-            })}
-          >
-            📚 {postCount}記事
-          </div>
-        )}
+        <div
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            gap: "md",
+          })}
+        >
+          {postCount !== undefined && (
+            <div
+              className={css({
+                background: "bg.2",
+                color: "fg.1",
+                paddingY: "sm",
+                paddingX: "md",
+                borderRadius: "xl",
+                fontSize: "sm",
+                fontWeight: "bold",
+                boxShadow: "card",
+              })}
+            >
+              📚 {postCount}記事
+            </div>
+          )}
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

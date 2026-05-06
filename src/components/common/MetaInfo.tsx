@@ -23,12 +23,12 @@ const itemBaseStyles = css({
 });
 
 const itemCardStyles = css({
-  color: "#6b7280",
+  color: "fg.4",
 });
 
 const itemHeaderStyles = css({
-  color: "white",
-  background: "rgba(255, 255, 255, 0.2)",
+  color: "fg.0",
+  background: "rgba(251, 241, 199, 0.15)",
   paddingY: "sm",
   paddingX: "md",
   borderRadius: "xl",

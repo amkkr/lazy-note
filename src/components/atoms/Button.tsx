@@ -32,7 +32,7 @@ const baseButtonStyles = css({
 const variantStyles = {
   primary: css({
     background: "blue.light",
-    color: "white",
+    color: "fg.0",
     "&:hover:not(:disabled)": {
       background: "blue.dark",
       transform: "translateY(-1px)",

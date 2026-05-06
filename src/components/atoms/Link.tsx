@@ -36,7 +36,7 @@ export const Link = ({
     navigation: css({
       display: "inline-flex",
       alignItems: "center",
-      gap: "8px",
+      gap: "sm",
       color: "blue.light",
       fontSize: "sm",
       fontWeight: "600",
@@ -48,11 +48,11 @@ export const Link = ({
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "12px 16px",
+      padding: "sm-md md",
       background: "blue.light",
       color: "fg.0",
       fontWeight: "600",
-      borderRadius: "8px",
+      borderRadius: "md",
       "&:hover": {
         background: "blue.dark",
         transform: "translateY(-1px)",

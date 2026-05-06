@@ -19,19 +19,19 @@ const containerStyles = css({
   maxWidth: "900px",
   margin: "0 auto",
   padding: "content",
-  paddingX: "32px",
+  paddingX: "xl",
 });
 
 const postListStyles = css({
   display: "flex",
   flexDirection: "column",
-  gap: "32px",
-  paddingTop: "12px",
+  gap: "xl",
+  paddingTop: "sm-md",
 });
 
 const articleStyles = css({
   background: "bg.1",
-  borderRadius: "12px",
+  borderRadius: "lg",
   overflow: "hidden",
   boxShadow: "card",
   transition: "transform 0.2s ease, box-shadow 0.2s ease",
@@ -43,8 +43,8 @@ const articleStyles = css({
 
 const articleHeaderStyles = css({
   padding: "card",
-  paddingBottom: "16px",
-  paddingX: "12px",
+  paddingBottom: "md",
+  paddingX: "sm-md",
   borderBottom: "1px solid",
   borderColor: "bg.3",
 });

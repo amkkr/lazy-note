@@ -36,7 +36,7 @@ export const Header = ({ postCount }: HeaderProps) => {
               color: "fg.1",
               paddingY: "sm",
               paddingX: "md",
-              borderRadius: "20px",
+              borderRadius: "xl",
               fontSize: "sm",
               fontWeight: "bold",
               boxShadow: "card",

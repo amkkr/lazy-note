@@ -7,7 +7,6 @@
   line-height: 1.6;
   font-weight: 400;
 
-  color-scheme: dark;
   color: var(--colors-fg-1);
   background: var(--colors-bg-0);
 
@@ -98,4 +97,7 @@ button:focus-visible {
     transform: rotate(360deg);
   }
 }
+
+[data-theme="dark"] { color-scheme: dark; }
+[data-theme="light"] { color-scheme: light; }
 

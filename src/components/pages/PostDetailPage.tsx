@@ -85,7 +85,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             <div
               className={css({
                 height: "1px",
-                background: "surface.200",
+                background: "bg.3",
               })}
             />
 

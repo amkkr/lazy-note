@@ -46,7 +46,7 @@ const articleHeaderStyles = css({
   paddingBottom: "16px",
   paddingX: "12px",
   borderBottom: "1px solid",
-  borderColor: "surface.200",
+  borderColor: "bg.3",
 });
 
 const articleContentStyles = css({

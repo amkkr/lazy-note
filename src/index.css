@@ -8,8 +8,8 @@
   font-weight: 400;
 
   color-scheme: dark;
-  color: #ebdbb2;
-  background: #282828;
+  color: var(--colors-fg-1);
+  background: var(--colors-bg-0);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -19,12 +19,12 @@
 
 a {
   font-weight: 500;
-  color: #83a598;
+  color: var(--colors-blue-light);
   text-decoration: none;
   transition: all 0.2s ease;
 }
 a:hover {
-  color: #8ec07c;
+  color: var(--colors-aqua-light);
 }
 
 body {
@@ -37,7 +37,7 @@ body {
 /* Typography Base Styles */
 h1, h2, h3 {
   font-weight: bold;
-  color: #ebdbb2;
+  color: var(--colors-fg-1);
   line-height: 1.2; /* snug */
 }
 
@@ -48,7 +48,7 @@ h1 {
 
 p {
   line-height: 1.7; /* body */
-  color: #d5c4a1;
+  color: var(--colors-fg-2);
 }
 
 /* List Base Styles */

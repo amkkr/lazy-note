@@ -18,7 +18,6 @@
     "new-post": "node scripts/newPost.ts"
   },
   "dependencies": {
-    "@headlessui/react": "^2.2.10",
     "dompurify": "^3.4.2",
     "marked": "^18.0.3",
     "react": "^19.2.5",

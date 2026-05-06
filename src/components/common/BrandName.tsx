@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
 
 interface BrandNameProps {
@@ -12,17 +13,19 @@ export const BrandName = ({
   const isHeader = variant === "header";
 
   return (
-    <div
+    <Link
+      to="/"
       className={css({
         fontSize: isHeader ? "lg" : "sm",
         fontWeight: "bold",
         color: isHeader ? "fg.0" : "fg.2",
+        textDecoration: "none",
         ...(variant === "footer" && {
           marginBottom: "xs",
         }),
       })}
     >
       {showIcon && "✨ "}Lazy Note
-    </div>
+    </Link>
   );
 };

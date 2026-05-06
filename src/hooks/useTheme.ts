@@ -10,7 +10,11 @@ const getThemeSnapshot = (): Theme => {
       return stored;
     }
   } catch {
-    /* localStorageにアクセスできない場合はデフォルト値を返す */
+    /* localStorageにアクセスできない場合はフォールバック */
+  }
+  const domTheme = document.documentElement.dataset.theme;
+  if (domTheme === "light" || domTheme === "dark") {
+    return domTheme;
   }
   return "dark";
 };

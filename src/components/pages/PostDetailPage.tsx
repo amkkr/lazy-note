@@ -19,14 +19,18 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
           borderBottom: "1px solid",
           borderColor: "bg.3",
           paddingY: "sm-md",
+          paddingX: "md",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          md: {
+            paddingX: "0",
+          },
         })}
       >
         <div
           className={css({
-            maxWidth: "900px",
+            maxWidth: "content",
             width: "100%",
           })}
         >
@@ -46,7 +50,10 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
           className={css({
             maxWidth: "article",
             margin: "0 auto",
-            padding: "content",
+            padding: "md",
+            md: {
+              padding: "content",
+            },
           })}
         >
           <article
@@ -64,7 +71,10 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
               className={css({
                 background: "gradients.primary",
                 color: "fg.0",
-                padding: "section",
+                padding: "md",
+                md: {
+                  padding: "section",
+                },
               })}
             >
               <Heading1
@@ -92,9 +102,14 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             {/* Article Content */}
             <div
               className={css({
-                paddingRight: "section",
-                paddingLeft: "section",
-                paddingBottom: "section",
+                paddingRight: "md",
+                paddingLeft: "md",
+                paddingBottom: "md",
+                md: {
+                  paddingRight: "section",
+                  paddingLeft: "section",
+                  paddingBottom: "section",
+                },
                 lineHeight: "body",
                 fontSize: "base",
                 color: "fg.1",

@@ -10,6 +10,13 @@ export default defineConfig({
   // Files to exclude
   exclude: [],
 
+  conditions: {
+    extend: {
+      light: "[data-theme=light] &",
+      dark: "[data-theme=dark] &",
+    },
+  },
+
   // Useful for theme customization
   theme: {
     tokens: {
@@ -37,20 +44,31 @@ export default defineConfig({
     extend: {
       tokens: {
         colors: {
-          // Gruvbox dark color palette
-          bg: {
-            0: { value: "#282828" }, // bg0
-            1: { value: "#3c3836" }, // bg1
-            2: { value: "#504945" }, // bg2
-            3: { value: "#665c54" }, // bg3
-            4: { value: "#7c6f64" }, // bg4
-          },
-          fg: {
-            0: { value: "#fbf1c7" }, // fg0
-            1: { value: "#ebdbb2" }, // fg1
-            2: { value: "#d5c4a1" }, // fg2
-            3: { value: "#bdae93" }, // fg3
-            4: { value: "#a89984" }, // fg4
+          gruvbox: {
+            dark: {
+              bg0: { value: "#282828" },
+              bg1: { value: "#3c3836" },
+              bg2: { value: "#504945" },
+              bg3: { value: "#665c54" },
+              bg4: { value: "#7c6f64" },
+              fg0: { value: "#fbf1c7" },
+              fg1: { value: "#ebdbb2" },
+              fg2: { value: "#d5c4a1" },
+              fg3: { value: "#bdae93" },
+              fg4: { value: "#a89984" },
+            },
+            light: {
+              bg0: { value: "#fbf1c7" },
+              bg1: { value: "#ebdbb2" },
+              bg2: { value: "#d5c4a1" },
+              bg3: { value: "#bdae93" },
+              bg4: { value: "#a89984" },
+              fg0: { value: "#282828" },
+              fg1: { value: "#3c3836" },
+              fg2: { value: "#504945" },
+              fg3: { value: "#665c54" },
+              fg4: { value: "#7c6f64" },
+            },
           },
           red: {
             light: { value: "#fb4934" },
@@ -85,17 +103,6 @@ export default defineConfig({
             dark: { value: "#928374" },
           },
         },
-        gradients: {
-          hero: { value: "linear-gradient(135deg, #458588 0%, #689d6a 100%)" },
-          card: { value: "linear-gradient(145deg, #3c3836 0%, #282828 100%)" },
-          accent: { value: "linear-gradient(90deg, #fe8019 0%, #d65d0e 100%)" },
-          primary: {
-            value: "linear-gradient(135deg, #458588 0%, #689d6a 100%)",
-          },
-          cardStripe: {
-            value: "linear-gradient(90deg, #458588 0%, #689d6a 100%)",
-          },
-        },
         spacing: {
           "2xs": { value: "2px" },
           xs: { value: "4px" },
@@ -124,16 +131,143 @@ export default defineConfig({
           article: { value: "800px" },
           header: { value: "70px" },
         },
-        shadows: {
-          card: {
-            value:
+      },
+    },
+    semanticTokens: {
+      colors: {
+        bg: {
+          0: {
+            value: {
+              _dark: "{colors.gruvbox.dark.bg0}",
+              _light: "{colors.gruvbox.light.bg0}",
+            },
+          },
+          1: {
+            value: {
+              _dark: "{colors.gruvbox.dark.bg1}",
+              _light: "{colors.gruvbox.light.bg1}",
+            },
+          },
+          2: {
+            value: {
+              _dark: "{colors.gruvbox.dark.bg2}",
+              _light: "{colors.gruvbox.light.bg2}",
+            },
+          },
+          3: {
+            value: {
+              _dark: "{colors.gruvbox.dark.bg3}",
+              _light: "{colors.gruvbox.light.bg3}",
+            },
+          },
+          4: {
+            value: {
+              _dark: "{colors.gruvbox.dark.bg4}",
+              _light: "{colors.gruvbox.light.bg4}",
+            },
+          },
+        },
+        fg: {
+          0: {
+            value: {
+              _dark: "{colors.gruvbox.dark.fg0}",
+              _light: "{colors.gruvbox.light.fg0}",
+            },
+          },
+          1: {
+            value: {
+              _dark: "{colors.gruvbox.dark.fg1}",
+              _light: "{colors.gruvbox.light.fg1}",
+            },
+          },
+          2: {
+            value: {
+              _dark: "{colors.gruvbox.dark.fg2}",
+              _light: "{colors.gruvbox.light.fg2}",
+            },
+          },
+          3: {
+            value: {
+              _dark: "{colors.gruvbox.dark.fg3}",
+              _light: "{colors.gruvbox.light.fg3}",
+            },
+          },
+          4: {
+            value: {
+              _dark: "{colors.gruvbox.dark.fg4}",
+              _light: "{colors.gruvbox.light.fg4}",
+            },
+          },
+        },
+        accent: {
+          blue: {
+            value: {
+              _dark: "{colors.blue.light}",
+              _light: "{colors.blue.dark}",
+            },
+          },
+          "blue-hover": {
+            value: {
+              _dark: "{colors.aqua.light}",
+              _light: "{colors.aqua.dark}",
+            },
+          },
+        },
+      },
+      shadows: {
+        card: {
+          value: {
+            _dark:
               "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)",
+            _light:
+              "0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.05)",
           },
-          "card-hover": {
-            value:
+        },
+        "card-hover": {
+          value: {
+            _dark:
               "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
+            _light:
+              "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.06)",
           },
-          glow: { value: "0 0 20px rgba(131, 165, 152, 0.4)" },
+        },
+        glow: {
+          value: {
+            _dark: "0 0 20px rgba(131, 165, 152, 0.4)",
+            _light: "0 0 20px rgba(69, 133, 136, 0.3)",
+          },
+        },
+      },
+      gradients: {
+        hero: {
+          value: {
+            _dark: "linear-gradient(135deg, #458588 0%, #689d6a 100%)",
+            _light: "linear-gradient(135deg, #076678 0%, #79740e 100%)",
+          },
+        },
+        card: {
+          value: {
+            _dark: "linear-gradient(145deg, #3c3836 0%, #282828 100%)",
+            _light: "linear-gradient(145deg, #ebdbb2 0%, #fbf1c7 100%)",
+          },
+        },
+        accent: {
+          value: {
+            _dark: "linear-gradient(90deg, #fe8019 0%, #d65d0e 100%)",
+            _light: "linear-gradient(90deg, #af3a03 0%, #d65d0e 100%)",
+          },
+        },
+        primary: {
+          value: {
+            _dark: "linear-gradient(135deg, #458588 0%, #689d6a 100%)",
+            _light: "linear-gradient(135deg, #076678 0%, #79740e 100%)",
+          },
+        },
+        cardStripe: {
+          value: {
+            _dark: "linear-gradient(90deg, #458588 0%, #689d6a 100%)",
+            _light: "linear-gradient(90deg, #076678 0%, #79740e 100%)",
+          },
         },
       },
     },

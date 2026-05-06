@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { EmptyState } from "../../components/common/EmptyState";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { ReadingProgressBar } from "../../components/common/ReadingProgressBar";
 import { Layout } from "../../components/layouts/Layout";
 import { PostDetailPage } from "../../components/pages/PostDetailPage";
 import { usePost } from "../../hooks/usePost";
@@ -29,6 +30,7 @@ const Post = () => {
 
   return (
     <Layout>
+      <ReadingProgressBar />
       <PostDetailPage post={post} />
     </Layout>
   );

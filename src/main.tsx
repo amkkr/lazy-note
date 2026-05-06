@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ScrollToTop } from "./components/common/ScrollToTop";
 import "./index.css";
 
 const IndexPage = lazy(() => import("./pages/index"));
@@ -8,12 +9,15 @@ const PostPage = lazy(() => import("./pages/posts/Post"));
 
 const App = () => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <Routes>
-        <Route path="/" element={<IndexPage />} />
-        <Route path="/posts/:timestamp" element={<PostPage />} />
-      </Routes>
-    </Suspense>
+    <>
+      <ScrollToTop />
+      <Suspense fallback={<div>Loading...</div>}>
+        <Routes>
+          <Route path="/" element={<IndexPage />} />
+          <Route path="/posts/:timestamp" element={<PostPage />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 };
 

@@ -99,7 +99,6 @@ src/
 │   ├── common/       # 汎用コンポーネント
 │   │   ├── BrandName.tsx
 │   │   ├── EmptyState.tsx
-│   │   ├── GradientBox.tsx
 │   │   ├── LoadingSpinner.tsx
 │   │   ├── MetaInfo.tsx
 │   │   └── __tests__/    # commonコンポーネントのテスト

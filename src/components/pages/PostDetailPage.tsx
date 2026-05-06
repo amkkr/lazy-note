@@ -90,7 +90,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             />
 
             {/* Article Content */}
-            <main
+            <div
               className={css({
                 paddingRight: "section",
                 paddingLeft: "section",
@@ -154,7 +154,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                   __html: DOMPurify.sanitize(post.content),
                 }}
               />
-            </main>
+            </div>
           </article>
         </div>
       </div>

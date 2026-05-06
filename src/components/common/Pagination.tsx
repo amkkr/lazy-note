@@ -13,9 +13,9 @@ const navStyles = css({
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  gap: "16px",
-  marginTop: "32px",
-  paddingY: "24px",
+  gap: "md",
+  marginTop: "xl",
+  paddingY: "lg",
 });
 
 const buttonMinWidthStyles = css({
@@ -23,7 +23,7 @@ const buttonMinWidthStyles = css({
 });
 
 const pageInfoStyles = css({
-  fontSize: "16px",
+  fontSize: "base",
   fontWeight: "500",
   color: "text.primary",
   minWidth: "120px",

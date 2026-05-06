@@ -18,7 +18,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
           background: "bg.1",
           borderBottom: "1px solid",
           borderColor: "bg.3",
-          paddingY: "12px",
+          paddingY: "sm-md",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -52,7 +52,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
           <article
             className={css({
               background: "bg.1",
-              borderRadius: "12px",
+              borderRadius: "lg",
               overflow: "hidden",
               boxShadow: "card-hover",
               border: "1px solid",

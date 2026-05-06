@@ -50,7 +50,7 @@ export const Link = ({
       justifyContent: "center",
       padding: "12px 16px",
       background: "blue.light",
-      color: "white",
+      color: "fg.0",
       fontWeight: "600",
       borderRadius: "8px",
       "&:hover": {

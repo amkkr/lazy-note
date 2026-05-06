@@ -25,6 +25,8 @@ const mockPost: PostType = {
   author: "モック著者",
   createdAt: "2024-01-20",
   rawContent: "# モックテスト記事\n\nモック記事の内容",
+  excerpt: "モック記事の内容",
+  readingTimeMinutes: 1,
 };
 
 describe("Post", () => {

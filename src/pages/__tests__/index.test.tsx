@@ -19,6 +19,8 @@ const mockPosts = [
     author: "花子",
     rawContent:
       "# 2つ目の記事\n\n## 投稿日時\n- 2024-01-02 12:00\n\n## 筆者名\n- 花子\n\n## 本文\n2つ目の記事の内容です。",
+    excerpt: "2つ目の記事の内容です。",
+    readingTimeMinutes: 1,
   },
   {
     id: "20240101100000",
@@ -28,6 +30,8 @@ const mockPosts = [
     author: "太郎",
     rawContent:
       "# 最初の記事\n\n## 投稿日時\n- 2024-01-01 10:00\n\n## 筆者名\n- 太郎\n\n## 本文\n最初の記事の内容です。",
+    excerpt: "最初の記事の内容です。",
+    readingTimeMinutes: 1,
   },
 ];
 

@@ -15,6 +15,7 @@ const mockPost: Post = {
     "# テスト記事タイトル\n\nこれはテスト記事の内容です。\n\n## 見出し\n\n追加のコンテンツ",
   excerpt: "これはテスト記事の内容です。追加のコンテンツ",
   readingTimeMinutes: 1,
+  toc: [{ id: "heading-0", text: "見出し", level: 2 }],
 };
 
 describe("PostDetailPage", () => {

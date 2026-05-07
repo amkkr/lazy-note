@@ -14,6 +14,7 @@ const mockPosts: Post[] = [
     rawContent: "# テスト記事1\n\nテストコンテンツ1",
     excerpt: "テストコンテンツ1の抜粋です",
     readingTimeMinutes: 1,
+    toc: [],
   },
   {
     id: "test-post-2",
@@ -24,6 +25,7 @@ const mockPosts: Post[] = [
     rawContent: "# テスト記事2\n\nテストコンテンツ2",
     excerpt: "テストコンテンツ2の抜粋です",
     readingTimeMinutes: 3,
+    toc: [],
   },
 ];
 
@@ -128,6 +130,7 @@ describe("HomePage", () => {
         rawContent: "コンテンツ",
         excerpt: "",
         readingTimeMinutes: 1,
+        toc: [],
       },
     ];
 

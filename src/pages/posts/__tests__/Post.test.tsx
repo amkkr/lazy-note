@@ -27,6 +27,7 @@ const mockPost: PostType = {
   rawContent: "# モックテスト記事\n\nモック記事の内容",
   excerpt: "モック記事の内容",
   readingTimeMinutes: 1,
+  toc: [],
 };
 
 describe("Post", () => {

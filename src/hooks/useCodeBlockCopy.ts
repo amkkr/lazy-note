@@ -25,12 +25,7 @@ export const useCodeBlockCopy = (
       }
 
       try {
-        // data-codeのHTMLエンティティをデコード
-        const decodedCode = code
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/&amp;/g, "&");
-        await navigator.clipboard.writeText(decodedCode);
+        await navigator.clipboard.writeText(code);
         const originalText = target.textContent;
         target.textContent = "コピー済み!";
         setTimeout(() => {

@@ -47,17 +47,19 @@ renderer.image = ({ href, title, text }) => {
   return `<img src="${resolvedHref}" alt="${text}"${titleAttr}>`;
 };
 
-renderer.heading = ({ text, depth }) => {
+renderer.heading = function ({ text, depth, tokens }) {
+  const rendered = this.parser.parseInline(tokens);
   if (depth === 2 || depth === 3) {
     const id = `heading-${tocItems.length}`;
     tocItems.push({ id, text, level: depth });
-    return `<h${depth} id="${id}">${text}</h${depth}>`;
+    return `<h${depth} id="${id}">${rendered}</h${depth}>`;
   }
-  return `<h${depth}>${text}</h${depth}>`;
+  return `<h${depth}>${rendered}</h${depth}>`;
 };
 
 renderer.code = ({ text, lang }) => {
-  const langClass = lang ? ` class="language-${lang}"` : "";
+  const safeLang = lang ? lang.replace(/[^a-zA-Z0-9-]/g, "") : "";
+  const langClass = safeLang ? ` class="language-${safeLang}"` : "";
   const escapedForAttr = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -68,7 +70,7 @@ renderer.code = ({ text, lang }) => {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  return `<div class="code-block-wrapper"><button class="copy-btn" data-code="${escapedForAttr}">コピー</button><pre><code${langClass}>${escapedForDisplay}</code></pre></div>`;
+  return `<div class="code-block-wrapper"><button type="button" class="copy-btn" data-code="${escapedForAttr}">コピー</button><pre><code${langClass}>${escapedForDisplay}</code></pre></div>`;
 };
 
 // markedの設定

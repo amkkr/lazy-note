@@ -174,9 +174,9 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                 // biome-ignore lint/security/noDangerouslySetInnerHtml: MarkdownをHTMLとして表示するために必要。DOMPurifyでサニタイズ済み
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(post.content, {
-                  ADD_TAGS: ["button"],
-                  ADD_ATTR: ["data-code"],
-                }),
+                    ADD_TAGS: ["button"],
+                    ADD_ATTR: ["data-code"],
+                  }),
                 }}
               />
             </div>

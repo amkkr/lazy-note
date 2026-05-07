@@ -1,8 +1,11 @@
 import DOMPurify from "dompurify";
+import { useRef } from "react";
 import { css } from "../../../styled-system/css";
+import { useImageLightbox } from "../../hooks/useImageLightbox";
 import type { Post } from "../../lib/markdown";
 import { Link } from "../atoms/Link";
 import { Heading1 } from "../atoms/Typography";
+import { ImageLightbox } from "../common/ImageLightbox";
 import { MetaInfo } from "../common/MetaInfo";
 
 interface PostDetailPageProps {
@@ -10,6 +13,9 @@ interface PostDetailPageProps {
 }
 
 export const PostDetailPage = ({ post }: PostDetailPageProps) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { isOpen, imageSrc, close } = useImageLightbox(contentRef);
+
   return (
     <>
       {/* Navigation */}
@@ -101,6 +107,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
 
             {/* Article Content */}
             <div
+              ref={contentRef}
               className={css({
                 paddingRight: "md",
                 paddingLeft: "md",
@@ -160,6 +167,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                   borderRadius: "sm",
                   margin: "md 0",
                   display: "block",
+                  cursor: "zoom-in",
                 },
               })}
             >
@@ -171,6 +179,11 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
               />
             </div>
           </article>
+          <ImageLightbox
+            isOpen={isOpen}
+            imageSrc={imageSrc}
+            onClose={close}
+          />
         </div>
       </div>
     </>

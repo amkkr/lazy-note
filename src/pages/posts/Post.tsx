@@ -1,17 +1,23 @@
+import { Transition } from "@headlessui/react";
 import { useParams } from "react-router-dom";
+import { css } from "../../../styled-system/css";
+import { ArticleSkeleton } from "../../components/common/ArticleSkeleton";
 import { EmptyState } from "../../components/common/EmptyState";
-import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { ReadingProgressBar } from "../../components/common/ReadingProgressBar";
 import { Layout } from "../../components/layouts/Layout";
 import { PostDetailPage } from "../../components/pages/PostDetailPage";
 import { usePost } from "../../hooks/usePost";
+
+const enterStyles = css({ transition: "all 0.3s ease" });
+const enterFromStyles = css({ opacity: 0, transform: "translateY(8px)" });
+const enterToStyles = css({ opacity: 1, transform: "translateY(0)" });
 
 const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
   const { post, loading, notFound } = usePost(timestamp);
 
   if (loading) {
-    return <LoadingSpinner message="記事を読み込み中..." />;
+    return <ArticleSkeleton />;
   }
 
   if (notFound || !post) {
@@ -31,7 +37,16 @@ const Post = () => {
   return (
     <Layout>
       <ReadingProgressBar />
-      <PostDetailPage post={post} />
+      <Transition
+        as="div"
+        show={!loading}
+        appear={true}
+        enter={enterStyles}
+        enterFrom={enterFromStyles}
+        enterTo={enterToStyles}
+      >
+        <PostDetailPage post={post} />
+      </Transition>
     </Layout>
   );
 };

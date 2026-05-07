@@ -52,7 +52,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
+    // VR の決定論性を確保するため、dev サーバ起動前に Panda の styles.css を確実に生成する。
+    // `pnpm dev` だけだと panda --watch が styles.css を生成する前に Vite が応答して
+    // しまい、CSS 未ロード状態のスクリーンショットが撮れてしまうケースがある。
+    command: "pnpm exec panda && pnpm dev",
     url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

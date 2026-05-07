@@ -24,10 +24,7 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-const createMockPost = (
-  id: string,
-  title: string,
-): PostSummary => ({
+const createMockPost = (id: string, title: string): PostSummary => ({
   id,
   title,
   createdAt: "2024-01-01 10:00",

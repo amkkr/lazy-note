@@ -79,9 +79,7 @@ describe("useAdjacentPosts", () => {
   it("中間の記事で前後の記事が取得できる", async () => {
     mockGetAllPostSummaries.mockResolvedValue(mockSummaries);
 
-    const { result } = renderHook(() =>
-      useAdjacentPosts("20240102100000"),
-    );
+    const { result } = renderHook(() => useAdjacentPosts("20240102100000"));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -94,9 +92,7 @@ describe("useAdjacentPosts", () => {
   it("先頭の記事でnewerPostがnullになる", async () => {
     mockGetAllPostSummaries.mockResolvedValue(mockSummaries);
 
-    const { result } = renderHook(() =>
-      useAdjacentPosts("20240103100000"),
-    );
+    const { result } = renderHook(() => useAdjacentPosts("20240103100000"));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -109,9 +105,7 @@ describe("useAdjacentPosts", () => {
   it("末尾の記事でolderPostがnullになる", async () => {
     mockGetAllPostSummaries.mockResolvedValue(mockSummaries);
 
-    const { result } = renderHook(() =>
-      useAdjacentPosts("20240101100000"),
-    );
+    const { result } = renderHook(() => useAdjacentPosts("20240101100000"));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

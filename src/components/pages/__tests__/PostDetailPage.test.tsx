@@ -75,7 +75,11 @@ describe("PostDetailPage", () => {
 
     render(
       <MemoryRouter>
-        <PostDetailPage post={postWithoutTitle} olderPost={null} newerPost={null} />
+        <PostDetailPage
+          post={postWithoutTitle}
+          olderPost={null}
+          newerPost={null}
+        />
       </MemoryRouter>,
     );
 

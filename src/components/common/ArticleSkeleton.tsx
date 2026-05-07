@@ -1,0 +1,177 @@
+import { memo } from "react";
+import { css } from "../../../styled-system/css";
+
+const wrapperStyles = css({
+  background: "bg.0",
+  minHeight: "100vh",
+});
+
+const innerStyles = css({
+  maxWidth: "article",
+  margin: "0 auto",
+  padding: "md",
+  md: {
+    padding: "content",
+  },
+});
+
+const articleStyles = css({
+  background: "bg.1",
+  borderRadius: "lg",
+  overflow: "hidden",
+  boxShadow: "card-hover",
+  border: "1px solid",
+  borderColor: "bg.3",
+});
+
+const headerStyles = css({
+  background: "gradients.primary",
+  padding: "md",
+  md: {
+    padding: "section",
+  },
+});
+
+const dividerStyles = css({
+  height: "1px",
+  background: "bg.3",
+});
+
+const contentStyles = css({
+  paddingRight: "md",
+  paddingLeft: "md",
+  paddingBottom: "md",
+  paddingTop: "lg",
+  md: {
+    paddingRight: "section",
+    paddingLeft: "section",
+    paddingBottom: "section",
+    paddingTop: "xl",
+  },
+});
+
+const skeletonBase = css({
+  background: "bg.2",
+  borderRadius: "sm",
+  animation: "skeleton-pulse 1.5s ease-in-out infinite",
+});
+
+const headerTitleStyles = css({
+  height: "32px",
+  width: "70%",
+  marginBottom: "card",
+  opacity: 0.6,
+});
+
+const headerMetaStyles = css({
+  height: "16px",
+  width: "200px",
+  opacity: 0.6,
+});
+
+const paragraphFullStyles = css({
+  height: "16px",
+  width: "100%",
+  marginBottom: "sm-md",
+});
+
+const paragraphPartialStyles = css({
+  height: "16px",
+  width: "85%",
+  marginBottom: "sm-md",
+});
+
+const paragraphShortStyles = css({
+  height: "16px",
+  width: "60%",
+  marginBottom: "lg",
+});
+
+const headingStyles = css({
+  height: "22px",
+  width: "40%",
+  marginTop: "xl",
+  marginBottom: "md",
+});
+
+const navStyles = css({
+  background: "bg.1",
+  borderBottom: "1px solid",
+  borderColor: "bg.3",
+  paddingY: "sm-md",
+  paddingX: "md",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  md: {
+    paddingX: "0",
+  },
+});
+
+const navInnerStyles = css({
+  maxWidth: "content",
+  width: "100%",
+});
+
+const navLinkStyles = css({
+  height: "16px",
+  width: "120px",
+});
+
+/**
+ * 記事詳細ページ用スケルトンローディング
+ */
+export const ArticleSkeleton = memo(() => {
+  return (
+    <div role="status" aria-busy="true" aria-label="記事を読み込み中">
+      {/* ナビゲーションスケルトン */}
+      <nav className={navStyles}>
+        <div className={navInnerStyles}>
+          <div className={`${skeletonBase} ${navLinkStyles}`} />
+        </div>
+      </nav>
+
+      <div className={wrapperStyles}>
+        <div className={innerStyles}>
+          <article className={articleStyles}>
+            {/* ヘッダースケルトン */}
+            <header className={headerStyles}>
+              <div className={`${skeletonBase} ${headerTitleStyles}`} />
+              <div className={`${skeletonBase} ${headerMetaStyles}`} />
+            </header>
+
+            <div className={dividerStyles} />
+
+            {/* コンテンツスケルトン */}
+            <div className={contentStyles}>
+              {/* 段落1 */}
+              <div className={`${skeletonBase} ${paragraphFullStyles}`} />
+              <div className={`${skeletonBase} ${paragraphPartialStyles}`} />
+              <div className={`${skeletonBase} ${paragraphShortStyles}`} />
+
+              {/* 見出し */}
+              <div className={`${skeletonBase} ${headingStyles}`} />
+
+              {/* 段落2 */}
+              <div className={`${skeletonBase} ${paragraphFullStyles}`} />
+              <div className={`${skeletonBase} ${paragraphFullStyles}`} />
+              <div className={`${skeletonBase} ${paragraphPartialStyles}`} />
+              <div className={`${skeletonBase} ${paragraphShortStyles}`} />
+
+              {/* 見出し */}
+              <div className={`${skeletonBase} ${headingStyles}`} />
+
+              {/* 段落3 */}
+              <div className={`${skeletonBase} ${paragraphFullStyles}`} />
+              <div className={`${skeletonBase} ${paragraphPartialStyles}`} />
+              <div className={`${skeletonBase} ${paragraphFullStyles}`} />
+              <div className={`${skeletonBase} ${paragraphShortStyles}`} />
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+ArticleSkeleton.displayName = "ArticleSkeleton";

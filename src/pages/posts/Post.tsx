@@ -1,22 +1,24 @@
+import { Transition } from "@headlessui/react";
 import { useParams } from "react-router-dom";
+import { css } from "../../../styled-system/css";
+import { ArticleSkeleton } from "../../components/common/ArticleSkeleton";
 import { EmptyState } from "../../components/common/EmptyState";
-import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { ReadingProgressBar } from "../../components/common/ReadingProgressBar";
 import { Layout } from "../../components/layouts/Layout";
 import { PostDetailPage } from "../../components/pages/PostDetailPage";
 import { useAdjacentPosts } from "../../hooks/useAdjacentPosts";
 import { usePost } from "../../hooks/usePost";
 
+const enterStyles = css({ transition: "all 0.3s ease" });
+const enterFromStyles = css({ opacity: 0, transform: "translateY(8px)" });
+const enterToStyles = css({ opacity: 1, transform: "translateY(0)" });
+
 const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
   const { post, loading, notFound } = usePost(timestamp);
   const { olderPost, newerPost } = useAdjacentPosts(timestamp);
 
-  if (loading) {
-    return <LoadingSpinner message="記事を読み込み中..." />;
-  }
-
-  if (notFound || !post) {
+  if (notFound || (!loading && !post)) {
     return (
       <EmptyState
         icon="😕"
@@ -30,10 +32,31 @@ const Post = () => {
     );
   }
 
+  if (loading) {
+    return (
+      <Layout>
+        <ArticleSkeleton />
+      </Layout>
+    );
+  }
+
+  if (!post) {
+    return null;
+  }
+
   return (
     <Layout>
       <ReadingProgressBar />
-      <PostDetailPage post={post} olderPost={olderPost} newerPost={newerPost} />
+      <Transition
+        as="div"
+        show={true}
+        appear={true}
+        enter={enterStyles}
+        enterFrom={enterFromStyles}
+        enterTo={enterToStyles}
+      >
+        <PostDetailPage post={post} olderPost={olderPost} newerPost={newerPost} />
+      </Transition>
     </Layout>
   );
 };

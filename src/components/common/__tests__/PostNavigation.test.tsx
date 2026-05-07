@@ -38,44 +38,44 @@ const createMockPost = (
 
 describe("PostNavigation", () => {
   it("前後の記事リンクが表示される", () => {
-    const prevPost = createMockPost("20240102100000", "前の記事タイトル");
-    const nextPost = createMockPost("20240101100000", "次の記事タイトル");
+    const olderPost = createMockPost("20240101100000", "古い記事タイトル");
+    const newerPost = createMockPost("20240103100000", "新しい記事タイトル");
 
-    render(<PostNavigation prevPost={prevPost} nextPost={nextPost} />);
+    render(<PostNavigation olderPost={olderPost} newerPost={newerPost} />);
 
     expect(screen.getByText("← 前の記事")).toBeInTheDocument();
-    expect(screen.getByText("前の記事タイトル")).toBeInTheDocument();
+    expect(screen.getByText("古い記事タイトル")).toBeInTheDocument();
     expect(screen.getByText("次の記事 →")).toBeInTheDocument();
-    expect(screen.getByText("次の記事タイトル")).toBeInTheDocument();
+    expect(screen.getByText("新しい記事タイトル")).toBeInTheDocument();
 
     const links = screen.getAllByRole("link");
-    expect(links[0]).toHaveAttribute("href", "/posts/20240102100000");
-    expect(links[1]).toHaveAttribute("href", "/posts/20240101100000");
+    expect(links[0]).toHaveAttribute("href", "/posts/20240101100000");
+    expect(links[1]).toHaveAttribute("href", "/posts/20240103100000");
   });
 
-  it("前の記事のみの場合に次のリンクが非表示になる", () => {
-    const prevPost = createMockPost("20240102100000", "前の記事タイトル");
+  it("古い記事のみの場合に新しい記事リンクが非表示になる", () => {
+    const olderPost = createMockPost("20240101100000", "古い記事タイトル");
 
-    render(<PostNavigation prevPost={prevPost} nextPost={null} />);
+    render(<PostNavigation olderPost={olderPost} newerPost={null} />);
 
     expect(screen.getByText("← 前の記事")).toBeInTheDocument();
-    expect(screen.getByText("前の記事タイトル")).toBeInTheDocument();
+    expect(screen.getByText("古い記事タイトル")).toBeInTheDocument();
     expect(screen.queryByText("次の記事 →")).not.toBeInTheDocument();
   });
 
-  it("次の記事のみの場合に前のリンクが非表示になる", () => {
-    const nextPost = createMockPost("20240101100000", "次の記事タイトル");
+  it("新しい記事のみの場合に古い記事リンクが非表示になる", () => {
+    const newerPost = createMockPost("20240103100000", "新しい記事タイトル");
 
-    render(<PostNavigation prevPost={null} nextPost={nextPost} />);
+    render(<PostNavigation olderPost={null} newerPost={newerPost} />);
 
     expect(screen.queryByText("← 前の記事")).not.toBeInTheDocument();
     expect(screen.getByText("次の記事 →")).toBeInTheDocument();
-    expect(screen.getByText("次の記事タイトル")).toBeInTheDocument();
+    expect(screen.getByText("新しい記事タイトル")).toBeInTheDocument();
   });
 
   it("両方nullの場合にコンポーネントが非表示になる", () => {
     const { container } = render(
-      <PostNavigation prevPost={null} nextPost={null} />,
+      <PostNavigation olderPost={null} newerPost={null} />,
     );
 
     expect(container.innerHTML).toBe("");

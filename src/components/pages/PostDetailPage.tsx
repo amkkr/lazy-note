@@ -8,15 +8,20 @@ import { PostNavigation } from "../common/PostNavigation";
 
 interface PostDetailPageProps {
   post: Post;
-  prevPost?: PostSummary | null;
-  nextPost?: PostSummary | null;
+  olderPost: PostSummary | null;
+  newerPost: PostSummary | null;
 }
 
-export const PostDetailPage = ({ post, prevPost, nextPost }: PostDetailPageProps) => {
+export const PostDetailPage = ({
+  post,
+  olderPost,
+  newerPost,
+}: PostDetailPageProps) => {
   return (
     <>
       {/* Navigation */}
       <nav
+        aria-label="ページナビゲーション"
         className={css({
           background: "bg.1",
           borderBottom: "1px solid",
@@ -174,10 +179,7 @@ export const PostDetailPage = ({ post, prevPost, nextPost }: PostDetailPageProps
               />
             </div>
           </article>
-          <PostNavigation
-            prevPost={prevPost ?? null}
-            nextPost={nextPost ?? null}
-          />
+          <PostNavigation olderPost={olderPost} newerPost={newerPost} />
         </div>
       </div>
     </>

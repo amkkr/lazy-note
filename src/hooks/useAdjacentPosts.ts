@@ -2,48 +2,49 @@ import { useEffect, useState } from "react";
 import { getAllPostSummaries, type PostSummary } from "../lib/markdown";
 
 interface AdjacentPosts {
-  prevPost: PostSummary | null;
-  nextPost: PostSummary | null;
+  olderPost: PostSummary | null;
+  newerPost: PostSummary | null;
 }
 
 interface UseAdjacentPostsReturn extends AdjacentPosts {
   loading: boolean;
 }
 
+let summariesCache: PostSummary[] | null = null;
+
 /**
  * 記事リストから指定IDの前後の記事を取得する
+ * 配列はID降順（新しい順）のため、index+1が古い記事、index-1が新しい記事
  * @param summaries ID降順でソートされた記事サマリーリスト
  * @param currentId 現在表示中の記事ID
- * @returns 前の記事（より新しい）と次の記事（より古い）
  */
-const findAdjacentPosts = (
+export const findAdjacentPosts = (
   summaries: PostSummary[],
   currentId: string,
 ): AdjacentPosts => {
   const currentIndex = summaries.findIndex((post) => post.id === currentId);
 
   if (currentIndex === -1) {
-    return { prevPost: null, nextPost: null };
+    return { olderPost: null, newerPost: null };
   }
 
-  const prevPost = currentIndex > 0 ? summaries[currentIndex - 1] : null;
-  const nextPost =
+  const newerPost = currentIndex > 0 ? summaries[currentIndex - 1] : null;
+  const olderPost =
     currentIndex < summaries.length - 1 ? summaries[currentIndex + 1] : null;
 
-  return { prevPost, nextPost };
+  return { olderPost, newerPost };
 };
 
 /**
  * 前後の記事を取得するカスタムフック
  * @param currentId 現在表示中の記事ID
- * @returns 前の記事（より新しい）、次の記事（より古い）、ローディング状態
  */
 export const useAdjacentPosts = (
   currentId: string | undefined,
 ): UseAdjacentPostsReturn => {
   const [adjacentPosts, setAdjacentPosts] = useState<AdjacentPosts>({
-    prevPost: null,
-    nextPost: null,
+    olderPost: null,
+    newerPost: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -56,11 +57,13 @@ export const useAdjacentPosts = (
 
       try {
         setLoading(true);
-        const summaries = await getAllPostSummaries();
-        setAdjacentPosts(findAdjacentPosts(summaries, currentId));
+        if (!summariesCache) {
+          summariesCache = await getAllPostSummaries();
+        }
+        setAdjacentPosts(findAdjacentPosts(summariesCache, currentId));
       } catch (error) {
         console.error("Failed to load adjacent posts:", error);
-        setAdjacentPosts({ prevPost: null, nextPost: null });
+        setAdjacentPosts({ olderPost: null, newerPost: null });
       } finally {
         setLoading(false);
       }

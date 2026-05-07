@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as markdownModule from "../../lib/markdown";
-import { useAdjacentPosts } from "../useAdjacentPosts";
+import { findAdjacentPosts, useAdjacentPosts } from "../useAdjacentPosts";
 
 vi.mock("../../lib/markdown");
 
@@ -34,6 +34,43 @@ const mockSummaries = [
   },
 ];
 
+describe("findAdjacentPosts", () => {
+  it("中間の記事で前後の記事を取得できる", () => {
+    const result = findAdjacentPosts(mockSummaries, "20240102100000");
+
+    expect(result.olderPost).toEqual(mockSummaries[2]);
+    expect(result.newerPost).toEqual(mockSummaries[0]);
+  });
+
+  it("先頭（最新）の記事でnewerPostがnullになる", () => {
+    const result = findAdjacentPosts(mockSummaries, "20240103100000");
+
+    expect(result.newerPost).toBeNull();
+    expect(result.olderPost).toEqual(mockSummaries[1]);
+  });
+
+  it("末尾（最古）の記事でolderPostがnullになる", () => {
+    const result = findAdjacentPosts(mockSummaries, "20240101100000");
+
+    expect(result.olderPost).toBeNull();
+    expect(result.newerPost).toEqual(mockSummaries[1]);
+  });
+
+  it("記事が1つだけの場合は両方nullになる", () => {
+    const result = findAdjacentPosts([mockSummaries[0]], "20240103100000");
+
+    expect(result.olderPost).toBeNull();
+    expect(result.newerPost).toBeNull();
+  });
+
+  it("存在しないIDの場合は両方nullになる", () => {
+    const result = findAdjacentPosts(mockSummaries, "99999999999999");
+
+    expect(result.olderPost).toBeNull();
+    expect(result.newerPost).toBeNull();
+  });
+});
+
 describe("useAdjacentPosts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,11 +87,11 @@ describe("useAdjacentPosts", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.prevPost).toEqual(mockSummaries[0]);
-    expect(result.current.nextPost).toEqual(mockSummaries[2]);
+    expect(result.current.olderPost).toEqual(mockSummaries[2]);
+    expect(result.current.newerPost).toEqual(mockSummaries[0]);
   });
 
-  it("先頭の記事で前の記事がnullになる", async () => {
+  it("先頭の記事でnewerPostがnullになる", async () => {
     mockGetAllPostSummaries.mockResolvedValue(mockSummaries);
 
     const { result } = renderHook(() =>
@@ -65,11 +102,11 @@ describe("useAdjacentPosts", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.prevPost).toBeNull();
-    expect(result.current.nextPost).toEqual(mockSummaries[1]);
+    expect(result.current.newerPost).toBeNull();
+    expect(result.current.olderPost).toEqual(mockSummaries[1]);
   });
 
-  it("末尾の記事で次の記事がnullになる", async () => {
+  it("末尾の記事でolderPostがnullになる", async () => {
     mockGetAllPostSummaries.mockResolvedValue(mockSummaries);
 
     const { result } = renderHook(() =>
@@ -80,38 +117,8 @@ describe("useAdjacentPosts", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.prevPost).toEqual(mockSummaries[1]);
-    expect(result.current.nextPost).toBeNull();
-  });
-
-  it("記事が1つだけの場合は前後ともnullになる", async () => {
-    mockGetAllPostSummaries.mockResolvedValue([mockSummaries[0]]);
-
-    const { result } = renderHook(() =>
-      useAdjacentPosts("20240103100000"),
-    );
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(result.current.prevPost).toBeNull();
-    expect(result.current.nextPost).toBeNull();
-  });
-
-  it("存在しないIDの場合は前後ともnullになる", async () => {
-    mockGetAllPostSummaries.mockResolvedValue(mockSummaries);
-
-    const { result } = renderHook(() =>
-      useAdjacentPosts("99999999999999"),
-    );
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(result.current.prevPost).toBeNull();
-    expect(result.current.nextPost).toBeNull();
+    expect(result.current.olderPost).toBeNull();
+    expect(result.current.newerPost).toEqual(mockSummaries[1]);
   });
 
   it("IDがundefinedの場合は読み込みのみ終了する", async () => {
@@ -121,8 +128,8 @@ describe("useAdjacentPosts", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.prevPost).toBeNull();
-    expect(result.current.nextPost).toBeNull();
+    expect(result.current.olderPost).toBeNull();
+    expect(result.current.newerPost).toBeNull();
     expect(mockGetAllPostSummaries).not.toHaveBeenCalled();
   });
 });

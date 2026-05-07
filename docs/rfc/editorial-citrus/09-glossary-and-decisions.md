@@ -5,7 +5,7 @@
 | 用語                  | 定義                                                                                                                  |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | **Editorial Citrus**  | 本リニューアルプロジェクトのコードネーム。"Editorial" + "Citrus" (柑橘 = focus 色)                                    |
-| **Persimmon**         | 柿色のアクセント。`persimmon-600 = oklch(0.520 0.180 38)` (#358 で実測調整)。CTA / Featured / OG 画像に限定           |
+| **Persimmon**         | 柿色のアクセント。`persimmon-600 = oklch(0.580 0.180 38)`。CTA / Featured / OG 画像に限定                             |
 | **Indigo**            | 藍色のリンク色。light は `indigo-500`、dark は `indigo-300`                                                            |
 | **Citrus**            | 柑橘色の focus 専用色。`citrus-500 = oklch(0.860 0.150 105)`                                                          |
 | **Cream**             | 紙のような暖色背景 (light)。`cream-50 / cream-100`                                                                    |

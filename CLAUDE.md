@@ -365,19 +365,6 @@ async const fetchUser = (userId: string): Promise<User> => {
 }
 ```
 
-### コードブロック内の和文について
-
-JetBrains Mono の和文等幅 fallback は OS 依存で見栄えがブレるため、
-**コードブロック内に和文を書かない** ことを推奨します。
-
-- コードブロック (Markdown の \`\`\` ブロックや MDX の `<pre>`) 内のコメント・
-  文字列リテラルは可能な限り英数字で記述する
-- やむを得ず和文を入れる場合は、最終 fallback `monospace` の表示崩れを許容する旨を
-  当該ファイルか PR 説明に明記する
-- フォントスタックの最終 fallback は `monospace` で固定する (システム差を吸収)
-
-参照: `docs/rfc/editorial-citrus/03-typography.md`
-
 ### tsxでループ処理をする場合
 
 - `Missing "key" prop for element in iterator` の警告を出さないために、keyを必ず設定すること

@@ -26,6 +26,14 @@ export const createPostsMiddleware = () => {
     if (postId) {
       const filePath = path.join(datasourcesPath, `${postId}.md`);
 
+      // パストラバーサル攻撃を防止
+      const resolvedPath = path.resolve(filePath);
+      if (!resolvedPath.startsWith(path.resolve(datasourcesPath))) {
+        res.statusCode = 403;
+        res.end("Forbidden");
+        return;
+      }
+
       try {
         const content = fs.readFileSync(filePath, "utf8");
         res.setHeader("Content-Type", "text/plain; charset=utf-8");

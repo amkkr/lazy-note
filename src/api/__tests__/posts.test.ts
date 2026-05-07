@@ -159,6 +159,17 @@ describe("createPostsMiddleware", () => {
       expect(res.end).toHaveBeenCalledWith(mockContent);
     });
 
+    it("パストラバーサルを含むリクエストに 403 エラーを返す", () => {
+      req.url = "/../../../etc/passwd";
+      const readSpy = vi.spyOn(fs, "readFileSync");
+
+      middleware(req as IncomingMessage, res as ServerResponse, next);
+
+      expect(res.statusCode).toBe(403);
+      expect(res.end).toHaveBeenCalledWith("Forbidden");
+      expect(readSpy).not.toHaveBeenCalled();
+    });
+
     it("投稿が存在しない場合、404 エラーを返す", () => {
       req.url = "/nonexistent";
       vi.spyOn(fs, "readFileSync").mockImplementation(() => {

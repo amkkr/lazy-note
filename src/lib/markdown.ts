@@ -29,6 +29,10 @@ export interface TocItem {
 const resolveImagePath = (src: string): string => {
   // images/ で始まる相対パスを /datasources/images/ に変換
   if (src.startsWith("images/")) {
+    // パストラバーサルを防止
+    if (src.includes("..")) {
+      return "";
+    }
     const base = import.meta.env.DEV ? "" : "/lazy-note";
     return `${base}/datasources/${src}`;
   }

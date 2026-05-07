@@ -27,7 +27,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Panda CSS
-        run: pnpm prepare
+        # `pnpm prepare` (panda codegen) は型・関数のみ生成し、`styled-system/styles.css` は出力しない。
+        # dev サーバ起動直後に Vite が `@import "../styled-system/styles.css"` を解決できず
+        # vite-error-overlay が表示される → axe が `scrollable-region-focusable` 違反として検出する。
+        # `panda` (build mode) を併せて実行して styles.css も先に生成しておく。
+        run: |
+          pnpm prepare
+          pnpm exec panda
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium

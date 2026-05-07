@@ -2,9 +2,11 @@ import DOMPurify from "dompurify";
 import { useRef } from "react";
 import { css } from "../../../styled-system/css";
 import { useCodeBlockCopy } from "../../hooks/useCodeBlockCopy";
+import { useImageLightbox } from "../../hooks/useImageLightbox";
 import type { Post, PostSummary } from "../../lib/markdown";
 import { Link } from "../atoms/Link";
 import { Heading1 } from "../atoms/Typography";
+import { ImageLightbox } from "../common/ImageLightbox";
 import { MetaInfo } from "../common/MetaInfo";
 import { PostNavigation } from "../common/PostNavigation";
 import { TableOfContents } from "../common/TableOfContents";
@@ -22,6 +24,7 @@ export const PostDetailPage = ({
 }: PostDetailPageProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   useCodeBlockCopy(contentRef);
+  const { isOpen, imageSrc, imageAlt, close } = useImageLightbox(contentRef);
   return (
     <>
       {/* Navigation */}
@@ -174,6 +177,7 @@ export const PostDetailPage = ({
                   borderRadius: "sm",
                   margin: "md 0",
                   display: "block",
+                  cursor: "zoom-in",
                 },
               })}
             >
@@ -189,6 +193,12 @@ export const PostDetailPage = ({
               />
             </div>
           </article>
+          <ImageLightbox
+            isOpen={isOpen}
+            imageSrc={imageSrc}
+            imageAlt={imageAlt}
+            onClose={close}
+          />
           <PostNavigation olderPost={olderPost} newerPost={newerPost} />
         </div>
       </div>

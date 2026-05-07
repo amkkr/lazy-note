@@ -30,7 +30,7 @@ const mockPost: PostType = {
 };
 
 describe("Post", () => {
-  it("ローディング中はスピナーが表示される", () => {
+  it("ローディング中はスケルトンローディングが表示される", () => {
     vi.mocked(usePost).mockReturnValue({
       post: null,
       loading: true,
@@ -46,7 +46,7 @@ describe("Post", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("記事を読み込み中...")).toBeInTheDocument();
+    expect(screen.getByLabelText("記事を読み込み中")).toBeInTheDocument();
   });
 
   it("記事が見つからない場合はEmptyStateが表示される", () => {

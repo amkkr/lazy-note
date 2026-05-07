@@ -45,7 +45,7 @@ describe("Indexコンポーネント", () => {
     vi.clearAllMocks();
   });
 
-  it("読み込み中の状態を表示する", async () => {
+  it("読み込み中にスケルトンローディングを表示する", async () => {
     // usePostsでローディング状態をモック
     mockUsePosts.mockReturnValue({
       posts: [],
@@ -63,7 +63,7 @@ describe("Indexコンポーネント", () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByText("読み込み中...")).toBeInTheDocument();
+    expect(screen.getByLabelText("記事を読み込み中")).toBeInTheDocument();
   });
 
   describe("記事が存在する場合の表示", () => {

@@ -6,6 +6,7 @@ import { EmptyState } from "../../components/common/EmptyState";
 import { ReadingProgressBar } from "../../components/common/ReadingProgressBar";
 import { Layout } from "../../components/layouts/Layout";
 import { PostDetailPage } from "../../components/pages/PostDetailPage";
+import { useAdjacentPosts } from "../../hooks/useAdjacentPosts";
 import { usePost } from "../../hooks/usePost";
 
 const enterStyles = css({ transition: "all 0.3s ease" });
@@ -15,6 +16,7 @@ const enterToStyles = css({ opacity: 1, transform: "translateY(0)" });
 const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
   const { post, loading, notFound } = usePost(timestamp);
+  const { olderPost, newerPost } = useAdjacentPosts(timestamp);
 
   if (notFound || (!loading && !post)) {
     return (
@@ -53,7 +55,7 @@ const Post = () => {
         enterFrom={enterFromStyles}
         enterTo={enterToStyles}
       >
-        <PostDetailPage post={post} />
+        <PostDetailPage post={post} olderPost={olderPost} newerPost={newerPost} />
       </Transition>
     </Layout>
   );

@@ -302,6 +302,24 @@ const x = 1;
       expect(result.content).toContain('alt="alt text"');
     });
 
+    it("パストラバーサルを含む画像パスが空文字に変換される", () => {
+      const content = `# テスト
+
+## 投稿日時
+- 2024-01-01 10:00
+
+## 筆者名
+- テスト太郎
+
+## 本文
+![悪意ある画像](images/../../etc/passwd)`;
+
+      const result = parseMarkdown(content, "20240101100000");
+
+      expect(result.content).toContain('src=""');
+      expect(result.content).not.toContain("/etc/passwd");
+    });
+
     it("外部URLの画像はパス変換されない", () => {
       const content = `# テスト
 

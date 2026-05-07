@@ -18,8 +18,6 @@
     "type-check:test": "tsc --noEmit --project tsconfig.test.json",
     "prepare": "panda codegen",
     "new-post": "node scripts/newPost.ts",
-    "fonts:download": "bash scripts/download-fonts.sh",
-    "phase0:capture": "playwright test e2e/typography-phase0 --project=desktop",
     "contrast:check": "node scripts/calculateContrast.ts",
     "contrast:matrix": "node scripts/calculateContrast.ts --csv > docs/contrast-matrix.csv"
   },

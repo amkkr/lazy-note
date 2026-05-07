@@ -12,7 +12,7 @@ interface ImageLightboxProps {
 const backdropStyle = css({
   position: "fixed",
   inset: 0,
-  background: "rgba(0, 0, 0, 0.8)",
+  background: "overlay",
 });
 
 const containerStyle = css({

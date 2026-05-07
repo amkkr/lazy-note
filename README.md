@@ -180,3 +180,18 @@ GitHub Actionsを使用して以下の処理を自動化：
 - テスト実行
 - 型チェック
 - ビルド確認
+
+## 設計ドキュメント
+
+UI/UX フルリニューアル「Editorial Citrus」の RFC は [`docs/rfc/editorial-citrus/`](./docs/rfc/editorial-citrus/README.md) に集約されています。
+
+- [README (RFC エントリポイント)](./docs/rfc/editorial-citrus/README.md)
+- [01. コンセプトとペルソナ](./docs/rfc/editorial-citrus/01-concept-and-personas.md)
+- [02. カラーシステム](./docs/rfc/editorial-citrus/02-color-system.md)
+- [03. タイポグラフィ](./docs/rfc/editorial-citrus/03-typography.md)
+- [04. レイアウト](./docs/rfc/editorial-citrus/04-layout.md)
+- [05. モーションと delight](./docs/rfc/editorial-citrus/05-motion-and-delight.md)
+- [06. データモデル](./docs/rfc/editorial-citrus/06-data-model.md)
+- [07. アクセシビリティとパフォーマンス](./docs/rfc/editorial-citrus/07-accessibility-and-performance.md)
+- [08. ロードマップ (MVP 9 + 拡張 10)](./docs/rfc/editorial-citrus/08-roadmap.md)
+- [09. 用語集と意思決定の記録](./docs/rfc/editorial-citrus/09-glossary-and-decisions.md)

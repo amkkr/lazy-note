@@ -1,15 +1,18 @@
 import DOMPurify from "dompurify";
 import { css } from "../../../styled-system/css";
-import type { Post } from "../../lib/markdown";
+import type { Post, PostSummary } from "../../lib/markdown";
 import { Link } from "../atoms/Link";
 import { Heading1 } from "../atoms/Typography";
 import { MetaInfo } from "../common/MetaInfo";
+import { PostNavigation } from "../common/PostNavigation";
 
 interface PostDetailPageProps {
   post: Post;
+  prevPost?: PostSummary | null;
+  nextPost?: PostSummary | null;
 }
 
-export const PostDetailPage = ({ post }: PostDetailPageProps) => {
+export const PostDetailPage = ({ post, prevPost, nextPost }: PostDetailPageProps) => {
   return (
     <>
       {/* Navigation */}
@@ -171,6 +174,10 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
               />
             </div>
           </article>
+          <PostNavigation
+            prevPost={prevPost ?? null}
+            nextPost={nextPost ?? null}
+          />
         </div>
       </div>
     </>

@@ -97,6 +97,10 @@ const ImageLightboxInner = ({
     setIsLoading(false);
   }, []);
 
+  const handleImageError = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
   return (
     <Dialog open={isOpen} onClose={onClose}>
       <DialogBackdrop className={backdropStyle} />
@@ -113,6 +117,7 @@ const ImageLightboxInner = ({
             className={imageStyle}
             style={{ display: isLoading ? "none" : "block" }}
             onLoad={handleImageLoad}
+            onError={handleImageError}
           />
           <button
             type="button"

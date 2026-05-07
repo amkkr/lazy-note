@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ImageLightbox } from "../ImageLightbox";
@@ -75,6 +75,25 @@ describe("ImageLightbox", () => {
     await user.click(screen.getByRole("button", { name: "閉じる" }));
 
     expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("画像読み込みエラー時にスピナーが非表示になる", () => {
+    const { container } = render(
+      <ImageLightbox
+        isOpen={true}
+        imageSrc="https://example.com/broken.jpg"
+        imageAlt="壊れた画像"
+        onClose={vi.fn()}
+      />,
+    );
+
+    const img = container.ownerDocument.querySelector(
+      "img[src='https://example.com/broken.jpg']",
+    ) as HTMLImageElement;
+
+    fireEvent.error(img);
+
+    expect(img.style.display).toBe("block");
   });
 
   it("閉じるボタンに×が表示される", () => {

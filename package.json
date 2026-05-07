@@ -16,7 +16,9 @@
     "type-check": "tsc --noEmit",
     "type-check:test": "tsc --noEmit --project tsconfig.test.json",
     "prepare": "panda codegen",
-    "new-post": "node scripts/newPost.ts"
+    "new-post": "node scripts/newPost.ts",
+    "contrast:check": "node scripts/calculateContrast.ts",
+    "contrast:matrix": "node scripts/calculateContrast.ts --csv > docs/contrast-matrix.csv"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
@@ -34,10 +36,12 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/culori": "~4.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "culori": "~4.0.0",
     "jsdom": "^29.1.1",
     "playwright": "^1.59.1",
     "typescript": "^6.0.3",

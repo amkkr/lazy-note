@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMarkdown } from "../markdown";
+import { escapeHtmlAttr, parseMarkdown } from "../markdown";
 
 describe("markdown.ts", () => {
   describe("parseMarkdown", () => {
@@ -317,6 +317,108 @@ const x = 1;
       const result = parseMarkdown(content, "20240101100000");
 
       expect(result.content).toContain('src="https://example.com/image.png"');
+    });
+
+    it('画像にloading="lazy"とdecoding="async"属性が付与される', () => {
+      const content = `# テスト
+
+## 投稿日時
+- 2024-01-01 10:00
+
+## 筆者名
+- テスト太郎
+
+## 本文
+![サンプル](images/photo.png)`;
+
+      const result = parseMarkdown(content, "20240101100000");
+
+      expect(result.content).toContain('loading="lazy"');
+      expect(result.content).toContain('decoding="async"');
+    });
+
+    it("画像のalt属性がHTMLエスケープされる", () => {
+      const content = `# テスト
+
+## 投稿日時
+- 2024-01-01 10:00
+
+## 筆者名
+- テスト太郎
+
+## 本文
+![" onload="alert(1)](images/photo.png)`;
+
+      const result = parseMarkdown(content, "20240101100000");
+
+      expect(result.content).toContain('alt="&quot; onload=&quot;alert(1)"');
+      expect(result.content).not.toContain('alt="" onload="alert(1)"');
+    });
+
+    it("画像のtitle属性がHTMLエスケープされる", () => {
+      const content = `# テスト
+
+## 投稿日時
+- 2024-01-01 10:00
+
+## 筆者名
+- テスト太郎
+
+## 本文
+![alt](images/photo.png "<script>alert('xss')</script>")`;
+
+      const result = parseMarkdown(content, "20240101100000");
+
+      expect(result.content).toContain(
+        'title="&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"',
+      );
+    });
+
+    it("ファイル名に特殊文字を含む画像が正しくエスケープされる", () => {
+      const content = `# テスト
+
+## 投稿日時
+- 2024-01-01 10:00
+
+## 筆者名
+- テスト太郎
+
+## 本文
+![写真](images/photo&name<1>.png)`;
+
+      const result = parseMarkdown(content, "20240101100000");
+
+      expect(result.content).toContain(
+        'src="/datasources/images/photo&amp;name&lt;1&gt;.png"',
+      );
+    });
+  });
+
+  describe("escapeHtmlAttr", () => {
+    it("&をエスケープできる", () => {
+      expect(escapeHtmlAttr("a&b")).toBe("a&amp;b");
+    });
+
+    it("<と>をエスケープできる", () => {
+      expect(escapeHtmlAttr("<script>")).toBe("&lt;script&gt;");
+    });
+
+    it("ダブルクォートをエスケープできる", () => {
+      expect(escapeHtmlAttr('"hello"')).toBe("&quot;hello&quot;");
+    });
+
+    it("シングルクォートをエスケープできる", () => {
+      expect(escapeHtmlAttr("it's")).toBe("it&#39;s");
+    });
+
+    it("特殊文字を含まない文字列はそのまま返す", () => {
+      expect(escapeHtmlAttr("hello world")).toBe("hello world");
+    });
+
+    it("複数の特殊文字を同時にエスケープできる", () => {
+      expect(escapeHtmlAttr("<img src=\"x\" onload='alert(1)'>&")).toBe(
+        "&lt;img src=&quot;x&quot; onload=&#39;alert(1)&#39;&gt;&amp;",
+      );
     });
   });
 

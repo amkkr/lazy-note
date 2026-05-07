@@ -36,6 +36,20 @@ const resolveImagePath = (src: string): string => {
   return src;
 };
 
+/**
+ * HTML属性に埋め込む文字列をエスケープする
+ * @param str エスケープ対象の文字列
+ * @returns エスケープ済み文字列
+ */
+export const escapeHtmlAttr = (str: string): string => {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
+
 // marked()は同期関数のためparseMarkdown内でのリセット→収集→コピーは安全
 let tocItems: TocItem[] = [];
 
@@ -43,8 +57,10 @@ let tocItems: TocItem[] = [];
 const renderer = new marked.Renderer();
 renderer.image = ({ href, title, text }) => {
   const resolvedHref = resolveImagePath(href);
-  const titleAttr = title ? ` title="${title}"` : "";
-  return `<img src="${resolvedHref}" alt="${text}"${titleAttr}>`;
+  const escapedHref = escapeHtmlAttr(resolvedHref);
+  const escapedText = escapeHtmlAttr(text);
+  const titleAttr = title ? ` title="${escapeHtmlAttr(title)}"` : "";
+  return `<img src="${escapedHref}" alt="${escapedText}"${titleAttr} loading="lazy" decoding="async">`;
 };
 
 renderer.heading = function ({ text, depth, tokens }) {

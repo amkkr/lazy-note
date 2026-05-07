@@ -98,6 +98,11 @@ button:focus-visible {
   }
 }
 
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 [data-theme="dark"] { color-scheme: dark; }
 [data-theme="light"] { color-scheme: light; }
 

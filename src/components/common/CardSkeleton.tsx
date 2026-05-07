@@ -84,10 +84,18 @@ const excerptLine2Styles = css({
  * ホームページ用カード型スケルトンローディング
  */
 export const CardSkeleton = memo(({ count = 4 }: CardSkeletonProps) => {
-  const skeletonItems = Array.from({ length: count }, (_, i) => `skeleton-${i}`);
+  const skeletonItems = Array.from(
+    { length: count },
+    (_, i) => `skeleton-${i}`,
+  );
 
   return (
-    <div className={containerStyles} role="status" aria-busy="true" aria-label="記事を読み込み中">
+    <div
+      className={containerStyles}
+      role="status"
+      aria-busy="true"
+      aria-label="記事を読み込み中"
+    >
       <div className={listStyles}>
         {skeletonItems.map((key) => (
           <div key={key} className={cardStyles}>

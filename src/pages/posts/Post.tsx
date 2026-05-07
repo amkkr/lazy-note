@@ -30,25 +30,31 @@ const Post = () => {
     );
   }
 
+  if (loading) {
+    return (
+      <Layout>
+        <ArticleSkeleton />
+      </Layout>
+    );
+  }
+
+  if (!post) {
+    return null;
+  }
+
   return (
     <Layout>
-      {loading ? (
-        <ArticleSkeleton />
-      ) : (
-        <>
-          <ReadingProgressBar />
-          <Transition
-            as="div"
-            show={true}
-            appear={true}
-            enter={enterStyles}
-            enterFrom={enterFromStyles}
-            enterTo={enterToStyles}
-          >
-            <PostDetailPage post={post!} />
-          </Transition>
-        </>
-      )}
+      <ReadingProgressBar />
+      <Transition
+        as="div"
+        show={true}
+        appear={true}
+        enter={enterStyles}
+        enterFrom={enterFromStyles}
+        enterTo={enterToStyles}
+      >
+        <PostDetailPage post={post} />
+      </Transition>
     </Layout>
   );
 };

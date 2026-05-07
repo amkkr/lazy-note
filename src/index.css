@@ -115,7 +115,8 @@ button:focus-visible {
   transition: opacity 0.2s ease;
 }
 
-.code-block-wrapper:hover .copy-btn {
+.code-block-wrapper:hover .copy-btn,
+.copy-btn:focus-visible {
   opacity: 1;
 }
 

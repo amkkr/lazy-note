@@ -36,7 +36,7 @@ const resolveImagePath = (src: string): string => {
   return src;
 };
 
-// TOCデータ収集用の一時配列（parseMarkdownごとにリセット）
+// marked()は同期関数のためparseMarkdown内でのリセット→収集→コピーは安全
 let tocItems: TocItem[] = [];
 
 // カスタムレンダラーを作成
@@ -58,8 +58,17 @@ renderer.heading = ({ text, depth }) => {
 
 renderer.code = ({ text, lang }) => {
   const langClass = lang ? ` class="language-${lang}"` : "";
-  const escapedCode = text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  return `<div class="code-block-wrapper"><button class="copy-btn" data-code="${escapedCode}">コピー</button><pre><code${langClass}>${text}</code></pre></div>`;
+  const escapedForAttr = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+  const escapedForDisplay = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return `<div class="code-block-wrapper"><button class="copy-btn" data-code="${escapedForAttr}">コピー</button><pre><code${langClass}>${escapedForDisplay}</code></pre></div>`;
 };
 
 // markedの設定

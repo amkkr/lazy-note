@@ -199,6 +199,9 @@ export default defineConfig({
             },
           },
         },
+        overlay: {
+          value: "rgba(0, 0, 0, 0.8)",
+        },
         accent: {
           blue: {
             value: {

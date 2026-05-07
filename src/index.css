@@ -105,11 +105,11 @@ button:focus-visible {
 
 .copy-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 4px 8px;
-  font-size: 1.2em;
-  border-radius: 4px;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-sizes-xs);
+  border-radius: var(--radii-sm);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s ease;

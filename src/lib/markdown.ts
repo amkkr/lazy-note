@@ -13,6 +13,15 @@ import {
 export type { PostSummary };
 
 /**
+ * 目次の各項目を表すインターフェース
+ */
+export interface TocItem {
+  id: string;
+  text: string;
+  level: number; // 2 or 3
+}
+
+/**
  * 画像パスをアプリケーションのベースパスに変換する
  * @param src 画像のソースパス
  * @returns 変換後のパス
@@ -27,12 +36,41 @@ const resolveImagePath = (src: string): string => {
   return src;
 };
 
+// marked()は同期関数のためparseMarkdown内でのリセット→収集→コピーは安全
+let tocItems: TocItem[] = [];
+
 // カスタムレンダラーを作成
 const renderer = new marked.Renderer();
 renderer.image = ({ href, title, text }) => {
   const resolvedHref = resolveImagePath(href);
   const titleAttr = title ? ` title="${title}"` : "";
   return `<img src="${resolvedHref}" alt="${text}"${titleAttr}>`;
+};
+
+renderer.heading = function ({ text, depth, tokens }) {
+  const rendered = this.parser.parseInline(tokens);
+  if (depth === 2 || depth === 3) {
+    const id = `heading-${tocItems.length}`;
+    tocItems.push({ id, text, level: depth });
+    return `<h${depth} id="${id}">${rendered}</h${depth}>`;
+  }
+  return `<h${depth}>${rendered}</h${depth}>`;
+};
+
+renderer.code = ({ text, lang }) => {
+  const safeLang = lang ? lang.replace(/[^a-zA-Z0-9-]/g, "") : "";
+  const langClass = safeLang ? ` class="language-${safeLang}"` : "";
+  const escapedForAttr = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+  const escapedForDisplay = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return `<div class="code-block-wrapper"><button type="button" class="copy-btn" data-code="${escapedForAttr}">コピー</button><pre><code${langClass}>${escapedForDisplay}</code></pre></div>`;
 };
 
 // markedの設定
@@ -49,6 +87,7 @@ marked.use({
 export interface Post extends PostSummary {
   content: string;
   rawContent: string;
+  toc: TocItem[];
 }
 
 export const parseMarkdown = (content: string, timestamp: string): Post => {
@@ -59,15 +98,21 @@ export const parseMarkdown = (content: string, timestamp: string): Post => {
   const author = extractSectionContent(lines, "筆者名");
   const bodyContent = extractBodyContent(lines);
 
+  // TOCデータをリセットしてからマークダウンをパース
+  tocItems = [];
+  const parsedContent = marked(bodyContent) as string;
+  const toc = [...tocItems];
+
   return {
     id: timestamp,
     title,
     createdAt,
-    content: marked(bodyContent) as string,
+    content: parsedContent,
     author,
     rawContent: content,
     excerpt: extractExcerpt(bodyContent),
     readingTimeMinutes: calculateReadingTime(bodyContent),
+    toc,
   };
 };
 

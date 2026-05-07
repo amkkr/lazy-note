@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "pnpm run build:search-index",
     "dev": "panda --watch & vite",
-    "build": "pnpm run lint && pnpm run test:run && pnpm run type-check && panda && tsc && vite build",
+    "build": "pnpm run lint && pnpm run test:run && pnpm run type-check && panda && tsc && pnpm run build:search-index && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
@@ -17,11 +18,13 @@
     "prepare": "panda codegen",
     "new-post": "node scripts/newPost.ts",
     "contrast:check": "node scripts/calculateContrast.ts",
-    "contrast:matrix": "node scripts/calculateContrast.ts --csv > docs/contrast-matrix.csv"
+    "contrast:matrix": "node scripts/calculateContrast.ts --csv > docs/contrast-matrix.csv",
+    "build:search-index": "node scripts/buildSearchIndex.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
     "dompurify": "^3.4.2",
+    "fuse.js": "^7.3.0",
     "marked": "^18.0.3",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

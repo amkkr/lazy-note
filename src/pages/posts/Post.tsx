@@ -1,6 +1,5 @@
 import { Transition } from "@headlessui/react";
 import { useParams } from "react-router-dom";
-import { css } from "../../../styled-system/css";
 import { ArticleSkeleton } from "../../components/common/ArticleSkeleton";
 import { EmptyState } from "../../components/common/EmptyState";
 import { ReadingProgressBar } from "../../components/common/ReadingProgressBar";
@@ -8,10 +7,11 @@ import { Layout } from "../../components/layouts/Layout";
 import { PostDetailPage } from "../../components/pages/PostDetailPage";
 import { useAdjacentPosts } from "../../hooks/useAdjacentPosts";
 import { usePost } from "../../hooks/usePost";
-
-const enterStyles = css({ transition: "all 0.3s ease" });
-const enterFromStyles = css({ opacity: 0, transform: "translateY(8px)" });
-const enterToStyles = css({ opacity: 1, transform: "translateY(0)" });
+import {
+  fadeInEnter,
+  fadeInEnterFrom,
+  fadeInEnterTo,
+} from "../../styles/transitions";
 
 const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
@@ -51,11 +51,15 @@ const Post = () => {
         as="div"
         show={true}
         appear={true}
-        enter={enterStyles}
-        enterFrom={enterFromStyles}
-        enterTo={enterToStyles}
+        enter={fadeInEnter}
+        enterFrom={fadeInEnterFrom}
+        enterTo={fadeInEnterTo}
       >
-        <PostDetailPage post={post} olderPost={olderPost} newerPost={newerPost} />
+        <PostDetailPage
+          post={post}
+          olderPost={olderPost}
+          newerPost={newerPost}
+        />
       </Transition>
     </Layout>
   );

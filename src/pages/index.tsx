@@ -1,13 +1,13 @@
 import { Transition } from "@headlessui/react";
-import { css } from "../../styled-system/css";
 import { CardSkeleton } from "../components/common/CardSkeleton";
 import { Layout } from "../components/layouts/Layout";
 import { HomePage } from "../components/pages/HomePage";
 import { usePosts } from "../hooks/usePosts";
-
-const enterStyles = css({ transition: "all 0.3s ease" });
-const enterFromStyles = css({ opacity: 0, transform: "translateY(8px)" });
-const enterToStyles = css({ opacity: 1, transform: "translateY(0)" });
+import {
+  fadeInEnter,
+  fadeInEnterFrom,
+  fadeInEnterTo,
+} from "../styles/transitions";
 
 const Index = () => {
   const {
@@ -28,9 +28,9 @@ const Index = () => {
           as="div"
           show={true}
           appear={true}
-          enter={enterStyles}
-          enterFrom={enterFromStyles}
-          enterTo={enterToStyles}
+          enter={fadeInEnter}
+          enterFrom={fadeInEnterFrom}
+          enterTo={fadeInEnterTo}
         >
           <HomePage
             posts={posts}

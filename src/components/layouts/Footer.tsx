@@ -7,13 +7,16 @@ export const Footer = () => {
       className={css({
         background: "bg.1",
         color: "fg.2",
-        padding: "content",
+        padding: "md",
         minHeight: "header",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
+        md: {
+          padding: "content",
+        },
       })}
     >
       <div

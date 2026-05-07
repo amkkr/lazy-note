@@ -16,22 +16,25 @@ interface HomePageProps {
 
 // スタイルをコンポーネント外に定数として定義
 const containerStyles = css({
-  maxWidth: "900px",
+  maxWidth: "content",
   margin: "0 auto",
   padding: "content",
-  paddingX: "32px",
+  paddingX: "md",
+  md: {
+    paddingX: "xl",
+  },
 });
 
 const postListStyles = css({
   display: "flex",
   flexDirection: "column",
-  gap: "32px",
-  paddingTop: "12px",
+  gap: "xl",
+  paddingTop: "sm-md",
 });
 
 const articleStyles = css({
   background: "bg.1",
-  borderRadius: "12px",
+  borderRadius: "lg",
   overflow: "hidden",
   boxShadow: "card",
   transition: "transform 0.2s ease, box-shadow 0.2s ease",
@@ -42,15 +45,29 @@ const articleStyles = css({
 });
 
 const articleHeaderStyles = css({
-  padding: "card",
-  paddingBottom: "16px",
-  paddingX: "12px",
+  padding: "sm-md",
+  paddingBottom: "md",
   borderBottom: "1px solid",
-  borderColor: "surface.200",
+  borderColor: "bg.3",
+  md: {
+    padding: "card",
+    paddingBottom: "md",
+    paddingX: "sm-md",
+  },
 });
 
 const articleContentStyles = css({
-  padding: "card",
+  padding: "sm-md",
+  md: {
+    padding: "card",
+  },
+});
+
+const excerptStyles = css({
+  fontSize: "sm",
+  color: "fg.3",
+  lineHeight: "body",
+  marginTop: "sm",
 });
 
 /**
@@ -75,6 +92,7 @@ export const HomePage = memo(
                     <MetaInfo
                       createdAt={post.createdAt}
                       author={post.author}
+                      readingTimeMinutes={post.readingTimeMinutes}
                       variant="card"
                     />
                   </div>
@@ -85,6 +103,9 @@ export const HomePage = memo(
                         {post.title || "無題の記事"}
                       </Heading2>
                     </Link>
+                    {post.excerpt && (
+                      <p className={excerptStyles}>{post.excerpt}</p>
+                    )}
                   </div>
                 </article>
               ))}

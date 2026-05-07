@@ -13,21 +13,31 @@ const navStyles = css({
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  gap: "16px",
-  marginTop: "32px",
-  paddingY: "24px",
+  gap: "sm",
+  marginTop: "xl",
+  paddingY: "lg",
+  md: {
+    gap: "md",
+  },
 });
 
 const buttonMinWidthStyles = css({
-  minWidth: "100px",
+  minWidth: "80px",
+  md: {
+    minWidth: "100px",
+  },
 });
 
 const pageInfoStyles = css({
-  fontSize: "16px",
+  fontSize: "sm",
   fontWeight: "500",
-  color: "text.primary",
-  minWidth: "120px",
+  color: "fg.1",
+  minWidth: "100px",
   textAlign: "center",
+  md: {
+    fontSize: "base",
+    minWidth: "120px",
+  },
 });
 
 /**

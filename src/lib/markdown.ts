@@ -1,6 +1,8 @@
 import { marked } from "marked";
 import {
+  calculateReadingTime,
   extractBodyContent,
+  extractExcerpt,
   extractSectionContent,
   extractSummaryFromContent,
   extractTitle,
@@ -64,6 +66,8 @@ export const parseMarkdown = (content: string, timestamp: string): Post => {
     content: marked(bodyContent) as string,
     author,
     rawContent: content,
+    excerpt: extractExcerpt(bodyContent),
+    readingTimeMinutes: calculateReadingTime(bodyContent),
   };
 };
 

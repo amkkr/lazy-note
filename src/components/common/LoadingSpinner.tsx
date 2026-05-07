@@ -24,8 +24,8 @@ export const LoadingSpinner = ({
             width: "16",
             height: "16",
             border: "4px solid",
-            borderColor: "primary.200",
-            borderTopColor: "primary.600",
+            borderColor: "bg.3",
+            borderTopColor: "blue.light",
             borderRadius: "full",
             animation: "spin 1s linear infinite",
           })}
@@ -33,7 +33,7 @@ export const LoadingSpinner = ({
         <p
           className={css({
             fontSize: "lg",
-            color: "secondary.600",
+            color: "fg.3",
             fontWeight: "500",
           })}
         >

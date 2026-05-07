@@ -1,32 +1,44 @@
 import DOMPurify from "dompurify";
 import { css } from "../../../styled-system/css";
-import type { Post } from "../../lib/markdown";
+import type { Post, PostSummary } from "../../lib/markdown";
 import { Link } from "../atoms/Link";
 import { Heading1 } from "../atoms/Typography";
 import { MetaInfo } from "../common/MetaInfo";
+import { PostNavigation } from "../common/PostNavigation";
 
 interface PostDetailPageProps {
   post: Post;
+  olderPost: PostSummary | null;
+  newerPost: PostSummary | null;
 }
 
-export const PostDetailPage = ({ post }: PostDetailPageProps) => {
+export const PostDetailPage = ({
+  post,
+  olderPost,
+  newerPost,
+}: PostDetailPageProps) => {
   return (
     <>
       {/* Navigation */}
       <nav
+        aria-label="ページナビゲーション"
         className={css({
           background: "bg.1",
           borderBottom: "1px solid",
           borderColor: "bg.3",
-          paddingY: "12px",
+          paddingY: "sm-md",
+          paddingX: "md",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          md: {
+            paddingX: "0",
+          },
         })}
       >
         <div
           className={css({
-            maxWidth: "900px",
+            maxWidth: "content",
             width: "100%",
           })}
         >
@@ -46,13 +58,16 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
           className={css({
             maxWidth: "article",
             margin: "0 auto",
-            padding: "content",
+            padding: "md",
+            md: {
+              padding: "content",
+            },
           })}
         >
           <article
             className={css({
               background: "bg.1",
-              borderRadius: "12px",
+              borderRadius: "lg",
               overflow: "hidden",
               boxShadow: "card-hover",
               border: "1px solid",
@@ -64,7 +79,10 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
               className={css({
                 background: "gradients.primary",
                 color: "fg.0",
-                padding: "section",
+                padding: "md",
+                md: {
+                  padding: "section",
+                },
               })}
             >
               <Heading1
@@ -85,16 +103,21 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
             <div
               className={css({
                 height: "1px",
-                background: "surface.200",
+                background: "bg.3",
               })}
             />
 
             {/* Article Content */}
-            <main
+            <div
               className={css({
-                paddingRight: "section",
-                paddingLeft: "section",
-                paddingBottom: "section",
+                paddingRight: "md",
+                paddingLeft: "md",
+                paddingBottom: "md",
+                md: {
+                  paddingRight: "section",
+                  paddingLeft: "section",
+                  paddingBottom: "section",
+                },
                 lineHeight: "body",
                 fontSize: "base",
                 color: "fg.1",
@@ -154,8 +177,9 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                   __html: DOMPurify.sanitize(post.content),
                 }}
               />
-            </main>
+            </div>
           </article>
+          <PostNavigation olderPost={olderPost} newerPost={newerPost} />
         </div>
       </div>
     </>

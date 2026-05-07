@@ -13,13 +13,15 @@ const mockPost: Post = {
   createdAt: "2024-01-15",
   rawContent:
     "# テスト記事タイトル\n\nこれはテスト記事の内容です。\n\n## 見出し\n\n追加のコンテンツ",
+  excerpt: "これはテスト記事の内容です。追加のコンテンツ",
+  readingTimeMinutes: 1,
 };
 
 describe("PostDetailPage", () => {
   it("記事タイトルを表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} />
+        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 
@@ -31,7 +33,7 @@ describe("PostDetailPage", () => {
   it("記事のメタ情報を表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} />
+        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 
@@ -42,7 +44,7 @@ describe("PostDetailPage", () => {
   it("記事コンテンツを表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} />
+        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 
@@ -56,7 +58,7 @@ describe("PostDetailPage", () => {
   it("トップページへのリンクを表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} />
+        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 
@@ -73,7 +75,11 @@ describe("PostDetailPage", () => {
 
     render(
       <MemoryRouter>
-        <PostDetailPage post={postWithoutTitle} />
+        <PostDetailPage
+          post={postWithoutTitle}
+          olderPost={null}
+          newerPost={null}
+        />
       </MemoryRouter>,
     );
 
@@ -91,7 +97,7 @@ describe("PostDetailPage", () => {
 
     render(
       <MemoryRouter>
-        <PostDetailPage post={postWithHtml} />
+        <PostDetailPage post={postWithHtml} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 

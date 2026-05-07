@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { css } from "../../../styled-system/css";
+import { BackToTop } from "../common/BackToTop";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 
@@ -33,6 +34,7 @@ export const Layout = ({
       </main>
 
       <Footer />
+      <BackToTop />
     </div>
   );
 };

@@ -12,6 +12,8 @@ const mockPosts: Post[] = [
     author: "著者1",
     createdAt: "2024-01-01",
     rawContent: "# テスト記事1\n\nテストコンテンツ1",
+    excerpt: "テストコンテンツ1の抜粋です",
+    readingTimeMinutes: 1,
   },
   {
     id: "test-post-2",
@@ -20,6 +22,8 @@ const mockPosts: Post[] = [
     author: "著者2",
     createdAt: "2024-01-02",
     rawContent: "# テスト記事2\n\nテストコンテンツ2",
+    excerpt: "テストコンテンツ2の抜粋です",
+    readingTimeMinutes: 3,
   },
 ];
 
@@ -122,6 +126,8 @@ describe("HomePage", () => {
         author: "著者",
         createdAt: "2024-01-01",
         rawContent: "コンテンツ",
+        excerpt: "",
+        readingTimeMinutes: 1,
       },
     ];
 

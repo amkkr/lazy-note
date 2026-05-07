@@ -15,12 +15,16 @@ const mockPosts = [
     title: "2つ目の記事",
     createdAt: "2024-01-02 12:00",
     author: "花子",
+    excerpt: "2つ目の記事の内容です。",
+    readingTimeMinutes: 1,
   },
   {
     id: "20240101100000",
     title: "最初の記事",
     createdAt: "2024-01-01 10:00",
     author: "太郎",
+    excerpt: "最初の記事の内容です。",
+    readingTimeMinutes: 1,
   },
 ];
 

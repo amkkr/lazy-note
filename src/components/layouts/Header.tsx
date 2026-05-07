@@ -1,5 +1,6 @@
 import { css } from "../../../styled-system/css";
 import { BrandName } from "../common/BrandName";
+import { SearchTrigger } from "../common/Search/SearchTrigger";
 import { ThemeToggle } from "../common/ThemeToggle";
 
 interface HeaderProps {
@@ -57,6 +58,7 @@ export const Header = ({ postCount }: HeaderProps) => {
               📚 {postCount}記事
             </div>
           )}
+          <SearchTrigger />
           <ThemeToggle />
         </div>
       </div>

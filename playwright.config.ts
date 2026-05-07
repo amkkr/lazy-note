@@ -52,10 +52,14 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // VR の決定論性を確保するため、dev サーバ起動前に Panda の styles.css を確実に生成する。
-    // `pnpm dev` だけだと panda --watch が styles.css を生成する前に Vite が応答して
-    // しまい、CSS 未ロード状態のスクリーンショットが撮れてしまうケースがある。
-    command: "pnpm exec panda && pnpm dev",
+    // CI では panda の watch を伴わず、ビルド時に `panda` で `styles.css` を
+    // 1 回生成してから `vite` を起動する。`pnpm dev` (panda watch & vite) は
+    // バックグラウンド panda が落ちても vite が起動してしまい、その場合
+    // `styled-system/styles.css` の生成漏れで描画失敗 → テスト hang/timeout
+    // を招くため CI では使用しない。
+    command: process.env.CI
+      ? "pnpm exec panda && pnpm exec vite --port 5173 --strictPort"
+      : "pnpm dev",
     url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

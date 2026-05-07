@@ -16,11 +16,7 @@ const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
   const { post, loading, notFound } = usePost(timestamp);
 
-  if (loading) {
-    return <ArticleSkeleton />;
-  }
-
-  if (notFound || !post) {
+  if (notFound || (!loading && !post)) {
     return (
       <EmptyState
         icon="😕"
@@ -36,17 +32,23 @@ const Post = () => {
 
   return (
     <Layout>
-      <ReadingProgressBar />
-      <Transition
-        as="div"
-        show={!loading}
-        appear={true}
-        enter={enterStyles}
-        enterFrom={enterFromStyles}
-        enterTo={enterToStyles}
-      >
-        <PostDetailPage post={post} />
-      </Transition>
+      {loading ? (
+        <ArticleSkeleton />
+      ) : (
+        <>
+          <ReadingProgressBar />
+          <Transition
+            as="div"
+            show={true}
+            appear={true}
+            enter={enterStyles}
+            enterFrom={enterFromStyles}
+            enterTo={enterToStyles}
+          >
+            <PostDetailPage post={post!} />
+          </Transition>
+        </>
+      )}
     </Layout>
   );
 };

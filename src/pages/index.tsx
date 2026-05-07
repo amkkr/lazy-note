@@ -19,27 +19,27 @@ const Index = () => {
     setCurrentPage,
   } = usePosts();
 
-  if (loading) {
-    return <CardSkeleton />;
-  }
-
   return (
-    <Layout postCount={totalPosts}>
-      <Transition
-        as="div"
-        show={!loading}
-        appear={true}
-        enter={enterStyles}
-        enterFrom={enterFromStyles}
-        enterTo={enterToStyles}
-      >
-        <HomePage
-          posts={posts}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-      </Transition>
+    <Layout postCount={loading ? undefined : totalPosts}>
+      {loading ? (
+        <CardSkeleton />
+      ) : (
+        <Transition
+          as="div"
+          show={true}
+          appear={true}
+          enter={enterStyles}
+          enterFrom={enterFromStyles}
+          enterTo={enterToStyles}
+        >
+          <HomePage
+            posts={posts}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </Transition>
+      )}
     </Layout>
   );
 };

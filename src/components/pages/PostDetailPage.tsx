@@ -1,6 +1,7 @@
 import DOMPurify from "dompurify";
 import { useRef } from "react";
 import { css } from "../../../styled-system/css";
+import { useCodeBlockCopy } from "../../hooks/useCodeBlockCopy";
 import { useImageLightbox } from "../../hooks/useImageLightbox";
 import type { Post, PostSummary } from "../../lib/markdown";
 import { Link } from "../atoms/Link";
@@ -8,6 +9,7 @@ import { Heading1 } from "../atoms/Typography";
 import { ImageLightbox } from "../common/ImageLightbox";
 import { MetaInfo } from "../common/MetaInfo";
 import { PostNavigation } from "../common/PostNavigation";
+import { TableOfContents } from "../common/TableOfContents";
 
 interface PostDetailPageProps {
   post: Post;
@@ -21,8 +23,8 @@ export const PostDetailPage = ({
   newerPost,
 }: PostDetailPageProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  useCodeBlockCopy(contentRef);
   const { isOpen, imageSrc, imageAlt, close } = useImageLightbox(contentRef);
-
   return (
     <>
       {/* Navigation */}
@@ -179,10 +181,14 @@ export const PostDetailPage = ({
                 },
               })}
             >
+              <TableOfContents toc={post.toc} />
               <div
                 // biome-ignore lint/security/noDangerouslySetInnerHtml: MarkdownをHTMLとして表示するために必要。DOMPurifyでサニタイズ済み
                 dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(post.content),
+                  __html: DOMPurify.sanitize(post.content, {
+                    ADD_TAGS: ["button"],
+                    ADD_ATTR: ["data-code"],
+                  }),
                 }}
               />
             </div>

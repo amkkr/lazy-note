@@ -98,6 +98,28 @@ button:focus-visible {
   }
 }
 
+/* Code Block Copy Button */
+.code-block-wrapper {
+  position: relative;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  font-size: 1.2em;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.code-block-wrapper:hover .copy-btn,
+.copy-btn:focus-visible {
+  opacity: 1;
+}
+
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
@@ -112,5 +134,24 @@ button:focus-visible {
 }
 
 [data-theme="dark"] { color-scheme: dark; }
+[data-theme="dark"] .copy-btn {
+  background: var(--colors-bg-3);
+  color: var(--colors-fg-2);
+  border: 1px solid var(--colors-bg-3);
+}
+[data-theme="dark"] .copy-btn:hover {
+  background: var(--colors-bg-2);
+  color: var(--colors-fg-0);
+}
+
 [data-theme="light"] { color-scheme: light; }
+[data-theme="light"] .copy-btn {
+  background: var(--colors-bg-2);
+  color: var(--colors-fg-2);
+  border: 1px solid var(--colors-bg-3);
+}
+[data-theme="light"] .copy-btn:hover {
+  background: var(--colors-bg-3);
+  color: var(--colors-fg-0);
+}
 

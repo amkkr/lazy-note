@@ -19,6 +19,7 @@ const mockPost = {
     "# 最初の記事\n\n## 投稿日時\n- 2024-01-01 10:00\n\n## 筆者名\n- 太郎\n\n## 本文\n最初の記事の内容です。",
   excerpt: "最初の記事の内容です。",
   readingTimeMinutes: 1,
+  toc: [],
 };
 
 describe("usePost", () => {

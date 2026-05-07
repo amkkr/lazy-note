@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "panda --watch & vite",
-    "build": "pnpm run lint && pnpm run test:run && pnpm run type-check && panda && tsc && vite build",
+    "build": "pnpm run lint && pnpm run test:run && pnpm run type-check && panda && tsc && vite build && pnpm run build:feed && pnpm run build:sitemap",
+    "build:feed": "node scripts/buildFeed.ts",
+    "build:sitemap": "node scripts/buildSitemap.ts",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",

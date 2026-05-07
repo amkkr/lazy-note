@@ -1,5 +1,10 @@
 # 08. ロードマップ
 
+> **注記 (2026-05)**: 本ドキュメントは v1 ロードマップ (MVP 9 Issue + 拡張 10 Issue) の履歴版です。
+> Phase A 調査 と Devil's Advocate 第 2 ラウンドを経て、Phase1 着手時の計画は **v2** に再定義されました。
+> Phase1 で実装する 7 Issue 構成 (R-1〜R-5) と Phase2 送りリストは [`10-renewal-phase1-plan.md`](./10-renewal-phase1-plan.md) を参照してください。
+> 本ドキュメントは設計思想 (依存グラフ・Feature flag 規約・難易度凡例) のソースとして保管します。
+
 ## 設計方針
 
 - MVP は **9 Issue**、それ以上に増やさない (Calm の精神を実装側にも適用)

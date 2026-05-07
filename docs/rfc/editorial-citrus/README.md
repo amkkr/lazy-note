@@ -88,3 +88,16 @@
 - Newsreader 採用前に実機サンプル必須 (Phase 0 で 20/25 点未満なら Plan A/B へ退避)
 
 詳細は `09-glossary-and-decisions.md`。
+
+## v2 計画 (Phase1 = Calm + Editorial の最小実装)
+
+Phase A 調査 (旧 Gruvbox 残存実測 73 件 / 19 ファイル) と Devil's Advocate 第 2 ラウンドを経て、Phase1 着手時の計画を **v2** として再定義しました (2026-05 時点)。
+
+- 単一ソース: [`10-renewal-phase1-plan.md`](./10-renewal-phase1-plan.md)
+- 構成: **7 Issue (R-1〜R-5、ただし R-2 を 3 分割)**
+- 目玉 2 トップ (Phase2 送り):
+  1. **Editorial Bento ホーム** (Featured + 2x2 + Index)
+  2. **View Transitions API** (Cross-document、Hero morph)
+- その他 Phase2 送り: Sticky TOC / DropCap / grain / Performance full gate / Skip link / Storybook / Biome custom lint v2 / 段組み
+
+v1 (`01`〜`09`) は Phase1 の **設計思想のソース** として保持しますが、実装ロードマップは v2 (`10-renewal-phase1-plan.md`) を参照してください。

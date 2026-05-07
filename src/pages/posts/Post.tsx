@@ -4,11 +4,13 @@ import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { ReadingProgressBar } from "../../components/common/ReadingProgressBar";
 import { Layout } from "../../components/layouts/Layout";
 import { PostDetailPage } from "../../components/pages/PostDetailPage";
+import { useAdjacentPosts } from "../../hooks/useAdjacentPosts";
 import { usePost } from "../../hooks/usePost";
 
 const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
   const { post, loading, notFound } = usePost(timestamp);
+  const { olderPost, newerPost } = useAdjacentPosts(timestamp);
 
   if (loading) {
     return <LoadingSpinner message="記事を読み込み中..." />;
@@ -31,7 +33,7 @@ const Post = () => {
   return (
     <Layout>
       <ReadingProgressBar />
-      <PostDetailPage post={post} />
+      <PostDetailPage post={post} olderPost={olderPost} newerPost={newerPost} />
     </Layout>
   );
 };

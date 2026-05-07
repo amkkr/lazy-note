@@ -4,12 +4,18 @@ import { describe, expect, it, vi } from "vitest";
 import type { Post as PostType } from "../../../lib/markdown";
 import Post from "../Post";
 
-// usePostフックをモック
 vi.mock("../../../hooks/usePost", () => ({
   usePost: vi.fn(),
 }));
 
-// Layoutコンポーネントをモック
+vi.mock("../../../hooks/useAdjacentPosts", () => ({
+  useAdjacentPosts: vi.fn(() => ({
+    olderPost: null,
+    newerPost: null,
+    loading: false,
+  })),
+}));
+
 vi.mock("../../../components/layouts/Layout", () => ({
   Layout: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>

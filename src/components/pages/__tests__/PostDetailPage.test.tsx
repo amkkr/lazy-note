@@ -22,7 +22,7 @@ describe("PostDetailPage", () => {
   it("記事タイトルを表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} />
+        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 
@@ -34,7 +34,7 @@ describe("PostDetailPage", () => {
   it("記事のメタ情報を表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} />
+        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 
@@ -45,7 +45,7 @@ describe("PostDetailPage", () => {
   it("記事コンテンツを表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} />
+        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 
@@ -59,7 +59,7 @@ describe("PostDetailPage", () => {
   it("トップページへのリンクを表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} />
+        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 
@@ -76,7 +76,11 @@ describe("PostDetailPage", () => {
 
     render(
       <MemoryRouter>
-        <PostDetailPage post={postWithoutTitle} />
+        <PostDetailPage
+          post={postWithoutTitle}
+          olderPost={null}
+          newerPost={null}
+        />
       </MemoryRouter>,
     );
 
@@ -94,7 +98,7 @@ describe("PostDetailPage", () => {
 
     render(
       <MemoryRouter>
-        <PostDetailPage post={postWithHtml} />
+        <PostDetailPage post={postWithHtml} olderPost={null} newerPost={null} />
       </MemoryRouter>,
     );
 

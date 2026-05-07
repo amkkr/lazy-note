@@ -2,23 +2,31 @@ import DOMPurify from "dompurify";
 import { useRef } from "react";
 import { css } from "../../../styled-system/css";
 import { useCodeBlockCopy } from "../../hooks/useCodeBlockCopy";
-import type { Post } from "../../lib/markdown";
+import type { Post, PostSummary } from "../../lib/markdown";
 import { Link } from "../atoms/Link";
 import { Heading1 } from "../atoms/Typography";
 import { MetaInfo } from "../common/MetaInfo";
+import { PostNavigation } from "../common/PostNavigation";
 import { TableOfContents } from "../common/TableOfContents";
 
 interface PostDetailPageProps {
   post: Post;
+  olderPost: PostSummary | null;
+  newerPost: PostSummary | null;
 }
 
-export const PostDetailPage = ({ post }: PostDetailPageProps) => {
+export const PostDetailPage = ({
+  post,
+  olderPost,
+  newerPost,
+}: PostDetailPageProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   useCodeBlockCopy(contentRef);
   return (
     <>
       {/* Navigation */}
       <nav
+        aria-label="ページナビゲーション"
         className={css({
           background: "bg.1",
           borderBottom: "1px solid",
@@ -181,6 +189,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
               />
             </div>
           </article>
+          <PostNavigation olderPost={olderPost} newerPost={newerPost} />
         </div>
       </div>
     </>

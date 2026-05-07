@@ -1,15 +1,20 @@
 import DOMPurify from "dompurify";
+import { useRef } from "react";
 import { css } from "../../../styled-system/css";
+import { useCodeBlockCopy } from "../../hooks/useCodeBlockCopy";
 import type { Post } from "../../lib/markdown";
 import { Link } from "../atoms/Link";
 import { Heading1 } from "../atoms/Typography";
 import { MetaInfo } from "../common/MetaInfo";
+import { TableOfContents } from "../common/TableOfContents";
 
 interface PostDetailPageProps {
   post: Post;
 }
 
 export const PostDetailPage = ({ post }: PostDetailPageProps) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  useCodeBlockCopy(contentRef);
   return (
     <>
       {/* Navigation */}
@@ -101,6 +106,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
 
             {/* Article Content */}
             <div
+              ref={contentRef}
               className={css({
                 paddingRight: "md",
                 paddingLeft: "md",
@@ -163,6 +169,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
                 },
               })}
             >
+              <TableOfContents toc={post.toc} />
               <div
                 // biome-ignore lint/security/noDangerouslySetInnerHtml: MarkdownをHTMLとして表示するために必要。DOMPurifyでサニタイズ済み
                 dangerouslySetInnerHTML={{

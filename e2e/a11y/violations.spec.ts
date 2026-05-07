@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
@@ -57,6 +59,36 @@ for (const target of TARGETS) {
       console.log(
         `\n[axe violations: ${target.name}] total=${results.violations.length} new=${newViolations.length}\n` +
           JSON.stringify(results.violations, null, 2),
+      );
+
+      // CI で Summary に取り込めるよう、違反一覧を JSON ファイルに出力する。
+      const outPath = join(
+        "playwright-report",
+        "axe",
+        `${target.name}.json`,
+      );
+      mkdirSync(dirname(outPath), { recursive: true });
+      writeFileSync(
+        outPath,
+        JSON.stringify(
+          {
+            target,
+            total: results.violations.length,
+            newCount: newViolations.length,
+            knownIds: Array.from(KNOWN_VIOLATION_IDS),
+            violations: results.violations.map((v) => ({
+              id: v.id,
+              impact: v.impact,
+              help: v.help,
+              helpUrl: v.helpUrl,
+              tags: v.tags,
+              nodeCount: v.nodes.length,
+              isKnown: KNOWN_VIOLATION_IDS.has(v.id),
+            })),
+          },
+          null,
+          2,
+        ),
       );
     }
 

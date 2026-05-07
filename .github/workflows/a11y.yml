@@ -45,30 +45,67 @@ jobs:
             const fs = require("fs");
             const path = require("path");
 
-            const reportDir = "playwright-report";
-            const reportFile = path.join(reportDir, "index.html");
+            const axeDir = path.join("playwright-report", "axe");
+            const stepOutcome = "${{ steps.axe.outcome }}";
 
             await core.summary.addHeading("a11y (axe-core) results", 2);
-
-            const stepOutcome = "${{ steps.axe.outcome }}";
             await core.summary.addRaw(
               `Playwright step outcome: **${stepOutcome}**\n\n`,
               true,
             );
 
-            // axe の違反内容は Playwright stdout に JSON で出力されるため、
-            // 詳細は Actions logs および artifact (playwright-report) を参照する旨を明記する。
-            await core.summary.addRaw(
-              "Detailed axe-core violations are printed in the Playwright test logs above " +
-                "and the uploaded `playwright-report` artifact (see Artifacts section).",
-              true,
-            );
-
-            if (fs.existsSync(reportFile)) {
+            // 各ターゲットページごとの違反 JSON を読み込んで Summary に展開する。
+            // 違反 0 のページは JSON が出力されないため、その場合は緑表示のみ。
+            if (!fs.existsSync(axeDir)) {
               await core.summary.addRaw(
-                "\n\nHTML report has been uploaded as the `playwright-report` artifact.",
+                "No axe violation reports were produced (all pages clean).",
                 true,
               );
+              await core.summary.write();
+              return;
+            }
+
+            const files = fs.readdirSync(axeDir).filter((f) => f.endsWith(".json"));
+            if (files.length === 0) {
+              await core.summary.addRaw(
+                "No axe violation reports were produced (all pages clean).",
+                true,
+              );
+              await core.summary.write();
+              return;
+            }
+
+            for (const file of files) {
+              const data = JSON.parse(
+                fs.readFileSync(path.join(axeDir, file), "utf8"),
+              );
+              await core.summary.addHeading(
+                `${data.target.name} — ${data.target.path}`,
+                3,
+              );
+              await core.summary.addRaw(
+                `total=${data.total} / new=${data.newCount} / known allow-listed ids: ${data.knownIds.join(", ")}\n`,
+                true,
+              );
+              const rows = [
+                [
+                  { data: "id", header: true },
+                  { data: "impact", header: true },
+                  { data: "tags", header: true },
+                  { data: "nodes", header: true },
+                  { data: "known?", header: true },
+                  { data: "help", header: true },
+                ],
+                ...data.violations.map((v) => [
+                  v.id,
+                  v.impact ?? "",
+                  (v.tags ?? []).join(","),
+                  String(v.nodeCount),
+                  v.isKnown ? "yes" : "**NEW**",
+                  `[doc](${v.helpUrl})`,
+                ]),
+              ];
+              await core.summary.addTable(rows);
             }
 
             await core.summary.write();

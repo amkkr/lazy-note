@@ -3,7 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 interface UseImageLightboxReturn {
   isOpen: boolean;
   imageSrc: string;
-  open: (src: string) => void;
+  imageAlt: string;
+  open: (src: string, alt: string) => void;
   close: () => void;
 }
 
@@ -12,15 +13,18 @@ export const useImageLightbox = (
 ): UseImageLightboxReturn => {
   const [isOpen, setIsOpen] = useState(false);
   const [imageSrc, setImageSrc] = useState("");
+  const [imageAlt, setImageAlt] = useState("");
 
-  const open = useCallback((src: string) => {
+  const open = useCallback((src: string, alt: string) => {
     setImageSrc(src);
+    setImageAlt(alt);
     setIsOpen(true);
   }, []);
 
   const close = useCallback(() => {
     setIsOpen(false);
     setImageSrc("");
+    setImageAlt("");
   }, []);
 
   useEffect(() => {
@@ -32,9 +36,9 @@ export const useImageLightbox = (
     const handleClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (target.tagName === "IMG") {
-        const src = (target as HTMLImageElement).src;
-        if (src) {
-          open(src);
+        const imgElement = target as HTMLImageElement;
+        if (imgElement.src) {
+          open(imgElement.src, imgElement.alt || "");
         }
       }
     };
@@ -43,5 +47,5 @@ export const useImageLightbox = (
     return () => container.removeEventListener("click", handleClick);
   }, [containerRef, open]);
 
-  return { isOpen, imageSrc, open, close };
+  return { isOpen, imageSrc, imageAlt, open, close };
 };

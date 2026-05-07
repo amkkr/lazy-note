@@ -22,6 +22,7 @@ describe("useImageLightbox", () => {
 
     expect(result.current.isOpen).toBe(false);
     expect(result.current.imageSrc).toBe("");
+    expect(result.current.imageAlt).toBe("");
   });
 
   it("imgクリック時にisOpenがtrueになる", () => {
@@ -29,6 +30,7 @@ describe("useImageLightbox", () => {
 
     const img = document.createElement("img");
     img.src = "https://example.com/photo.jpg";
+    img.alt = "テスト画像";
     container.appendChild(img);
 
     act(() => {
@@ -38,7 +40,23 @@ describe("useImageLightbox", () => {
     expect(result.current.isOpen).toBe(true);
   });
 
-  it("imgクリック時にimageSrcにsrc URLが設定される", () => {
+  it("imgクリック時にimageSrcとimageAltが設定される", () => {
+    const { result } = renderHook(() => useImageLightbox(containerRef));
+
+    const img = document.createElement("img");
+    img.src = "https://example.com/photo.jpg";
+    img.alt = "テスト画像";
+    container.appendChild(img);
+
+    act(() => {
+      img.click();
+    });
+
+    expect(result.current.imageSrc).toBe("https://example.com/photo.jpg");
+    expect(result.current.imageAlt).toBe("テスト画像");
+  });
+
+  it("alt属性がないimgクリック時にimageAltが空文字になる", () => {
     const { result } = renderHook(() => useImageLightbox(containerRef));
 
     const img = document.createElement("img");
@@ -50,13 +68,15 @@ describe("useImageLightbox", () => {
     });
 
     expect(result.current.imageSrc).toBe("https://example.com/photo.jpg");
+    expect(result.current.imageAlt).toBe("");
   });
 
-  it("close呼び出し時にisOpenがfalseになる", () => {
+  it("close呼び出し時にisOpen・imageSrc・imageAltがリセットされる", () => {
     const { result } = renderHook(() => useImageLightbox(containerRef));
 
     const img = document.createElement("img");
     img.src = "https://example.com/photo.jpg";
+    img.alt = "テスト画像";
     container.appendChild(img);
 
     act(() => {
@@ -71,6 +91,7 @@ describe("useImageLightbox", () => {
 
     expect(result.current.isOpen).toBe(false);
     expect(result.current.imageSrc).toBe("");
+    expect(result.current.imageAlt).toBe("");
   });
 
   it("img以外の要素クリックでは反応しない", () => {
@@ -86,6 +107,7 @@ describe("useImageLightbox", () => {
 
     expect(result.current.isOpen).toBe(false);
     expect(result.current.imageSrc).toBe("");
+    expect(result.current.imageAlt).toBe("");
   });
 
   it("containerRefがnullの場合にエラーにならない", () => {
@@ -95,5 +117,6 @@ describe("useImageLightbox", () => {
 
     expect(result.current.isOpen).toBe(false);
     expect(result.current.imageSrc).toBe("");
+    expect(result.current.imageAlt).toBe("");
   });
 });

@@ -14,7 +14,7 @@ interface PostDetailPageProps {
 
 export const PostDetailPage = ({ post }: PostDetailPageProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const { isOpen, imageSrc, close } = useImageLightbox(contentRef);
+  const { isOpen, imageSrc, imageAlt, close } = useImageLightbox(contentRef);
 
   return (
     <>
@@ -182,6 +182,7 @@ export const PostDetailPage = ({ post }: PostDetailPageProps) => {
           <ImageLightbox
             isOpen={isOpen}
             imageSrc={imageSrc}
+            imageAlt={imageAlt}
             onClose={close}
           />
         </div>

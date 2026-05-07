@@ -9,6 +9,7 @@ describe("ImageLightbox", () => {
       <ImageLightbox
         isOpen={true}
         imageSrc="https://example.com/photo.jpg"
+        imageAlt="テスト画像"
         onClose={vi.fn()}
       />,
     );
@@ -21,6 +22,7 @@ describe("ImageLightbox", () => {
       <ImageLightbox
         isOpen={false}
         imageSrc="https://example.com/photo.jpg"
+        imageAlt="テスト画像"
         onClose={vi.fn()}
       />,
     );
@@ -33,6 +35,7 @@ describe("ImageLightbox", () => {
       <ImageLightbox
         isOpen={true}
         imageSrc="https://example.com/photo.jpg"
+        imageAlt="テスト画像"
         onClose={vi.fn()}
       />,
     );
@@ -43,6 +46,19 @@ describe("ImageLightbox", () => {
     expect(img).toBeInTheDocument();
   });
 
+  it("画像にalt属性が設定される", () => {
+    render(
+      <ImageLightbox
+        isOpen={true}
+        imageSrc="https://example.com/photo.jpg"
+        imageAlt="テスト画像"
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByAltText("テスト画像")).toBeInTheDocument();
+  });
+
   it("閉じるボタンクリックでonCloseが呼ばれる", async () => {
     const handleClose = vi.fn();
     const user = userEvent.setup();
@@ -51,6 +67,7 @@ describe("ImageLightbox", () => {
       <ImageLightbox
         isOpen={true}
         imageSrc="https://example.com/photo.jpg"
+        imageAlt="テスト画像"
         onClose={handleClose}
       />,
     );
@@ -58,5 +75,20 @@ describe("ImageLightbox", () => {
     await user.click(screen.getByRole("button", { name: "閉じる" }));
 
     expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("閉じるボタンに×が表示される", () => {
+    render(
+      <ImageLightbox
+        isOpen={true}
+        imageSrc="https://example.com/photo.jpg"
+        imageAlt=""
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "閉じる" })).toHaveTextContent(
+      "×",
+    );
   });
 });

@@ -1,10 +1,11 @@
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { css } from "../../../styled-system/css";
 
 interface ImageLightboxProps {
   isOpen: boolean;
   imageSrc: string;
+  imageAlt: string;
   onClose: () => void;
 }
 
@@ -41,13 +42,13 @@ const imageStyle = css({
 
 const closeButtonStyle = css({
   position: "absolute",
-  top: "-xl",
-  right: "-xl",
+  top: "sm",
+  right: "sm",
   background: "bg.2",
   color: "fg.0",
   border: "1px solid",
   borderColor: "bg.3",
-  borderRadius: "50%",
+  borderRadius: "full",
   width: "xl",
   height: "xl",
   display: "flex",
@@ -74,16 +75,23 @@ const spinnerStyle = css({
   border: "4px solid",
   borderColor: "bg.3",
   borderTopColor: "blue.light",
-  borderRadius: "50%",
+  borderRadius: "full",
   animation: "spin 1s linear infinite",
 });
 
 const ImageLightboxInner = ({
   isOpen,
   imageSrc,
+  imageAlt,
   onClose,
 }: ImageLightboxProps) => {
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (imageSrc) {
+      setIsLoading(true);
+    }
+  }, [imageSrc]);
 
   const handleImageLoad = useCallback(() => {
     setIsLoading(false);
@@ -101,7 +109,7 @@ const ImageLightboxInner = ({
           )}
           <img
             src={imageSrc}
-            alt=""
+            alt={imageAlt}
             className={imageStyle}
             style={{ display: isLoading ? "none" : "block" }}
             onLoad={handleImageLoad}
@@ -112,7 +120,7 @@ const ImageLightboxInner = ({
             onClick={onClose}
             aria-label="閉じる"
           >
-            x
+            ×
           </button>
         </DialogPanel>
       </div>

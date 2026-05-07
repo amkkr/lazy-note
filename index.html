@@ -7,14 +7,17 @@
     <meta name="description" content="Lazy Note - シンプルで読みやすいブログプラットフォーム。日々の思考やアイデアを気軽に記録・共有できます。" />
     <title>Lazy Note</title>
     <script>
+      // ダークモード初期化 (FOUC 対策):
+      // - localStorage の "theme" が "light" / "dark" の場合は手動設定として優先
+      // - それ以外は prefers-color-scheme に従い、localStorage には書き込まない
+      //   (system 追従を維持するため未設定状態を保持する)
       try {
         var t = localStorage.getItem("theme");
         if (t !== "light" && t !== "dark") {
           t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-          localStorage.setItem("theme", t);
         }
         document.documentElement.dataset.theme = t;
-      } catch(e) {
+      } catch (e) {
         document.documentElement.dataset.theme = "dark";
       }
     </script>

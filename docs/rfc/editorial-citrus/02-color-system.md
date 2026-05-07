@@ -29,7 +29,7 @@
 | `ink-primary-on-cream`    | `oklch(0.205 0.020 85)`     | light 本文 (cream-50 上で 7.20:1 を狙う)  |
 | `ink-secondary-on-cream`  | `oklch(0.380 0.018 85)`     | light メタ / キャプション                 |
 | `ink-900`                 | `oklch(0.150 0.020 85)`     | focus 二重リング外側                      |
-| `sumi-500`                | `oklch(0.560 0 0)`          | status (中)                               |
+| `sumi-500`                | `oklch(0.620 0 0)`          | status (中)。dark で sumi-950 上 5.15:1   |
 | `sumi-600`                | `oklch(0.470 0 0)`          | status (やや強)                           |
 | `sumi-700`                | `oklch(0.380 0 0)`          | status (強)                               |
 | `sumi-950`                | `oklch(0.180 0.012 220)`    | **dark 既定背景** (中性、暖色光と温度差)  |
@@ -38,10 +38,14 @@
 
 | トークン         | OKLCH                       | 用途                                                                                          |
 | ---------------- | --------------------------- | --------------------------------------------------------------------------------------------- |
-| `persimmon-600`  | `oklch(0.580 0.180 38)`     | **アクセント** (CTA、Featured バッジ、OG 画像背景、紹介ページのブランド単色)                  |
-| `indigo-500`     | `oklch(0.470 0.150 250)`    | light テーマ link                                                                             |
+| `persimmon-500`  | `oklch(0.640 0.180 38)`     | dark テーマ用 CTA 背景 (本文 ink-900 を載せて 5.42:1)                                         |
+| `persimmon-600`  | `oklch(0.520 0.180 38)`     | **アクセント** (CTA、Featured バッジ、OG 画像背景、紹介ページのブランド単色)                  |
+| `persimmon-700`  | `oklch(0.450 0.170 38)`     | hover/active                                                                                  |
+| `indigo-500`     | `oklch(0.430 0.150 250)`    | light テーマ link (cream-50 上で 7.82:1)                                                      |
 | `indigo-300`     | `oklch(0.760 0.110 250)`    | dark テーマ link                                                                              |
 | `citrus-500`     | `oklch(0.860 0.150 105)`    | **focus 専用色**。accent ボタン上では二重リング外側 `ink-900` + 内側 `citrus-500` の構成     |
+
+> Issue #358 (#0a) で AAA 実測の結果、`persimmon-600` は L=0.580 → 0.520 (CTA 上で AA 4.5+)、`indigo-500` は L=0.470 → 0.430 (cream-50 上で 7.20 マージン確保) に調整済み。詳細は `docs/contrast-matrix.csv` 参照。
 
 ## 3 軸分離の根拠
 

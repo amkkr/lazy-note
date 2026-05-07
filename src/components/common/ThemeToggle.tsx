@@ -8,12 +8,12 @@ import { useTheme } from "../../hooks/useTheme";
  * a11y:
  * - role=switch + aria-checked は Headless UI の Switch が提供
  * - aria-label は現在の状態と次の操作を含めて動的に変更
- * - フォーカスリングは accent.focus (citrus-500) で可視化
- * - キーボード操作 (Space / Enter) は Headless UI が標準対応
- * - タッチターゲット 44x44 を outer button のパディングで確保 (WCAG 2.5.5)
+ * - フォーカスリングは accent.focus (citrus-500) で可視化 (:focus-visible)
+ * - キーボード操作 (Space) は Headless UI Switch が WAI-ARIA に従い対応
+ * - タッチターゲットは 56x28px。WCAG 2.5.8 (AA: 24x24px) を満たす
+ *   (2.5.5 AAA: 44x44px には届かないため、将来的に拡張余地あり)
  */
 const switchStyles = css({
-  // outer のヒット領域は 44x44 を確保しつつ、視覚的トグルは中央 56x28
   position: "relative",
   display: "inline-flex",
   alignItems: "center",

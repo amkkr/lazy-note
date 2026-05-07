@@ -1,13 +1,9 @@
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCodeBlockCopy } from "../useCodeBlockCopy";
 
-/**
- * useCodeBlockCopyはDOMイベントデリゲーションベースのフックなので、
- * renderHookではなく直接DOMを操作してテストする
- */
 describe("useCodeBlockCopy", () => {
   let container: HTMLDivElement;
-  let cleanup: (() => void) | undefined;
 
   beforeEach(() => {
     container = document.createElement("div");
@@ -24,54 +20,17 @@ describe("useCodeBlockCopy", () => {
   });
 
   afterEach(() => {
-    cleanup?.();
     document.body.removeChild(container);
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
   /**
-   * useEffectの動作をシミュレートするヘルパー
-   * フックのuseEffect内部ロジックを直接テストする
+   * containerRefを作成してrenderHookで実フックを起動するヘルパー
    */
-  const setupHook = (element: HTMLElement): (() => void) => {
-    let cleanupFn: (() => void) | undefined;
-
-    // useEffectのコールバックを手動で実行
-    const handleClick = async (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.classList.contains("copy-btn")) {
-        return;
-      }
-
-      const code = target.getAttribute("data-code");
-      if (!code) {
-        return;
-      }
-
-      try {
-        const decodedCode = code
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/&amp;/g, "&");
-        await navigator.clipboard.writeText(decodedCode);
-        const originalText = target.textContent;
-        target.textContent = "コピー済み!";
-        setTimeout(() => {
-          target.textContent = originalText;
-        }, 2000);
-      } catch {
-        target.textContent = "コピー失敗";
-        setTimeout(() => {
-          target.textContent = "コピー";
-        }, 2000);
-      }
-    };
-
-    element.addEventListener("click", handleClick);
-    cleanupFn = () => element.removeEventListener("click", handleClick);
-
-    return () => cleanupFn?.();
+  const setupHook = (element: HTMLDivElement) => {
+    const ref = { current: element };
+    return renderHook(() => useCodeBlockCopy(ref));
   };
 
   it("コピーボタンクリック時にclipboard.writeTextが呼ばれる", async () => {
@@ -82,12 +41,14 @@ describe("useCodeBlockCopy", () => {
       </div>
     `;
 
-    cleanup = setupHook(container);
+    setupHook(container);
 
     const button = container.querySelector(".copy-btn") as HTMLElement;
-    button.click();
 
-    // 非同期処理を待つ
+    await act(async () => {
+      button.click();
+    });
+
     await vi.waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         'console.log("hello")',
@@ -105,17 +66,22 @@ describe("useCodeBlockCopy", () => {
       </div>
     `;
 
-    cleanup = setupHook(container);
+    setupHook(container);
 
     const button = container.querySelector(".copy-btn") as HTMLElement;
-    button.click();
+
+    await act(async () => {
+      button.click();
+    });
 
     await vi.waitFor(() => {
       expect(button.textContent).toBe("コピー済み!");
     });
 
     // 2秒後に元に戻る
-    vi.advanceTimersByTime(2000);
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
     expect(button.textContent).toBe("コピー");
   });
 
@@ -138,17 +104,22 @@ describe("useCodeBlockCopy", () => {
       </div>
     `;
 
-    cleanup = setupHook(container);
+    setupHook(container);
 
     const button = container.querySelector(".copy-btn") as HTMLElement;
-    button.click();
+
+    await act(async () => {
+      button.click();
+    });
 
     await vi.waitFor(() => {
       expect(button.textContent).toBe("コピー失敗");
     });
 
     // 2秒後に元に戻る
-    vi.advanceTimersByTime(2000);
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
     expect(button.textContent).toBe("コピー");
   });
 
@@ -160,10 +131,13 @@ describe("useCodeBlockCopy", () => {
       </div>
     `;
 
-    cleanup = setupHook(container);
+    setupHook(container);
 
     const button = container.querySelector(".copy-btn") as HTMLElement;
-    button.click();
+
+    await act(async () => {
+      button.click();
+    });
 
     await vi.waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
@@ -172,7 +146,7 @@ describe("useCodeBlockCopy", () => {
     });
   });
 
-  it("copy-btnクラスを持たない要素のクリックでは何も起きない", () => {
+  it("copy-btnクラスを持たない要素のクリックでは何も起きない", async () => {
     container.innerHTML = `
       <div class="code-block-wrapper">
         <button class="copy-btn" data-code="test">コピー</button>
@@ -181,10 +155,13 @@ describe("useCodeBlockCopy", () => {
       <button class="other-btn">他のボタン</button>
     `;
 
-    cleanup = setupHook(container);
+    setupHook(container);
 
     const otherButton = container.querySelector(".other-btn") as HTMLElement;
-    otherButton.click();
+
+    await act(async () => {
+      otherButton.click();
+    });
 
     expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
   });

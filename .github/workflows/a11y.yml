@@ -1,0 +1,131 @@
+name: a11y
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  axe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "24"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.3
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Panda CSS
+        # `pnpm prepare` (panda codegen) は型・関数のみ生成し、`styled-system/styles.css` は出力しない。
+        # dev サーバ起動直後に Vite が `@import "../styled-system/styles.css"` を解決できず
+        # vite-error-overlay が表示される → axe が `scrollable-region-focusable` 違反として検出する。
+        # `panda` (build mode) を併せて実行して styles.css も先に生成しておく。
+        run: |
+          pnpm prepare
+          pnpm exec panda
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run axe-core a11y tests
+        id: axe
+        run: pnpm exec playwright test e2e/a11y
+        continue-on-error: true
+
+      - name: Append axe violations to job summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+
+            const axeDir = path.join("playwright-report", "axe");
+            const stepOutcome = "${{ steps.axe.outcome }}";
+
+            await core.summary.addHeading("a11y (axe-core) results", 2);
+            await core.summary.addRaw(
+              `Playwright step outcome: **${stepOutcome}**\n\n`,
+              true,
+            );
+
+            // 各ターゲットページごとの違反 JSON を読み込んで Summary に展開する。
+            // 違反 0 のページは JSON が出力されないため、その場合は緑表示のみ。
+            if (!fs.existsSync(axeDir)) {
+              await core.summary.addRaw(
+                "No axe violation reports were produced (all pages clean).",
+                true,
+              );
+              await core.summary.write();
+              return;
+            }
+
+            const files = fs.readdirSync(axeDir).filter((f) => f.endsWith(".json"));
+            if (files.length === 0) {
+              await core.summary.addRaw(
+                "No axe violation reports were produced (all pages clean).",
+                true,
+              );
+              await core.summary.write();
+              return;
+            }
+
+            for (const file of files) {
+              const data = JSON.parse(
+                fs.readFileSync(path.join(axeDir, file), "utf8"),
+              );
+              await core.summary.addHeading(
+                `${data.target.name} — ${data.target.path}`,
+                3,
+              );
+              await core.summary.addRaw(
+                `total=${data.total} / new=${data.newCount} / known allow-listed ids: ${data.knownIds.join(", ")}\n`,
+                true,
+              );
+              const rows = [
+                [
+                  { data: "id", header: true },
+                  { data: "impact", header: true },
+                  { data: "tags", header: true },
+                  { data: "nodes", header: true },
+                  { data: "known?", header: true },
+                  { data: "help", header: true },
+                ],
+                ...data.violations.map((v) => [
+                  v.id,
+                  v.impact ?? "",
+                  (v.tags ?? []).join(","),
+                  String(v.nodeCount),
+                  v.isKnown ? "yes" : "**NEW**",
+                  `[doc](${v.helpUrl})`,
+                ]),
+              ];
+              await core.summary.addTable(rows);
+            }
+
+            await core.summary.write();
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Fail job if axe step failed
+        if: steps.axe.outcome != 'success'
+        run: |
+          echo "axe-core a11y tests failed. See job summary and playwright-report artifact." >&2
+          exit 1

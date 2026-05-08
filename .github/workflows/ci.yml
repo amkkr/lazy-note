@@ -34,5 +34,8 @@ jobs:
       - name: Lint design tokens (R-5 / Issue #393)
         run: pnpm lint:tokens
 
+      - name: Verify AAA contrast (Issue #408)
+        run: pnpm contrast:check
+
       - name: Type check
         run: pnpm exec tsc --noEmit

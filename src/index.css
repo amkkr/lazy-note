@@ -30,14 +30,13 @@
  *   - descent-override = Hiragino descent / 1080 ≒ 11%
  *       → 視覚バランス調整で 22% に拡張 (見出し / 本文のディセンダ余白)
  *   - line-gap-override = 0% (line-height は CSS で別途制御)
- * 数値は Phase2 で実機 CLS を測って再調整予定 (Issue #387 / RFC 03-typography.md)。
+ * 数値は Phase2 で実機 CLS を測って再調整予定 (Issue #387)。
  *
  * - ライセンス本文は public/fonts/Newsreader-LICENSE.txt に同梱。
  *
  * Italic woff2 は本 Issue では同梱しない (フォント合計 KB 削減のため)。
- * 本文 datasources/*.md で Italic 強調が必要なケースが出てきた場合は
- * Phase2 で再導入する。それまでは OS フォールバック (Hiragino Mincho ProN
- * の synthesized italic) で描画される。
+ * 本文で Italic 強調が必要なケースが出てきた場合は Phase2 で再導入する。
+ * それまでは OS フォールバック (Hiragino Mincho ProN の synthesized italic) で描画。
  */
 @font-face {
   font-family: "Newsreader";

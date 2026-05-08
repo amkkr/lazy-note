@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { flushSync } from "react-dom";
 import { type NavigateOptions, type To, useNavigate } from "react-router-dom";
 import { startViewTransition } from "../lib/viewTransition";
 
@@ -23,6 +24,14 @@ type ViewTransitionNavigate = (to: To, options?: NavigateOptions) => void;
  * - 連続クリック時は VT API のブラウザ実装側で先行 transition が skip されるため、
  *   本フックでは追加の throttling は行わない (フラッシュなしで安定する)。
  *
+ * flushSync の必要性 (DA 致命 2 対応):
+ * - React 19 + React Router の navigate は通常非同期で reconcile される。
+ * - View Transitions API は callback 完了直後に「新 DOM」の snapshot を取るため、
+ *   非同期 reconcile では callback 完了時点で新 DOM (post-{id} の
+ *   view-transition-name 要素) がまだ未描画 → morph 不成立となる。
+ * - flushSync で navigate に伴う setState を同期 reconcile し、callback 完了
+ *   時点で新 DOM が描画されている状態を保証する。
+ *
  * 使い方:
  *   const navigate = useViewTransitionNavigate();
  *   const handleClick = (e) => {
@@ -36,7 +45,9 @@ export const useViewTransitionNavigate = (): ViewTransitionNavigate => {
   return useCallback(
     (to: To, options?: NavigateOptions) => {
       startViewTransition(() => {
-        navigate(to, options);
+        flushSync(() => {
+          navigate(to, options);
+        });
       });
     },
     [navigate],

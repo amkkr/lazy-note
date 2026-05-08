@@ -107,4 +107,108 @@ describe("PostDetailPage", () => {
     expect(screen.getByText("リスト項目2")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "リンク" })).toBeInTheDocument();
   });
+
+  // ==========================================================================
+  // Editorial Citrus 本文タイポグラフィ (Issue #391) の構造テスト。
+  //
+  // - Panda CSS が生成する className パターン (`[&_p]:max-w_prose` 等) を
+  //   検証することで、prose 制約が想定要素に当たっていることを保証する。
+  //   ハードコード値テスト (576px 等) を避け、トークン側の値変更に強くする。
+  // - JSDOM 環境では Panda が生成する styles.css が読み込まれないため、
+  //   getComputedStyle() ではなく className 文字列の包含で検証する。
+  // ==========================================================================
+  describe("本文 prose レイアウト", () => {
+    /**
+     * 本文コンテナ (paragraphs / lists / blockquote の親) を取得する。
+     * className に Panda が生成した prose セレクタが付与された要素を選ぶ。
+     */
+    const getContentContainer = (): HTMLElement => {
+      const paragraph = screen.getByText("これはテスト記事の内容です。");
+      // 段落の親 = dangerouslySetInnerHTML の出力をラップする div、
+      // さらにその親が contentRef の付いた本文コンテナ。
+      const innerWrapper = paragraph.parentElement;
+      const contentContainer = innerWrapper?.parentElement;
+      if (!contentContainer) {
+        throw new Error("本文コンテナを特定できませんでした");
+      }
+      return contentContainer;
+    };
+
+    it("本文コンテナの className に段落 max-width prose セレクタが含まれる", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const contentContainer = getContentContainer();
+      // Panda は `"& p": { maxWidth: "prose" }` を `[&_p]:max-w_prose` に変換する。
+      expect(contentContainer.className).toContain("[&_p]:max-w_prose");
+    });
+
+    it("本文コンテナの className に段落 line-height prose セレクタが含まれる", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const contentContainer = getContentContainer();
+      expect(contentContainer.className).toContain("[&_p]:lh_prose");
+    });
+
+    it("本文コンテナの className に見出し (h1/h2/h3) max-width prose セレクタが含まれる", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const contentContainer = getContentContainer();
+      // 見出し左端ずれ解消 (DA 致命 3) の検証。
+      expect(contentContainer.className).toContain(
+        "[&_h1,_&_h2,_&_h3]:max-w_prose",
+      );
+    });
+
+    it("本文コンテナの className に table overflow-x auto セレクタが含まれる", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const contentContainer = getContentContainer();
+      // GFM table 横スクロール退避 (DA 重大 1) の検証。
+      expect(contentContainer.className).toContain("[&_table]:ov-x_auto");
+    });
+
+    it("本文コンテナの className に hr / dl / figure max-width prose セレクタが含まれる", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const contentContainer = getContentContainer();
+      // GFM 周辺要素のレイアウト統一の検証。
+      expect(contentContainer.className).toContain("[&_hr]:max-w_prose");
+      expect(contentContainer.className).toContain("[&_dl]:max-w_prose");
+      expect(contentContainer.className).toContain("[&_figure]:max-w_prose");
+    });
+
+    it("TOC は本文コンテナの外側に配置される", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const contentContainer = getContentContainer();
+      const tocButton = screen.getByRole("button", { name: "目次" });
+      // contentRef 内の "& ul" セレクタが TOC の <ul> に割り込まないよう、
+      // TOC は本文コンテナの外側に物理配置されている (DA 致命 2)。
+      expect(contentContainer.contains(tocButton)).toBe(false);
+    });
+  });
 });

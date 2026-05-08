@@ -420,6 +420,20 @@ describe("Issue #409: bg.muted / border.subtle 階層 token", () => {
     );
     expect(r).toBeLessThan(3.0);
   });
+
+  it("focus.ring × bg.muted (light) は AA 単独不成立 (二重リング運用前提)", () => {
+    // focus.ring (citrus-500) を light テーマの bg.muted (cream-75) 上に直接置くと
+    // 約 1.41:1 となり、1.4.11 (UI 装飾 3:1) も満たさない。bg.muted を hover 背景や
+    // 注釈ブロック内のリンク背景に使った場合、light で focus が消失する。
+    // bg.muted 上の focus は二重リング前提 (内側 ink-900 + 外側 focus.ring or その逆)
+    // で運用すること。本テストは bg.muted 上の単独運用に走らないようにする Tripwire
+    // (negative test)。値が改善 (3:1 以上) した場合は意図的な変更かレビューで確認する。
+    const r = ratio(
+      semanticColorTokens.focusRing.light,
+      semanticColorTokens.bgMuted.light,
+    );
+    expect(r).toBeLessThan(3.0);
+  });
 });
 
 describe("コードブロック token (旧パレット温存の Tripwire)", () => {

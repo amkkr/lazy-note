@@ -287,6 +287,29 @@ const getContrastPairs = (): readonly ContrastPair[] => {
       minRatio: contrastThresholds.bodyText,
       category: "body",
     },
+    // ---------- focus.ring × bg.muted (Issue #409 retrograde 検出用 negative pair) ----------
+    // negative pair: focus.ring を bg.muted 上で単独使用すると light 1.41:1 / dark 9.95:1 になり
+    // light で 1.4.11 違反となる。bg.muted 上の focus は二重リング前提 (focus.ring × ink-900 + 外側
+    // focus.ring) で運用すること。本ペアは将来の retrograde 検出のため negative test として
+    // contrast:check に明示する。閾値は装飾用 1.4.11 (3:1) を要求し、ratio < 3:1 となる light
+    // でわざと fail させて気付ける状態にしておくことを意図する...が、CI を ALWAYS pass さ
+    // せたいケースでは category=decorative + minRatio=0 で記録のみ行う運用にする。
+    // 本 PR では運用ルール明示が目的のため minRatio=0 とし、レポート上 "0.00" 出力で目視確認
+    // できるようにする (テスト側で <3:1 を要求する Tripwire を別途張る)。
+    {
+      name: "focus.ring/light: citrus-500 × cream-75 (bg.muted, 単独 NG / 二重リング必須)",
+      fg: oklchPrimitives.citrus["500"],
+      bg: oklchPrimitives.cream["75"],
+      minRatio: 0,
+      category: "focus",
+    },
+    {
+      name: "focus.ring/dark: citrus-500 × sumi-650 (bg.muted, 単独 OK 参考値)",
+      fg: oklchPrimitives.citrus["500"],
+      bg: oklchPrimitives.sumi["650"],
+      minRatio: 0,
+      category: "focus",
+    },
   ];
 };
 

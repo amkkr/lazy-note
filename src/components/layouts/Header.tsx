@@ -44,7 +44,9 @@ export const Header = ({ postCount }: HeaderProps) => {
           {postCount !== undefined && (
             // R-4 (Issue #392) で BookOpen 装飾を削除。
             // 表記を「全 N 件」とし、視覚と SR で同じ意味が伝わるように統一。
+            // aria-label で SR には「記事 N 件」と意味明確に補完する。
             <div
+              aria-label={`記事 ${postCount} 件`}
               className={css({
                 background: "bg.2",
                 color: "fg.1",

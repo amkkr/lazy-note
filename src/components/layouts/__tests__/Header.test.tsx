@@ -34,6 +34,20 @@ describe("Header", () => {
     expect(screen.getByText("全 5 件")).toBeInTheDocument();
   });
 
+  it("記事数バッジに SR 補完用の aria-label が付与される", () => {
+    // R-4 (Issue #392) で「全 N 件」表記に aria-label="記事 N 件" を補う。
+    // 視覚は短縮表記、SR は意味明確の両立を CI で固定する。
+    render(
+      <MemoryRouter>
+        <Header postCount={5} />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByLabelText("記事 5 件"),
+    ).toBeInTheDocument();
+  });
+
   it("記事数が0でも表示できる", () => {
     render(
       <MemoryRouter>
@@ -42,6 +56,7 @@ describe("Header", () => {
     );
 
     expect(screen.getByText("全 0 件")).toBeInTheDocument();
+    expect(screen.getByLabelText("記事 0 件")).toBeInTheDocument();
   });
 
   it("postCountがundefinedの場合は件数表示が非表示になる", () => {

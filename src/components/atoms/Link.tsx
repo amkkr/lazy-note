@@ -51,6 +51,9 @@ export const Link = ({
       justifyContent: "center",
       padding: "sm-md md",
       background: "accent.brand",
+      // TODO(R-2c+): fg.onBrand semantic token に置換予定
+      // (CTA 文字色を直書きせず semantic token に集約する。R-2a #388 は merge 準備中
+      //  のため再変更は避け、R-2c または別 hotfix で導入。)
       color: { _light: "cream.50", _dark: "ink.900" },
       fontWeight: "600",
       borderRadius: "md",

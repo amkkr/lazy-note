@@ -74,6 +74,9 @@ export const EmptyState = ({
               bg: "gradients.primary",
               // gradients.primary は明るいグラデのため、明確な対比をとるよう
               // 文字色は light=cream.50 / dark=ink.900 の CTA 配色を採用。
+              // TODO(R-2c+): fg.onBrand semantic token に置換予定
+              // (CTA 文字色を直書きせず semantic token に集約する。R-2a #388 は
+              //  merge 準備中のため再変更は避け、R-2c または別 hotfix で導入。)
               color: { _light: "cream.50", _dark: "ink.900" },
               px: "6",
               py: "3",

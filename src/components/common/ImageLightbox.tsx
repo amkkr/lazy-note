@@ -40,17 +40,19 @@ const imageStyle = css({
   borderRadius: "md",
 });
 
-// Editorial Citrus トークンに置換 (R-2b / Issue #389)
-// - モーダル上の浮き上がる閉じるボタン: bg.elevated を使用
-// - hover で bg.surface に沈み込ませる
+// Editorial Citrus トークンに置換 (R-2b / Issue #389、R-2b 修正で border 色を修正)
+// - 暗い backdrop 上の浮き上がる閉じるボタン: bg.surface を背景に
+//   (bg.elevated と bg.surface の同色 border 問題を回避し、視認性も向上)
+// - border は bg.elevated でハイライト風の枠線
+// - hover で bg.elevated に反転
 const closeButtonStyle = css({
   position: "absolute",
   top: "sm",
   right: "sm",
-  background: "bg.elevated",
+  background: "bg.surface",
   color: "fg.primary",
   border: "1px solid",
-  borderColor: "bg.surface",
+  borderColor: "bg.elevated",
   borderRadius: "full",
   width: "xl",
   height: "xl",
@@ -61,7 +63,7 @@ const closeButtonStyle = css({
   fontSize: "base",
   lineHeight: 1,
   _hover: {
-    background: "bg.surface",
+    background: "bg.elevated",
   },
 });
 

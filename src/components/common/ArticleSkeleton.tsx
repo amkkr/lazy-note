@@ -15,13 +15,17 @@ const innerStyles = css({
   },
 });
 
+// border は bg.surface 同色で視覚消失していたため bg.elevated に変更 (R-2b 修正)。
+// 旧 Gruvbox では bg.1 (背景) / bg.3 (border) で明度差があったが、Editorial Citrus
+// で機械的に bg.surface に圧縮した結果 1.0:1 となっていた。bg.elevated を採用すると
+// 背景 surface より明るい "ハイライト" 風の枠線になり、視覚的に区別可能。
 const articleStyles = css({
   background: "bg.surface",
   borderRadius: "lg",
   overflow: "hidden",
   boxShadow: "card-hover",
   border: "1px solid",
-  borderColor: "bg.surface",
+  borderColor: "bg.elevated",
 });
 
 const headerStyles = css({
@@ -32,9 +36,11 @@ const headerStyles = css({
   },
 });
 
+// 親 articleStyles の bg.surface 上に置く 1px divider のため、同色だと消失する。
+// bg.elevated (より明るい色) でハイライト風の区切り線にする (R-2b 修正)。
 const dividerStyles = css({
   height: "1px",
-  background: "bg.surface",
+  background: "bg.elevated",
 });
 
 const contentStyles = css({
@@ -94,10 +100,11 @@ const headingStyles = css({
   marginBottom: "md",
 });
 
+// borderBottom も bg.surface 同色で視覚消失していたため bg.elevated に変更 (R-2b 修正)。
 const navStyles = css({
   background: "bg.surface",
   borderBottom: "1px solid",
-  borderColor: "bg.surface",
+  borderColor: "bg.elevated",
   paddingY: "sm-md",
   paddingX: "md",
   display: "flex",

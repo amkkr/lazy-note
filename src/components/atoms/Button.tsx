@@ -49,13 +49,17 @@ const variantStyles = {
       filter: "brightness(0.92)",
     },
   }),
+  // R-2b 修正: border bg.surface × bg bg.elevated は 1.06:1 で枠線が視覚消失していたため、
+  // bg を bg.surface (一段濃い色) / border を bg.elevated (ハイライト色) に反転。
+  // light: bg.surface (cream-100) × fg.primary = 16.19:1 AAA を維持。
+  // dark : bg.surface (sumi-700) × fg.primary (bone-50) = 7.93:1 AAA を維持。
   secondary: css({
-    background: "bg.elevated",
+    background: "bg.surface",
     color: "fg.primary",
     border: "1px solid",
-    borderColor: "bg.surface",
+    borderColor: "bg.elevated",
     "&:hover:not(:disabled)": {
-      background: "bg.surface",
+      background: "bg.elevated",
       transform: "translateY(-1px)",
     },
   }),

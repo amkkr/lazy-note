@@ -29,11 +29,13 @@ const cardStyles = css({
   boxShadow: "card",
 });
 
+// borderColor は親 cardStyles の bg.surface と同色で消失するため
+// bg.elevated (ハイライト風) に変更 (R-2b 修正)。
 const cardHeaderStyles = css({
   padding: "sm-md",
   paddingBottom: "md",
   borderBottom: "1px solid",
-  borderColor: "bg.surface",
+  borderColor: "bg.elevated",
   display: "flex",
   alignItems: "center",
   gap: "sm",

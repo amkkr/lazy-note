@@ -1,3 +1,5 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { parse, wcagContrast } from "culori";
 import { describe, expect, it } from "vitest";
 import {
@@ -369,6 +371,40 @@ describe("コードブロック token (旧パレット温存の Tripwire)", () =
   it("fgCode (dark) がコードブロック dark fg1 (#ebdbb2) を指している", () => {
     expect(semanticColorTokens.fgCode.dark).toBe(codeBlockColors.dark.fg1);
     expect(semanticColorTokens.fgCode.dark).toBe("#ebdbb2");
+  });
+});
+
+describe("panda.config.ts と colorTokens.ts の hex 同期 Tripwire", () => {
+  // panda.config.ts と src/lib/colorTokens.ts の codeBlockColors 系 hex 値が
+  // 同期しているか検証。Panda CSS の制約 (theme.tokens.colors の値が文字列リテラル
+  // 必須) で R-2c (Issue #390) では旧パレット階層を panda.config.ts から削除した結果、
+  // bg.code / bg.codeInline / bg.codeBorder / fg.code は両ファイルで hex リテラルを
+  // 二重管理する形になっている。
+  // panda.config.ts 側だけ書き換わっても CI で検出できないため、本 Tripwire で
+  // ソース文字列上の hex 出現を検証して乖離を CI で検出する。
+  // (より厳密な AST パースは過剰のため、文字列 contains で十分な精度とする。)
+  it("panda.config.ts 中に codeBlockColors の light hex が全て出現する", async () => {
+    const pandaSource = await fs.readFile(
+      path.resolve(__dirname, "../../../panda.config.ts"),
+      "utf-8",
+    );
+
+    expect(pandaSource).toContain(codeBlockColors.light.bg0); // #fbf1c7 (bg.code)
+    expect(pandaSource).toContain(codeBlockColors.light.bg2); // #d5c4a1 (bg.codeInline)
+    expect(pandaSource).toContain(codeBlockColors.light.bg3); // #bdae93 (bg.codeBorder)
+    expect(pandaSource).toContain(codeBlockColors.light.fg1); // #3c3836 (fg.code)
+  });
+
+  it("panda.config.ts 中に codeBlockColors の dark hex が全て出現する", async () => {
+    const pandaSource = await fs.readFile(
+      path.resolve(__dirname, "../../../panda.config.ts"),
+      "utf-8",
+    );
+
+    expect(pandaSource).toContain(codeBlockColors.dark.bg0); // #282828 (bg.code)
+    expect(pandaSource).toContain(codeBlockColors.dark.bg2); // #504945 (bg.codeInline)
+    expect(pandaSource).toContain(codeBlockColors.dark.bg3); // #665c54 (bg.codeBorder)
+    expect(pandaSource).toContain(codeBlockColors.dark.fg1); // #ebdbb2 (fg.code)
   });
 });
 

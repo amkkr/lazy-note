@@ -10,8 +10,8 @@ export const Header = ({ postCount }: HeaderProps) => {
   return (
     <header
       className={css({
-        background: "bg.0",
-        color: "fg.1",
+        background: "bg.canvas",
+        color: "fg.primary",
         paddingY: "content",
         paddingX: "md",
         minHeight: "header",
@@ -44,8 +44,8 @@ export const Header = ({ postCount }: HeaderProps) => {
           {postCount !== undefined && (
             <div
               className={css({
-                background: "bg.2",
-                color: "fg.1",
+                background: "bg.elevated",
+                color: "fg.primary",
                 paddingY: "sm",
                 paddingX: "md",
                 borderRadius: "xl",

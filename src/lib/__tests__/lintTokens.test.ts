@@ -146,6 +146,92 @@ describe("lint:tokens (scripts/lintTokens.ts)", () => {
       expect(result.stderr).toContain("old-gruvbox-token");
     });
 
+    // ====================================================================
+    // オブジェクトキー記法検知 (Issue #413 / DA 致命 1 対応)
+    //
+    // panda.config.ts の theme 定義で `bg: { "0": { value: "..." } }` のように
+    // 旧 5 段階トークンを再導入した場合に検出する。複数行にまたがるため
+    // scope: "file" で走査する必要がある。
+    // ====================================================================
+    it("オブジェクトキー記法 `bg: { '0': ... }` を検出する (panda.config.ts 想定)", () => {
+      writeTmpFile(
+        "config.ts",
+        [
+          "export default {",
+          "  theme: {",
+          "    tokens: {",
+          "      colors: {",
+          "        bg: {",
+          '          "0": { value: "test" },',
+          "        },",
+          "      },",
+          "    },",
+          "  },",
+          "};",
+          "",
+        ].join("\n"),
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("old-bg-numeric-key");
+    });
+
+    it("オブジェクトキー記法 `fg: { '0': ... }` を検出する", () => {
+      writeTmpFile(
+        "config.ts",
+        [
+          "export default {",
+          "  fg: {",
+          '    "0": { value: "test" },',
+          "  },",
+          "};",
+          "",
+        ].join("\n"),
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("old-fg-numeric-key");
+    });
+
+    it("オブジェクトキー記法 `gruvbox: {` を検出する", () => {
+      writeTmpFile(
+        "config.ts",
+        [
+          "export default {",
+          "  gruvbox: {",
+          '    "bg-0": { value: "test" },',
+          "  },",
+          "};",
+          "",
+        ].join("\n"),
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("old-gruvbox-key");
+    });
+
+    it("既存の `bg: { canvas: ... }` (新 semantic token) はオブジェクトキー記法として誤検知されない", () => {
+      writeTmpFile(
+        "config.ts",
+        [
+          "export default {",
+          "  bg: {",
+          "    canvas: { value: { _light: 'cream-50' } },",
+          "    surface: { value: { _light: 'cream-100' } },",
+          "    elevated: { value: { _light: 'cream-50' } },",
+          "  },",
+          "  fg: {",
+          "    primary: { value: { _light: 'ink-900' } },",
+          "    code: { value: { _light: '#3c3836' } },",
+          "  },",
+          "};",
+          "",
+        ].join("\n"),
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(0);
+    });
+
     it(".test.ts ファイルは検査対象外で違反検出されない", () => {
       // `.test.ts` は EXCLUDED_FILE_SUFFIXES で除外される。
       // 0 files scanned ガード (DA 致命 2) を回避するため、検出対象外の通常 `.ts` を併置する。

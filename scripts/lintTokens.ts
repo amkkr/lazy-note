@@ -84,11 +84,19 @@ const EXCLUDED_FILE_SUFFIXES = [
  *
  * 各パターンには human-readable な name を付与しておき、検出時に
  * 「どの旧 token に違反したか」を分かりやすく表示できるようにする。
+ *
+ * scope:
+ *   - "line" (既定): 行単位で走査する。コメント除去後の各行に対して RegExp 実行。
+ *   - "file": ファイル全体を 1 つのテキストとして走査する。
+ *     panda.config.ts のような複数行にまたがるオブジェクトリテラル
+ *     (例: `bg: {\n  "0": { value: ... }\n}`) を検出するため。
+ *     コメント除去はファイル単位で適用する。
  */
 interface LintPattern {
   readonly name: string;
   readonly description: string;
   readonly pattern: RegExp;
+  readonly scope?: "line" | "file";
 }
 
 const LINT_PATTERNS: readonly LintPattern[] = [
@@ -130,6 +138,40 @@ const LINT_PATTERNS: readonly LintPattern[] = [
     description: "旧 colors.gruvbox.* token の参照 (R-2c で削除済み)",
     // token('colors.gruvbox.bg-0') 形式。kebab-case や数字を含む値も拾う。
     pattern: /token\(['"]colors\.gruvbox\.[a-z0-9-]+['"]\)/g,
+  },
+  // ====================================================================
+  // オブジェクトキー記法検知 (Issue #413 / DA 致命 1 対応)
+  //
+  // panda.config.ts のような theme 定義ファイルでは、旧 5 段階トークンが
+  // `bg: { "0": { value: "..." } }` の形で再導入される可能性がある。
+  // これは `bg.0` のドット記法とは別形式で、行単位 RegExp では捕まえにくい。
+  //
+  // 複数行にまたがるオブジェクトリテラルを検出するため scope: "file" を指定し、
+  // ファイル全体に対して `[^}]*?` (非欲張り) で展開する。`/s` フラグで
+  // 改行も `.` に含めるが、本パターンは `[^}]` を使っているため `s` フラグは
+  // 厳密には不要。ただし将来 `.` を含むパターンが追加されたとき安全側に倒すため付与する。
+  // ====================================================================
+  {
+    name: "old-bg-numeric-key",
+    description:
+      "オブジェクトキー記法 `bg: { '0': ... }` で旧 5 段階 token を再導入している可能性",
+    // `bg: {` から閉じ `}` まで遡って数値キーを検出。`}` を含まない範囲で短く match。
+    pattern: /\bbg\s*:\s*\{[^}]*?['"]?[0-9]['"]?\s*:/gs,
+    scope: "file",
+  },
+  {
+    name: "old-fg-numeric-key",
+    description:
+      "オブジェクトキー記法 `fg: { '0': ... }` で旧 5 段階 token を再導入している可能性",
+    pattern: /\bfg\s*:\s*\{[^}]*?['"]?[0-9]['"]?\s*:/gs,
+    scope: "file",
+  },
+  {
+    name: "old-gruvbox-key",
+    description:
+      "オブジェクトキー記法 `gruvbox: {` で旧 Gruvbox パレットを再導入している可能性",
+    pattern: /\bgruvbox\s*:\s*\{/g,
+    scope: "file",
   },
 ] as const;
 
@@ -350,9 +392,80 @@ const stripComments = (
 };
 
 /**
+ * ファイル全体に対してコメント除去を適用した結果と、
+ * 各行の元テキスト / 行頭オフセットを返すユーティリティ。
+ *
+ * `scope: "file"` パターンの match.index (ファイル全体オフセット) から
+ * 行番号 / カラム位置 / 元行 snippet を逆引きするのに使う。
+ */
+interface SanitizedFile {
+  /** コメント領域を空白に置換したファイル全体テキスト */
+  readonly sanitized: string;
+  /** 各行の元テキスト (snippet 表示用) */
+  readonly originalLines: string[];
+  /** 各行の先頭 offset (sanitized 上の絶対位置) */
+  readonly lineStartOffsets: number[];
+}
+
+const sanitizeFile = (content: string): SanitizedFile => {
+  const lines = content.split(/\r?\n/);
+  const sanitizedLines: string[] = [];
+  const lineStartOffsets: number[] = [];
+  let cursor = 0;
+  let stripState: CommentStripState = { inBlockComment: false };
+
+  for (const line of lines) {
+    lineStartOffsets.push(cursor);
+    const { sanitized, inBlockComment } = stripComments(line, stripState);
+    stripState = { inBlockComment };
+    sanitizedLines.push(sanitized);
+    // sanitizedLines は join("\n") で連結する想定。改行 1 文字ぶん cursor を進める。
+    cursor += sanitized.length + 1;
+  }
+
+  return {
+    sanitized: sanitizedLines.join("\n"),
+    originalLines: lines,
+    lineStartOffsets,
+  };
+};
+
+/**
+ * sanitized 全体オフセットから「何行目の何カラム目か」を逆引きする。
+ * lineStartOffsets は昇順なので二分探索で O(log n)。
+ */
+const offsetToLineColumn = (
+  offset: number,
+  lineStartOffsets: readonly number[],
+): { readonly line: number; readonly column: number } => {
+  let lo = 0;
+  let hi = lineStartOffsets.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1;
+    const start = lineStartOffsets[mid];
+    if (start === undefined) {
+      // 配列範囲外を二分探索で踏むことは無いはずだが、型ガードとして扱う。
+      hi = mid - 1;
+      continue;
+    }
+    if (start <= offset) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  const lineIndex = lo;
+  const start = lineStartOffsets[lineIndex] ?? 0;
+  return { line: lineIndex + 1, column: offset - start + 1 };
+};
+
+/**
  * 1 ファイル分の検査。
  *
- * - 行単位で検出位置 (line / column) を出すと CI ログでジャンプしやすい。
+ * - 行単位 (`scope: "line"` 既定) で検出位置 (line / column) を出すと
+ *   CI ログでジャンプしやすい。
+ * - 複数行 (`scope: "file"`) パターンはファイル全体のテキストに RegExp を実行し、
+ *   match.index から逆引きで行 / カラムを出す。
  * - 大文字小文字は区別する (token 名は確定的にケースが決まっている)。
  * - 行コメント / ブロックコメント内は検査対象から除外する (Issue #413)。
  */
@@ -361,39 +474,72 @@ const scanFile = (
   patterns: readonly LintPattern[],
 ): Violation[] => {
   const content = readFileSync(filePath, "utf8");
-  const lines = content.split(/\r?\n/);
   const violations: Violation[] = [];
 
-  let stripState: CommentStripState = { inBlockComment: false };
+  const fileScope = sanitizeFile(content);
+  const { sanitized, originalLines, lineStartOffsets } = fileScope;
 
-  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
-    const line = lines[lineIndex];
-    if (line === undefined) {
-      continue;
-    }
-
-    const { sanitized, inBlockComment } = stripComments(line, stripState);
-    stripState = { inBlockComment };
-
-    for (const { name, description, pattern } of patterns) {
-      // RegExp の lastIndex を使い回すため毎回新規インスタンスにする。
+  for (const { name, description, pattern, scope } of patterns) {
+    if (scope === "file") {
+      // ファイル全体に対して走査。複数行にまたがるパターン (panda.config.ts の
+      // `bg: { "0": ... }` 等) を捕捉するために使う。
       const regex = new RegExp(pattern.source, pattern.flags);
       let match: RegExpExecArray | null = regex.exec(sanitized);
       while (match !== null) {
+        const { line, column } = offsetToLineColumn(
+          match.index,
+          lineStartOffsets,
+        );
+        const snippetLine = originalLines[line - 1] ?? "";
         violations.push({
           file: filePath,
-          line: lineIndex + 1,
-          column: match.index + 1,
+          line,
+          column,
           patternName: name,
           description,
-          // 元のコメント込みの行を見せたほうが文脈が分かるので元行を表示する。
-          snippet: line.trim(),
+          snippet: snippetLine.trim(),
         });
-        // 無限ループ回避: 0 幅マッチには進める。
         if (match.index === regex.lastIndex) {
           regex.lastIndex += 1;
         }
         match = regex.exec(sanitized);
+      }
+    } else {
+      // 既定の line scope: 行ごとに RegExp を実行。
+      for (let lineIndex = 0; lineIndex < originalLines.length; lineIndex += 1) {
+        const line = originalLines[lineIndex];
+        if (line === undefined) {
+          continue;
+        }
+        // sanitizeFile で算出済みの sanitized 行を再利用するため、
+        // 全体テキストから該当行のスライスを取り出す。
+        const start = lineStartOffsets[lineIndex] ?? 0;
+        const nextStart =
+          lineStartOffsets[lineIndex + 1] ?? sanitized.length + 1;
+        // nextStart は次行の先頭 (改行直後)。改行 1 文字ぶん除いた範囲を取る。
+        const sanitizedLine = sanitized.slice(
+          start,
+          Math.max(start, nextStart - 1),
+        );
+
+        const regex = new RegExp(pattern.source, pattern.flags);
+        let match: RegExpExecArray | null = regex.exec(sanitizedLine);
+        while (match !== null) {
+          violations.push({
+            file: filePath,
+            line: lineIndex + 1,
+            column: match.index + 1,
+            patternName: name,
+            description,
+            // 元のコメント込みの行を見せたほうが文脈が分かるので元行を表示する。
+            snippet: line.trim(),
+          });
+          // 無限ループ回避: 0 幅マッチには進める。
+          if (match.index === regex.lastIndex) {
+            regex.lastIndex += 1;
+          }
+          match = regex.exec(sanitizedLine);
+        }
       }
     }
   }

@@ -164,10 +164,15 @@ export const HomePage = memo(
             </section>
           )}
 
-          {/* Index: 8 記事目以降 (Magazine 風 TOC) */}
+          {/* Index: 8 記事目以降 (Magazine 風 TOC)
+              見出し階層: FeaturedCard h2 → BentoCard h3 + Index h3 (並列) で
+              論理的な heading hierarchy を維持する (h3 → h2 逆転を回避)。
+              section は aria-labelledby で可視見出しと紐付け、SR 読み上げを統一。 */}
           {indexPosts.length > 0 && (
-            <section aria-label="その他の記事">
-              <h2 className={indexHeadingStyles}>Index</h2>
+            <section aria-labelledby="index-section-heading">
+              <h3 id="index-section-heading" className={indexHeadingStyles}>
+                Index
+              </h3>
               <ul className={indexListStyles}>
                 {indexPosts.map((post, idx) => (
                   // index は Index 内の連番 (Featured/Bento は別カウント)。

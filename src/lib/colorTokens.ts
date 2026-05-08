@@ -22,7 +22,14 @@
 export interface OklchPrimitives {
   readonly cream: {
     readonly "50": string;
+    /** Issue #409 で追加。bg.muted (light) の値に使用。cream-50 と cream-100 の中点。 */
+    readonly "75": string;
     readonly "100": string;
+    /**
+     * Issue #409 で追加。border.subtle (light) の値に使用。
+     * WCAG 1.4.11 (Non-text Contrast) を bg.canvas / bg.surface 上で満たす。
+     */
+    readonly "300": string;
   };
   readonly bone: {
     readonly "50": string;
@@ -34,8 +41,15 @@ export interface OklchPrimitives {
     readonly "900": string;
   };
   readonly sumi: {
+    /**
+     * Issue #409 で追加。border.subtle (dark) の値に使用。
+     * WCAG 1.4.11 (Non-text Contrast) を bg.canvas / bg.surface 上で満たす。
+     */
+    readonly "400": string;
     readonly "500": string;
     readonly "600": string;
+    /** Issue #409 で追加。bg.muted (dark) の値に使用。sumi-950 と sumi-700 の中間。 */
+    readonly "650": string;
     readonly "700": string;
     readonly "950": string;
   };
@@ -65,7 +79,14 @@ export interface OklchPrimitives {
 export const oklchPrimitives: OklchPrimitives = {
   cream: {
     "50": "oklch(0.985 0.013 85)",
+    // Issue #409 で追加 (bg.muted light)。cream-50 (0.985) と cream-100 (0.965) の中点。
+    "75": "oklch(0.975 0.015 85)",
     "100": "oklch(0.965 0.018 85)",
+    // Issue #409 で追加 (border.subtle light)。L=0.620 で
+    //   bg.canvas (cream-50) 上 3.49:1 / bg.surface (cream-100) 上 3.29:1。
+    //   いずれも WCAG 1.4.11 (Non-text Contrast) 3:1 を満たす。
+    //   bg.elevated (light) は cream-50 と同値のため canvas と同じ。
+    "300": "oklch(0.620 0.020 85)",
   },
   bone: {
     "50": "oklch(0.965 0.005 220)",
@@ -77,9 +98,17 @@ export const oklchPrimitives: OklchPrimitives = {
     "900": "oklch(0.150 0.020 85)",
   },
   sumi: {
+    // Issue #409 で追加 (border.subtle dark)。L=0.700 で
+    //   bg.canvas (sumi-950) 上 7.05:1 / bg.surface (sumi-700) 上 3.76:1。
+    //   bg.elevated (sumi-600) 上は 2.57:1 で 3:1 未達のため、bg.elevated 上の
+    //   border 用途には使わない方針 (border.subtle JSDoc 参照)。
+    "400": "oklch(0.700 0.012 220)",
     // L=0.620 (RFC 02 の初期値 0.560 から AAA 実測で調整、sumi-950 上で 5.15:1)
     "500": "oklch(0.620 0 0)",
     "600": "oklch(0.470 0 0)",
+    // Issue #409 で追加 (bg.muted dark)。L=0.270 = sumi-950 (0.180) と sumi-700
+    // (0.380) の中間。bone-50 上 13.59:1 / bone-100 上 11.87:1 で AAA 維持。
+    "650": "oklch(0.270 0.012 220)",
     "700": "oklch(0.380 0 0)",
     "950": "oklch(0.180 0.012 220)",
   },
@@ -149,6 +178,24 @@ export interface SemanticColorTokens {
   readonly bgSurface: SemanticColorPair;
   /** 浮き上がる要素 (モーダル / トースト) */
   readonly bgElevated: SemanticColorPair;
+  /**
+   * 中間階調背景 (Issue #409 で追加)。
+   *
+   * R-2c (#390) で旧 5 段階を 3 段階に圧縮した結果、bg.surface と bg.elevated の
+   * 中間階調が失われていた。bg.muted は両者の中間明度を担い、注釈ブロック /
+   * hover 弱強調 / 補助カードなど「surface よりは前に出るが elevated ほど浮かない」
+   * 用途で使用する。
+   *
+   * **本文配置時のコントラスト (AAA 7.20:1 維持)**:
+   * - light: ink-primary × bg.muted = 16.67:1 PASS (AAA)
+   * - light: ink-secondary × bg.muted = 9.32:1 PASS (AAA)
+   * - dark : bone-50 × bg.muted = 13.59:1 PASS (AAA)
+   * - dark : bone-100 × bg.muted = 11.87:1 PASS (AAA)
+   *
+   * 隣接 surface との差分は 1.06〜1.57:1 で「面の差分」としてのみ機能する。
+   * 1.4.11 を満たす区切り線が必要な場合は borderSubtle を併用すること。
+   */
+  readonly bgMuted: SemanticColorPair;
   /** 本文前景 */
   readonly fgPrimary: SemanticColorPair;
   /** メタ / キャプション */
@@ -192,6 +239,31 @@ export interface SemanticColorTokens {
    */
   readonly focusRing: SemanticColorPair;
   /**
+   * 控えめな border 専用色 (Issue #409 で追加)。
+   *
+   * R-2b/R-2c で旧 5 段階を圧縮した結果、border に bg.elevated を流用すると
+   * 外側 bg.canvas と同色になり視覚消失していた (light の article border が
+   * 1.0:1 で完全消失する問題)。borderSubtle は border 専用色で、WCAG 1.4.11
+   * (Non-text Contrast) の 3:1 を bg.canvas / bg.surface / bg.muted 上で満たす。
+   *
+   * **値**:
+   * - light: cream-300 (oklch(0.620 0.020 85))
+   *   - bg.canvas (cream-50) 上 3.49:1 PASS (1.4.11)
+   *   - bg.surface (cream-100) 上 3.29:1 PASS (1.4.11)
+   * - dark : sumi-400 (oklch(0.700 0.012 220))
+   *   - bg.canvas (sumi-950) 上 7.05:1 PASS (1.4.11)
+   *   - bg.surface (sumi-700) 上 3.76:1 PASS (1.4.11)
+   *
+   * **適用ガイドライン**:
+   * - article カード (bg.surface) 周りや内部 hr / table / divider など、
+   *   視覚的区切り線を弱く出したい用途で使用する。
+   * - bg.elevated (dark: sumi-600) 上では 2.57:1 で 3:1 未達。bg.elevated
+   *   表面の border が必要な場合は引き続き bg.elevated 反転利用 (Button
+   *   secondary / BackToTop など、Issue #409 では置換対象外) を継続する。
+   * - text color として転用しないこと (border 専用 token)。
+   */
+  readonly borderSubtle: SemanticColorPair;
+  /**
    * コードブロック背景 (`<pre>`)。Editorial Citrus でも従来配色を温存する。
    * 02-color-system.md §"既存 Gruvbox の取り扱い"。
    */
@@ -224,6 +296,10 @@ export const semanticColorTokens: SemanticColorTokens = {
     light: oklchPrimitives.cream["50"],
     dark: oklchPrimitives.sumi["600"],
   },
+  bgMuted: {
+    light: oklchPrimitives.cream["75"],
+    dark: oklchPrimitives.sumi["650"],
+  },
   fgPrimary: {
     light: oklchPrimitives.ink.primaryOnCream,
     dark: oklchPrimitives.bone["50"],
@@ -251,6 +327,10 @@ export const semanticColorTokens: SemanticColorTokens = {
   focusRing: {
     light: oklchPrimitives.citrus["500"],
     dark: oklchPrimitives.citrus["500"],
+  },
+  borderSubtle: {
+    light: oklchPrimitives.cream["300"],
+    dark: oklchPrimitives.sumi["400"],
   },
   bgCode: {
     light: codeBlockColors.light.bg0,

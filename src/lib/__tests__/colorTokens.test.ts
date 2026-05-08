@@ -42,14 +42,18 @@ describe("oklchPrimitives", () => {
   it("OKLCH 形式の文字列として culori で parse できる", () => {
     const allValues = [
       oklchPrimitives.cream["50"],
+      oklchPrimitives.cream["75"],
       oklchPrimitives.cream["100"],
+      oklchPrimitives.cream["300"],
       oklchPrimitives.bone["50"],
       oklchPrimitives.bone["100"],
       oklchPrimitives.ink.primaryOnCream,
       oklchPrimitives.ink.secondaryOnCream,
       oklchPrimitives.ink["900"],
+      oklchPrimitives.sumi["400"],
       oklchPrimitives.sumi["500"],
       oklchPrimitives.sumi["600"],
+      oklchPrimitives.sumi["650"],
       oklchPrimitives.sumi["700"],
       oklchPrimitives.sumi["950"],
       oklchPrimitives.persimmon["500"],
@@ -317,6 +321,104 @@ describe("R-2a (Issue #388) で追加した semantic token", () => {
       semanticColorTokens.bgCanvas.light,
     );
     expect(r).toBeLessThan(contrastThresholds.largeText);
+  });
+});
+
+describe("Issue #409: bg.muted / border.subtle 階層 token", () => {
+  it("bgMuted は light で cream-75 (中間階調) を指している", () => {
+    expect(semanticColorTokens.bgMuted.light).toBe(oklchPrimitives.cream["75"]);
+  });
+
+  it("bgMuted は dark で sumi-650 (中間階調) を指している", () => {
+    expect(semanticColorTokens.bgMuted.dark).toBe(oklchPrimitives.sumi["650"]);
+  });
+
+  it("borderSubtle は light で cream-300 (border 専用色) を指している", () => {
+    expect(semanticColorTokens.borderSubtle.light).toBe(
+      oklchPrimitives.cream["300"],
+    );
+  });
+
+  it("borderSubtle は dark で sumi-400 (border 専用色) を指している", () => {
+    expect(semanticColorTokens.borderSubtle.dark).toBe(
+      oklchPrimitives.sumi["400"],
+    );
+  });
+
+  it("borderSubtle × bg.canvas (light) が WCAG 1.4.11 の 3:1 を満たす", () => {
+    const r = ratio(
+      semanticColorTokens.borderSubtle.light,
+      semanticColorTokens.bgCanvas.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(3.0);
+  });
+
+  it("borderSubtle × bg.surface (light) が WCAG 1.4.11 の 3:1 を満たす", () => {
+    const r = ratio(
+      semanticColorTokens.borderSubtle.light,
+      semanticColorTokens.bgSurface.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(3.0);
+  });
+
+  it("borderSubtle × bg.muted (light) が WCAG 1.4.11 の 3:1 を満たす", () => {
+    const r = ratio(
+      semanticColorTokens.borderSubtle.light,
+      semanticColorTokens.bgMuted.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(3.0);
+  });
+
+  it("borderSubtle × bg.canvas (dark) が WCAG 1.4.11 の 3:1 を満たす", () => {
+    const r = ratio(
+      semanticColorTokens.borderSubtle.dark,
+      semanticColorTokens.bgCanvas.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(3.0);
+  });
+
+  it("borderSubtle × bg.surface (dark) が WCAG 1.4.11 の 3:1 を満たす", () => {
+    const r = ratio(
+      semanticColorTokens.borderSubtle.dark,
+      semanticColorTokens.bgSurface.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(3.0);
+  });
+
+  it("borderSubtle × bg.muted (dark) が WCAG 1.4.11 の 3:1 を満たす", () => {
+    const r = ratio(
+      semanticColorTokens.borderSubtle.dark,
+      semanticColorTokens.bgMuted.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(3.0);
+  });
+
+  it("bg.muted (light) 上の本文 fgPrimary が AAA 7.20:1 以上である", () => {
+    // bg.muted を注釈ブロック等の背景として使う際の本文コントラストを保証する。
+    const r = ratio(
+      semanticColorTokens.fgPrimary.light,
+      semanticColorTokens.bgMuted.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.bodyText);
+  });
+
+  it("bg.muted (dark) 上の本文 fgPrimary が AAA 7.20:1 以上である", () => {
+    const r = ratio(
+      semanticColorTokens.fgPrimary.dark,
+      semanticColorTokens.bgMuted.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.bodyText);
+  });
+
+  it("borderSubtle は dark の bg.elevated (sumi-600) 上では 3:1 未達 (運用 Tripwire)", () => {
+    // bg.elevated 上の border 用途には borderSubtle を使用しない方針 (R-2b の
+    // bg.elevated 反転利用を継続)。値を変更したらこの Tripwire が落ちて
+    // 設計判断の確認が促される。
+    const r = ratio(
+      semanticColorTokens.borderSubtle.dark,
+      semanticColorTokens.bgElevated.dark,
+    );
+    expect(r).toBeLessThan(3.0);
   });
 });
 

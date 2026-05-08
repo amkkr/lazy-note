@@ -226,6 +226,67 @@ const getContrastPairs = (): readonly ContrastPair[] => {
       minRatio: contrastThresholds.largeText,
       category: "focus",
     },
+    // ---------- border.subtle (Issue #409 で追加) ----------
+    // 1.4.11 Non-text Contrast の 3:1 を border ペアで検証する。
+    // bg.canvas / bg.surface 上で 3:1 を要求 (bg.elevated は dark で 2.57:1
+    // となり 3:1 未達のため、bg.elevated 上の border 用途には使用しない方針)。
+    {
+      name: "border.subtle/light: cream-300 × cream-50 (bg.canvas)",
+      fg: oklchPrimitives.cream["300"],
+      bg: oklchPrimitives.cream["50"],
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "border.subtle/light: cream-300 × cream-100 (bg.surface)",
+      fg: oklchPrimitives.cream["300"],
+      bg: oklchPrimitives.cream["100"],
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "border.subtle/light: cream-300 × cream-75 (bg.muted)",
+      fg: oklchPrimitives.cream["300"],
+      bg: oklchPrimitives.cream["75"],
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "border.subtle/dark: sumi-400 × sumi-950 (bg.canvas)",
+      fg: oklchPrimitives.sumi["400"],
+      bg: oklchPrimitives.sumi["950"],
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "border.subtle/dark: sumi-400 × sumi-700 (bg.surface)",
+      fg: oklchPrimitives.sumi["400"],
+      bg: oklchPrimitives.sumi["700"],
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "border.subtle/dark: sumi-400 × sumi-650 (bg.muted)",
+      fg: oklchPrimitives.sumi["400"],
+      bg: oklchPrimitives.sumi["650"],
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    // ---------- bg.muted 上の本文 (Issue #409 で追加、AAA 7.20:1 維持) ----------
+    {
+      name: "body/light: ink-primary-on-cream × cream-75 (bg.muted)",
+      fg: oklchPrimitives.ink.primaryOnCream,
+      bg: oklchPrimitives.cream["75"],
+      minRatio: contrastThresholds.bodyText,
+      category: "body",
+    },
+    {
+      name: "body/dark: bone-50 × sumi-650 (bg.muted)",
+      fg: oklchPrimitives.bone["50"],
+      bg: oklchPrimitives.sumi["650"],
+      minRatio: contrastThresholds.bodyText,
+      category: "body",
+    },
   ];
 };
 
@@ -298,12 +359,16 @@ const collectMatrixColors = (): {
 } => {
   const surfaces: NamedColor[] = [
     { label: "cream-50", value: oklchPrimitives.cream["50"], role: "surface" },
+    // Issue #409 で追加 (bg.muted)
+    { label: "cream-75", value: oklchPrimitives.cream["75"], role: "surface" },
     {
       label: "cream-100",
       value: oklchPrimitives.cream["100"],
       role: "surface",
     },
     { label: "sumi-950", value: oklchPrimitives.sumi["950"], role: "surface" },
+    // Issue #409 で追加 (bg.muted)
+    { label: "sumi-650", value: oklchPrimitives.sumi["650"], role: "surface" },
     { label: "sumi-700", value: oklchPrimitives.sumi["700"], role: "surface" },
     { label: "sumi-600", value: oklchPrimitives.sumi["600"], role: "surface" },
     {
@@ -333,9 +398,13 @@ const collectMatrixColors = (): {
     { label: "ink-900", value: oklchPrimitives.ink["900"], role: "fg" },
     { label: "bone-50", value: oklchPrimitives.bone["50"], role: "fg" },
     { label: "bone-100", value: oklchPrimitives.bone["100"], role: "fg" },
+    // Issue #409 で追加 (border.subtle dark)
+    { label: "sumi-400", value: oklchPrimitives.sumi["400"], role: "fg" },
     { label: "sumi-500", value: oklchPrimitives.sumi["500"], role: "fg" },
     { label: "sumi-600", value: oklchPrimitives.sumi["600"], role: "fg" },
     { label: "sumi-700", value: oklchPrimitives.sumi["700"], role: "fg" },
+    // Issue #409 で追加 (border.subtle light)
+    { label: "cream-300", value: oklchPrimitives.cream["300"], role: "fg" },
     { label: "cream-50", value: oklchPrimitives.cream["50"], role: "fg" },
     { label: "indigo-500", value: oklchPrimitives.indigo["500"], role: "fg" },
     { label: "indigo-300", value: oklchPrimitives.indigo["300"], role: "fg" },
@@ -477,6 +546,66 @@ const verifySemanticPairs = (): readonly ContrastResult[] => {
       bg: semanticColorTokens.bgCanvas.dark,
       minRatio: contrastThresholds.largeText,
       category: "focus",
+    },
+    // R-2c (Issue #390) で旧 5 段階を 3 段階に圧縮した結果、border に
+    // bg.elevated を流用すると外側 bg.canvas と同色化していた問題への対処。
+    // Issue #409 で新設した border.subtle / bg.muted を semantic 側でも検証。
+    {
+      name: "semantic/light: border.subtle × bg.canvas (1.4.11 3:1)",
+      fg: semanticColorTokens.borderSubtle.light,
+      bg: semanticColorTokens.bgCanvas.light,
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "semantic/light: border.subtle × bg.surface (1.4.11 3:1)",
+      fg: semanticColorTokens.borderSubtle.light,
+      bg: semanticColorTokens.bgSurface.light,
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "semantic/light: border.subtle × bg.muted (1.4.11 3:1)",
+      fg: semanticColorTokens.borderSubtle.light,
+      bg: semanticColorTokens.bgMuted.light,
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "semantic/dark: border.subtle × bg.canvas (1.4.11 3:1)",
+      fg: semanticColorTokens.borderSubtle.dark,
+      bg: semanticColorTokens.bgCanvas.dark,
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "semantic/dark: border.subtle × bg.surface (1.4.11 3:1)",
+      fg: semanticColorTokens.borderSubtle.dark,
+      bg: semanticColorTokens.bgSurface.dark,
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    {
+      name: "semantic/dark: border.subtle × bg.muted (1.4.11 3:1)",
+      fg: semanticColorTokens.borderSubtle.dark,
+      bg: semanticColorTokens.bgMuted.dark,
+      minRatio: 3.0,
+      category: "decorative",
+    },
+    // bg.muted 上の本文 AAA 維持 (semantic 整合)
+    {
+      name: "semantic/light: fg.primary × bg.muted (AAA)",
+      fg: semanticColorTokens.fgPrimary.light,
+      bg: semanticColorTokens.bgMuted.light,
+      minRatio: contrastThresholds.bodyText,
+      category: "body",
+    },
+    {
+      name: "semantic/dark: fg.primary × bg.muted (AAA)",
+      fg: semanticColorTokens.fgPrimary.dark,
+      bg: semanticColorTokens.bgMuted.dark,
+      minRatio: contrastThresholds.bodyText,
+      category: "body",
     },
   ];
 

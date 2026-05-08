@@ -79,7 +79,17 @@ export default defineConfig({
           // ====================================================================
           cream: {
             "50": { value: "oklch(0.985 0.013 85)" },
+            // R-2c (#390) で旧 5 段階を 3 段階に圧縮した結果、bg.surface (cream-100)
+            // と bg.elevated (cream-50) の中間が空白になっていた。Issue #409 で
+            // 中間階調を `cream.75` として新設し、bg.muted (light) の値とする。
+            // L=0.975 = (cream-50 0.985 + cream-100 0.965) / 2。
+            "75": { value: "oklch(0.975 0.015 85)" },
             "100": { value: "oklch(0.965 0.018 85)" },
+            // border 専用色 (Issue #409)。L=0.620 で WCAG 1.4.11 (Non-text Contrast)
+            // 3:1 を bg.canvas (cream-50, 3.49:1) / bg.surface (cream-100, 3.29:1) /
+            // bg.muted (cream-75) 上で満たす。本 token は border 用途専用とし、
+            // 背景色 / テキスト色には流用しない。
+            "300": { value: "oklch(0.620 0.020 85)" },
           },
           bone: {
             "50": { value: "oklch(0.965 0.005 220)" },
@@ -91,9 +101,18 @@ export default defineConfig({
             "900": { value: "oklch(0.150 0.020 85)" },
           },
           sumi: {
+            // border 専用色 (Issue #409)。L=0.700 で 1.4.11 3:1 を bg.canvas
+            // (sumi-950, 7.05:1) / bg.surface (sumi-700, 3.76:1) 上で満たす。
+            // bg.elevated (sumi-600, 2.57:1) 上では 3:1 未達のため、bg.elevated
+            // 上の border 用途には使用しないこと (border.subtle JSDoc 参照)。
+            "400": { value: "oklch(0.700 0.012 220)" },
             // L=0.620 (RFC 02 の初期値 0.560 から AAA 実測で調整、sumi-950 上で 5.15:1)
             "500": { value: "oklch(0.620 0 0)" },
             "600": { value: "oklch(0.470 0 0)" },
+            // bg.muted (dark) の値 (Issue #409)。L=0.270 = sumi-950 (0.180) と
+            // sumi-700 (0.380) の中間。bone-50 上で 13.59:1、bone-100 上で
+            // 11.87:1 を確保し AAA 維持。
+            "650": { value: "oklch(0.270 0.012 220)" },
             "700": { value: "oklch(0.380 0 0)" },
             // dark 既定背景。H=220 中性で暖色光下の違和感を回避。
             "950": { value: "oklch(0.180 0.012 220)" },
@@ -250,6 +269,31 @@ export default defineConfig({
             },
           },
           // ----------------------------------------------------------------
+          // bg.muted (Issue #409 で追加)
+          //
+          // R-2c (#390) で旧 5 段階を 3 段階に圧縮した結果、bg.surface と
+          // bg.elevated の中間階調が失われていた。bg.muted は両者の中間明度
+          // (light: cream-50 と cream-100 の中点 / dark: sumi-950 と sumi-700 の
+          // 中間) を担い、注釈ブロック・hover 弱強調・補助カードなど「surface
+          // よりは前に出るが elevated ほど浮かない」用途で使用する。
+          //
+          // 本文配置時のコントラスト (AAA 7.20:1 維持):
+          //   - light: ink-primary × bg.muted = 16.67:1 PASS (AAA)
+          //   - light: ink-secondary × bg.muted = 9.32:1 PASS (AAA)
+          //   - dark : bone-50 × bg.muted = 13.59:1 PASS (AAA)
+          //   - dark : bone-100 × bg.muted = 11.87:1 PASS (AAA)
+          //
+          // 注意: bg.canvas / bg.surface / bg.elevated との隣接コントラストは
+          // 1.06〜1.57:1 で「面の差分」としてのみ機能する (1.4.11 を満たす
+          // 区切り線が必要な場合は border.subtle を併用すること)。
+          // ----------------------------------------------------------------
+          muted: {
+            value: {
+              _light: "{colors.cream.75}",
+              _dark: "{colors.sumi.650}",
+            },
+          },
+          // ----------------------------------------------------------------
           // コードブロック専用トークン (R-2a / Issue #388 で追加、R-2c で hex 直接化)
           //
           // **Editorial Citrus でも従来配色を温存。Shiki/Prism との整合性のため。**
@@ -345,6 +389,41 @@ export default defineConfig({
             value: {
               _light: "{colors.indigo.500}",
               _dark: "{colors.indigo.300}",
+            },
+          },
+        },
+        // ----------------------------------------------------------------
+        // border.subtle (Issue #409 で新規追加)
+        //
+        // R-2b/R-2c で旧 5 段階を圧縮した結果、border に bg.elevated を流用すると
+        // 外側 bg.canvas と同色になり視覚消失していた (light の article border が
+        // 1.0:1 で完全消失する問題)。border.subtle は border 専用色で、WCAG 1.4.11
+        // (Non-text Contrast) の 3:1 を bg.canvas / bg.surface / bg.muted 上で満たす。
+        //
+        // 値:
+        //   light: cream-300 (oklch(0.620 0.020 85))
+        //     - bg.canvas (cream-50) 上 3.49:1 PASS (1.4.11)
+        //     - bg.surface (cream-100) 上 3.29:1 PASS (1.4.11)
+        //   dark : sumi-400 (oklch(0.700 0.012 220))
+        //     - bg.canvas (sumi-950) 上 7.05:1 PASS (1.4.11)
+        //     - bg.surface (sumi-700) 上 3.76:1 PASS (1.4.11)
+        //
+        // 適用ガイドライン:
+        //   - article カード (bg.surface) 周りや内部 hr / table / divider など
+        //     視覚的区切り線を弱く出したい用途で使用。
+        //   - bg.elevated (dark: sumi-600) 上では 2.57:1 で 3:1 未達。bg.elevated
+        //     表面の border が必要な場合は引き続き bg.elevated を反転利用する
+        //     (Button secondary 等。Issue #409 では置換対象外)。
+        //   - text color として転用しないこと (border 専用 token)。
+        //
+        // 関連: bg.muted (light: cream-75 / dark: sumi-650) と組合せて、注釈
+        // ブロックや弱強調カードの「面 + 区切り」を表現する。
+        // ----------------------------------------------------------------
+        border: {
+          subtle: {
+            value: {
+              _light: "{colors.cream.300}",
+              _dark: "{colors.sumi.400}",
             },
           },
         },

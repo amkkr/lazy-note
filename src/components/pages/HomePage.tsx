@@ -93,13 +93,22 @@ const bentoGridStyles = css({
 });
 
 // Index リスト (Magazine 風 TOC)。ul のデフォルトリストマーカーは消す。
+//
+// 親レイアウト (HomePage / bg.canvas) 上に置かれる Magazine 風 Index の
+// 上端区切り線。Issue #409 で導入した border 専用 token (border.subtle) に
+// 置換 (Issue #419)。
+// - 旧実装は bg.elevated を使用していたが、light の bg.elevated (cream-100)
+//   は外側 bg.canvas (cream-50) との差が 1.06:1 で視覚消失していた。
+// - border.subtle は WCAG 1.4.11 (Non-text Contrast) の 3:1 を満たす:
+//   light: cream-300 × cream-50 (bg.canvas) = 3.49:1
+//   dark : sumi-400  × sumi-950 (bg.canvas) = 7.05:1
 const indexListStyles = css({
   listStyle: "none",
   margin: 0,
   padding: 0,
   // 上部に小さな見出し的な余白
   borderTop: "1px solid",
-  borderTopColor: "bg.elevated",
+  borderTopColor: "border.subtle",
 });
 
 // Index セクションの見出し (Editorial 風)。

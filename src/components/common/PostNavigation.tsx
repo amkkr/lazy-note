@@ -8,6 +8,13 @@ interface PostNavigationProps {
   newerPost: PostSummary | null;
 }
 
+// 親レイアウト (PostDetailPage) の bg.canvas 上に置かれる前後ナビの区切り線。
+// Issue #409 で導入した border 専用 token (border.subtle) に置換 (Issue #419)。
+// - 旧実装は bg.surface を使用していたが、light の bg.surface (cream-100) は
+//   外側 bg.canvas (cream-50) との差が 1.06:1 で視覚消失していた。
+// - border.subtle は WCAG 1.4.11 (Non-text Contrast) の 3:1 を満たす:
+//   light: cream-300 × cream-50 (bg.canvas) = 3.49:1
+//   dark : sumi-400  × sumi-950 (bg.canvas) = 7.05:1
 const navStyles = css({
   display: "flex",
   justifyContent: "space-between",
@@ -15,7 +22,7 @@ const navStyles = css({
   marginTop: "xl",
   paddingTop: "xl",
   borderTop: "1px solid",
-  borderColor: "bg.surface",
+  borderColor: "border.subtle",
 });
 
 const linkContainerStyles = css({

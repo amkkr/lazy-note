@@ -133,6 +133,33 @@ describe("HomePage", () => {
     expect(link2).toHaveAttribute("href", "/posts/test-post-2");
   });
 
+  // Issue #419: HomePage (bg.canvas) 上に置かれる Magazine 風 Index の上端
+  // 区切り線について、旧 token (bg.elevated) は light 環境で外側 bg.canvas との
+  // 差が 1.06:1 で視覚消失していた。Editorial Bento レイアウト (Issue #395) の
+  // 導入で旧 articleStyles / articleHeader 構造は削除され、bg.elevated 残存箇所
+  // は indexListStyles の borderTop に移った。border 専用 token (border.subtle)
+  // に置換した後、Tripwire テストで CI 検出する。
+  it("Index リストの borderTop が border.subtle 専用 token を参照している", () => {
+    const posts = buildMockPosts(10);
+    const { container } = render(
+      <MemoryRouter>
+        <HomePage
+          posts={posts}
+          currentPage={1}
+          totalPages={1}
+          onPageChange={mockOnPageChange}
+        />
+      </MemoryRouter>,
+    );
+
+    // 8 件目以降は Magazine 風 Index (ul) としてレンダリングされる。
+    // Panda が生成する `bd-t-c_border.subtle` または `bd-c_border.subtle`
+    // クラスが付与されているか検証。
+    const indexList = container.querySelector("ul");
+    expect(indexList).toBeInTheDocument();
+    expect(indexList?.className).toMatch(/bd-t-c_border\.subtle|bd-c_border\.subtle/);
+  });
+
   it("タイトルがない記事は「無題の記事」と表示される", () => {
     const postsWithoutTitle: Post[] = [
       {

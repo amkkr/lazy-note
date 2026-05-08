@@ -4,8 +4,10 @@ import type { IconProps } from "./types";
  * Moon アイコン (inline SVG)。
  *
  * R-5 (Issue #393) で `ThemeToggle` の thumb 上に表示する。
- * SVG path は Lucide v1.14.0 (ISC License) の `moon` から流用。
- * @see https://github.com/lucide-icons/lucide
+ * SVG path は Lucide (https://lucide.dev、ISC License) の `moon` を流用。
+ * Lucide はバージョン間で path を更新する場合があるが、本アイコンは
+ * 視認性の都合で 24x24 viewBox の標準形を inline 化している。
+ * @see https://lucide.dev/icons/moon
  */
 export const Moon = ({
   size = 24,

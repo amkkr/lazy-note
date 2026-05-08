@@ -182,9 +182,23 @@ export interface SemanticColorTokens {
    * 中間階調背景 (Issue #409 で追加)。
    *
    * R-2c (#390) で旧 5 段階を 3 段階に圧縮した結果、bg.surface と bg.elevated の
-   * 中間階調が失われていた。bg.muted は両者の中間明度を担い、注釈ブロック /
-   * hover 弱強調 / 補助カードなど「surface よりは前に出るが elevated ほど浮かない」
-   * 用途で使用する。
+   * 中間階調が失われていた。
+   *
+   * 用途: 注釈ブロック / 弱強調カード / hover 時の subtle 背景。
+   *
+   * **重要: light と dark で構造的意味が反転する**:
+   * - light テーマ (cream-75 = #FAEBD7 相当): canvas (cream-50) と surface
+   *   (cream-100) の中間。canvas より一段暗く沈み、surface より一段明るく浮く。
+   *   注: light では bg.canvas と bg.elevated が同値 (cream-50) のため、
+   *   「elevated より沈む」「canvas/elevated より一段暗い」と理解する方が正確。
+   * - dark テーマ (sumi-650 = oklch(0.270 ...)): canvas (sumi-950) より一段
+   *   明るく浮き、surface (sumi-700) と elevated (sumi-600) より一段暗く沈む。
+   *   canvas と surface の間の階層。
+   *
+   * 設計判断: 完全な対称性 (light と dark で同じ視覚効果) は、既存
+   * bg.canvas/elevated の light 同値設計上不可能。本 token は「面の差」表現の
+   * 選択肢を増やすことが目的で、視覚的階層の絶対位置 (canvas-muted-surface-elevated
+   * の固定順) は保証しない。
    *
    * **本文配置時のコントラスト (AAA 7.20:1 維持)**:
    * - light: ink-primary × bg.muted = 16.67:1 PASS (AAA)

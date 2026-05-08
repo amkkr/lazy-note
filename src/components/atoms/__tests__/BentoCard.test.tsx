@@ -126,4 +126,23 @@ describe("BentoCard", () => {
 
     expect(screen.getByRole("article")).toBeInTheDocument();
   });
+
+  // ====================================================================
+  // View Transitions Hero morph (Issue #397)
+  // ====================================================================
+  describe("View Transitions Hero morph", () => {
+    it("タイトル H3 に view-transition-name: post-{id} を付与する", () => {
+      render(
+        <MemoryRouter>
+          <BentoCard post={buildPost({ id: "bento-vt" })} />
+        </MemoryRouter>,
+      );
+
+      const heading = screen.getByRole("heading", {
+        name: "Bento 記事タイトル",
+        level: 3,
+      });
+      expect(heading.style.viewTransitionName).toBe("post-bento-vt");
+    });
+  });
 });

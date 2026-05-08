@@ -1,6 +1,7 @@
 import { type CSSProperties, memo } from "react";
 import { css } from "../../../styled-system/css";
 import type { PostSummary } from "../../lib/markdown";
+import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { MetaInfo } from "../common/MetaInfo";
 import { Link } from "./Link";
 
@@ -180,6 +181,14 @@ export const BentoCard = memo(
           ? bentoSizeWideStyles
           : bentoSizeDefaultStyles;
 
+    // Hero morph (Issue #397): Bento タイトル H3 に
+    // `view-transition-name: post-{id}` を付与し、記事詳細 (PostDetailPage) の
+    // H1 と morph させる。Featured と Bento は同時に表示されないペアなので
+    // 名前衝突は発生しない (HomePage の Featured = posts[0] / Bento = posts[1..6])。
+    const heroNameStyle: CSSProperties = {
+      viewTransitionName: buildPostHeroTransitionName(String(post.id)),
+    };
+
     return (
       <article className={`${bentoWrapperBaseStyles} ${sizeStyles}`}>
         <div className={bentoMetaStyles}>
@@ -190,11 +199,15 @@ export const BentoCard = memo(
             variant="bento"
           />
         </div>
-        <h3 className={`bento-title ${bentoTitleStyles}`}>
+        <h3
+          className={`bento-title ${bentoTitleStyles}`}
+          style={heroNameStyle}
+        >
           <Link
             to={`/posts/${post.id}`}
             variant="card"
             className={bentoStretchedLinkStyles}
+            viewTransition
           >
             {post.title || "無題の記事"}
           </Link>

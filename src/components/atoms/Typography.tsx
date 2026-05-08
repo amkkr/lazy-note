@@ -1,9 +1,15 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { css } from "../../../styled-system/css";
 
 interface BaseTypographyProps {
   children: ReactNode;
   className?: string;
+  /**
+   * インラインスタイル。Hero morph (Issue #397) で `view-transition-name` を
+   * 動的に注入するなど、Panda CSS の className では扱いづらい CSS プロパティを
+   * 限定的に受けるために許容する。通常スタイリングは className 経由が望ましい。
+   */
+  style?: CSSProperties;
 }
 
 interface HeadingProps extends BaseTypographyProps {
@@ -21,6 +27,7 @@ export const Heading1 = ({
   children,
   variant = "page",
   className,
+  style,
 }: HeadingProps) => {
   const baseStyles = css({});
 
@@ -33,6 +40,7 @@ export const Heading1 = ({
   return (
     <h1
       className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}
+      style={style}
     >
       {children}
     </h1>
@@ -46,6 +54,7 @@ export const Heading2 = ({
   children,
   variant = "article",
   className,
+  style,
 }: HeadingProps) => {
   const baseStyles = css({});
 
@@ -66,6 +75,7 @@ export const Heading2 = ({
   return (
     <h2
       className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}
+      style={style}
     >
       {children}
     </h2>
@@ -79,6 +89,7 @@ export const Heading3 = ({
   children,
   variant = "article",
   className,
+  style,
 }: HeadingProps) => {
   const baseStyles = css({});
 
@@ -94,6 +105,7 @@ export const Heading3 = ({
   return (
     <h3
       className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}
+      style={style}
     >
       {children}
     </h3>

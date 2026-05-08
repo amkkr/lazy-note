@@ -211,4 +211,27 @@ describe("PostDetailPage", () => {
       expect(contentContainer.contains(tocButton)).toBe(false);
     });
   });
+
+  // ==========================================================================
+  // View Transitions Hero morph (Issue #397)
+  //
+  // 記事詳細の H1 に `view-transition-name: post-{id}` のインラインスタイルが
+  // 付与され、HomePage 側 (FeaturedCard / BentoCard / IndexRow) のタイトルと
+  // 同じ name で morph が成立することを検証する。
+  // ==========================================================================
+  describe("View Transitions Hero morph", () => {
+    it("H1 に view-transition-name: post-{id} を付与する", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const heading = screen.getByRole("heading", {
+        name: "テスト記事タイトル",
+        level: 1,
+      });
+      expect(heading.style.viewTransitionName).toBe("post-test-post");
+    });
+  });
 });

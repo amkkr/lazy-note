@@ -1,6 +1,7 @@
-import { memo } from "react";
+import { type CSSProperties, memo } from "react";
 import { css } from "../../../styled-system/css";
 import type { PostSummary } from "../../lib/markdown";
+import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { MetaInfo } from "../common/MetaInfo";
 import { Link } from "./Link";
 
@@ -134,6 +135,14 @@ const featuredLinkStyles = css({
 });
 
 export const FeaturedCard = memo(({ post }: FeaturedCardProps) => {
+  // Hero morph (Issue #397): タイトル H2 に `view-transition-name: post-{id}` を
+  // 付与し、記事詳細 (PostDetailPage) の H1 と morph させる。
+  // CSSProperties に view-transition-name は未収録のため、index signature で
+  // 受け付けるよう CSSProperties をベースに拡張した型として inline 指定する。
+  const heroNameStyle: CSSProperties = {
+    viewTransitionName: buildPostHeroTransitionName(String(post.id)),
+  };
+
   return (
     <article className={featuredWrapperStyles}>
       <span className={featuredLabelStyles}>Featured</span>
@@ -149,8 +158,11 @@ export const FeaturedCard = memo(({ post }: FeaturedCardProps) => {
         to={`/posts/${post.id}`}
         variant="card"
         className={featuredLinkStyles}
+        viewTransition
       >
-        <h2 className={featuredTitleStyles}>{post.title || "無題の記事"}</h2>
+        <h2 className={featuredTitleStyles} style={heroNameStyle}>
+          {post.title || "無題の記事"}
+        </h2>
       </Link>
       {post.excerpt && <p className={featuredExcerptStyles}>{post.excerpt}</p>}
     </article>

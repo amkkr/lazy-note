@@ -136,4 +136,26 @@ describe("IndexRow", () => {
 
     expect(screen.getByRole("listitem")).toBeInTheDocument();
   });
+
+  // ====================================================================
+  // View Transitions Hero morph (Issue #397)
+  // ====================================================================
+  describe("View Transitions Hero morph", () => {
+    it("タイトル要素に view-transition-name: post-{id} を付与する", () => {
+      const { container } = render(
+        <MemoryRouter>
+          <ul>
+            <IndexRow post={buildPost({ id: "idx-vt" })} index={0} />
+          </ul>
+        </MemoryRouter>,
+      );
+
+      // .index-row-title クラスを持つ span (タイトル wrapper) を取得
+      const titleWrapper = container.querySelector(".index-row-title");
+      expect(titleWrapper).not.toBeNull();
+      expect((titleWrapper as HTMLElement).style.viewTransitionName).toBe(
+        "post-idx-vt",
+      );
+    });
+  });
 });

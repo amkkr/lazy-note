@@ -58,8 +58,8 @@ export const Heading2 = ({
     card: css({
       fontSize: "xl",
       lineHeight: "relaxed",
-      color: "fg.1",
-      "&:hover": { color: "blue.light" },
+      color: "fg.primary",
+      "&:hover": { color: "accent.link" },
     }),
   };
 
@@ -108,21 +108,24 @@ export const Paragraph = ({
   variant = "body",
   className,
 }: ParagraphProps) => {
+  // Editorial Citrus トークン (R-2b / Issue #389)
+  // - small (補助情報): fg.secondary (light 9.59:1 AAA / dark 14.84:1 AAA)
+  // - body / large (本文): fg.primary (light 17.16:1 AAA / dark 16.98:1 AAA)
   const variantStyles = {
     small: css({
       fontSize: "sm",
       lineHeight: "relaxed",
-      color: "fg.2",
+      color: "fg.secondary",
     }),
     body: css({
       fontSize: "base",
       lineHeight: "loose",
-      color: "fg.1",
+      color: "fg.primary",
     }),
     large: css({
       fontSize: "lg",
       lineHeight: "body",
-      color: "fg.1",
+      color: "fg.primary",
     }),
   };
 

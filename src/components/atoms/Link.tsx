@@ -25,44 +25,46 @@ export const Link = ({
     transition: "all 0.2s ease",
   });
 
+  // Editorial Citrus トークンへ移行 (R-2b / Issue #389)。
+  // - default / navigation / card のリンク色は accent.link (indigo) で統一。
+  //   light: cream-50 上 7.82:1 AAA / dark: sumi-950 上 8.79:1 AAA。
+  // - button variant は CTA 扱いのため accent.brand を使用。
+  //   文字色は light=cream.50, dark=ink.900 (CTA 専用ペア、AA pass を担保)。
+  // - hover で色相を切り替えず、background の変化や filter で表現する
+  //   (Editorial Citrus の「accent は単色運用」方針)。
   const variantStyles = {
     default: css({
-      color: "blue.light",
+      color: "accent.link",
       textDecoration: "underline",
-      "&:hover": {
-        color: "aqua.light",
-      },
     }),
     navigation: css({
       display: "inline-flex",
       alignItems: "center",
       gap: "sm",
-      color: "blue.light",
+      color: "accent.link",
       fontSize: "sm",
       fontWeight: "600",
-      "&:hover": {
-        color: "aqua.light",
-      },
     }),
     button: css({
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
       padding: "sm-md md",
-      background: "blue.light",
-      color: "fg.0",
+      background: "accent.brand",
+      color: { _light: "cream.50", _dark: "ink.900" },
       fontWeight: "600",
       borderRadius: "md",
       "&:hover": {
-        background: "blue.dark",
+        background: "accent.brand",
         transform: "translateY(-1px)",
+        filter: "brightness(0.92)",
       },
     }),
     card: css({
       display: "block",
       color: "inherit",
       "&:hover": {
-        color: "blue.light",
+        color: "accent.link",
       },
     }),
   };

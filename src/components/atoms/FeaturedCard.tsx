@@ -20,7 +20,7 @@ interface FeaturedCardProps {
  * - 上部に accent.featured (persimmon) の細い罫線で「Featured」を視覚的に位置付け
  * - タイトルは clamp(3rem, 5vw, 5rem) で広い視差。1rem = 10px のため 30px-50px
  * - サブヘッド (excerpt) は 1.25rem〜1.5rem、line-height loose
- * - メタ情報は variant="featured" の uppercase オーバーライン
+ * - メタ情報は variant="featured" の小さめ補助行 (case 変形なし / Issue #424)
  * - hover で subtle elevation + accent underline (タイトルに下線)
  *
  * AA 担保 (calculateContrast.ts による実測値):

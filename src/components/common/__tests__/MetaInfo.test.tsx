@@ -99,10 +99,19 @@ describe("MetaInfo", () => {
       />,
     );
 
-    // featured バリアントは uppercase + tracking でオーバーラインとして機能
-    // (text-transform: uppercase の class が付与される)
+    // Issue #424: 当初 (Issue #395) は featured バリアントを uppercase + tracking
+    // のオーバーラインとして実装していたが、英字主体の著者名 (例: `amkkr`) が
+    // データ表記のまま意図せず大文字化される不具合が顕在化したため、
+    // `textTransform: uppercase` と `letterSpacing: 0.08em` を撤去した。
+    // ここでは regression 防止として uppercase クラスが付与されないことを検証する。
+    //
+    // 注意: この `not.toMatch` は #422 (Tripwire CSS 変数解決ベース刷新) 完了
+    // までの暫定実装。Panda の className 命名規則 (textTransform_uppercase /
+    // tt_uppercase) が変更されると false positive で誤検知不能になる。
     const metaInfo = container.firstChild as HTMLElement;
-    expect(metaInfo.className).toMatch(/textTransform_uppercase|tt_uppercase/);
+    expect(metaInfo.className).not.toMatch(
+      /textTransform_uppercase|tt_uppercase/,
+    );
     expect(screen.getByText("2024-01-01")).toBeInTheDocument();
     expect(screen.getByText("山田太郎")).toBeInTheDocument();
     expect(screen.getByText("5分で読了")).toBeInTheDocument();

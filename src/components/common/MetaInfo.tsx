@@ -22,7 +22,11 @@ const containerStyles = css({
   },
 });
 
-// featured 用は中央寄せではなく左寄せの行 (タイトルの上に控えめに乗る用途)
+// featured 用は中央寄せではなく左寄せの行 (タイトルの上に控えめに乗る用途)。
+// Issue #424 で `textTransform: uppercase` と `letterSpacing: 0.08em` を撤去。
+// 英字主体の著者名 (例: `amkkr`) がデータ表記のまま意図せず大文字化される
+// 不具合を解消するため、Featured メタ行はコンテンツの原文表記を尊重する。
+// Editorial 雑誌風の装飾は `featuredLabelStyles` (FeaturedCard.tsx) 側に集約する。
 const containerFeaturedStyles = css({
   display: "flex",
   alignItems: "center",
@@ -30,8 +34,6 @@ const containerFeaturedStyles = css({
   flexWrap: "wrap",
   gap: "md",
   fontSize: "xs",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
 });
 
 // bento 用は小さめの行間で左寄せ
@@ -62,8 +64,8 @@ const itemCompactStyles = css({
 // Editorial Citrus トークン (R-2b / Issue #389)
 // - card variant: 補助情報のため fg.muted を使用
 // - header variant: 見出し相当のため fg.primary を使用
-// - featured variant: Featured 大見出しの上に置く控えめなオーバーラインのため
-//   fg.secondary を使い、上部に静かに配置する (Issue #395)。
+// - featured variant: Featured 大見出しの上に置く控えめな補助行 (case 変形なし)
+//   のため fg.secondary を使い、上部に静かに配置する (Issue #395 / #424)。
 // - bento variant: Bento カード内の補助情報。fg.secondary で本文寄り扱い。
 const itemCardStyles = css({
   color: "fg.muted",
@@ -136,7 +138,9 @@ const variantStyleSets: Record<Variant, VariantStyleSet> = {
  * `aria-hidden` で SR から隠し、隣接テキストで意味を伝える。
  *
  * Issue #395 (Editorial Bento) で featured / bento variant を追加。
- * - featured: Featured ヒーロー上の控えめなオーバーライン (uppercase + tracking)
+ * Issue #424 で featured variant の uppercase / letter-spacing を撤去し、
+ * 英字著者名のコンテンツデータが原文表記のまま表示されるよう修正。
+ * - featured: Featured ヒーロー上の控えめな補助行 (case 変形なし)
  * - bento: Bento カード内の補助情報行
  */
 export const MetaInfo = memo(

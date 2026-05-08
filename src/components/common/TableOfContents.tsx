@@ -13,13 +13,20 @@ interface TableOfContentsProps {
 
 // Editorial Citrus トークン (R-2b / Issue #389)
 // - 目次は本文と同じレイヤーに配置するため bg.canvas を使用
-// - ボーダーは bg.surface で薄く差別化
+// - ボーダーは border.subtle で薄く差別化 (Issue #419 で bg.surface から置換)
 // - 見出し / リンクの hover 背景は bg.elevated
+//
+// Issue #409 で導入した border 専用 token (border.subtle) を採用 (Issue #419)。
+// - 旧実装は bg.surface を使用していたが、light の bg.surface (cream-100) は
+//   外側 bg.canvas (cream-50) との差が 1.06:1 で視覚消失していた。
+// - border.subtle は WCAG 1.4.11 (Non-text Contrast) の 3:1 を満たす:
+//   light: cream-300 × cream-50 (bg.canvas) = 3.49:1
+//   dark : sumi-400  × sumi-950 (bg.canvas) = 7.05:1
 const containerStyle = css({
   background: "bg.canvas",
   borderRadius: "sm",
   border: "1px solid",
-  borderColor: "bg.surface",
+  borderColor: "border.subtle",
   marginTop: "md",
   marginBottom: "md",
 });

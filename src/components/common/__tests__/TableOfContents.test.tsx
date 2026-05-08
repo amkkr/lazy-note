@@ -67,4 +67,18 @@ describe("TableOfContents", () => {
 
     expect(container.innerHTML).toBe("");
   });
+
+  // Issue #419: bg.canvas 上に置かれる目次コンテナの border について、
+  // 旧 token (bg.surface) は light 環境で外側 bg.canvas との差が 1.06:1 で
+  // 視覚消失していた。border 専用 token (border.subtle) に置換した後、
+  // Tripwire テストで CI 検出する。
+  it("コンテナの border が border.subtle 専用 token を参照している", () => {
+    const { container } = render(<TableOfContents toc={mockToc} />);
+
+    // containerStyle が付与された最も外側の div を取得。
+    const tocContainer = container.firstElementChild;
+    expect(tocContainer).toBeInTheDocument();
+    // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
+    expect(tocContainer?.className).toMatch(/bd-c_border\.subtle/);
+  });
 });

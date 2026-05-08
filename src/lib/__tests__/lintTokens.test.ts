@@ -23,6 +23,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
  *   の検査対象に含まれて exit 1 を引き起こす副作用があった。
  *   現実装は OS tmp dir に書き出し、スクリプト側で受け取れる
  *   `LINT_TOKENS_SRC_DIR` env var で対象ディレクトリを切り替える。
+ *
+ * Issue #413 拡張:
+ *   走査範囲を `panda.config.ts` / `scripts/` / `e2e/` まで広げたため、
+ *   コメント中の旧 token 言及 (旧→新マッピング表) が誤検知されないよう
+ *   コメント除外ロジックを追加した。本ファイルでは
+ *   - コメント除外 (行コメント / ブロックコメント / 文字列リテラル中の
+ *     `//` `/*` 非除外)
+ *   - 既定の複数 path 走査 (panda.config.ts 等が含まれる)
+ *   をテストする。
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -41,18 +50,32 @@ const runScript = (envOverrides: NodeJS.ProcessEnv = {}) => {
 };
 
 describe("lint:tokens (scripts/lintTokens.ts)", () => {
-  it("既存 src/ では旧 token 参照が 0 件で exit 0 になる", () => {
+  it("既定 (src/ + panda.config.ts + scripts/ + e2e/) で旧 token 参照が 0 件で exit 0 になる", () => {
     const result = runScript();
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("lint:tokens OK");
   });
 
+  it("既定の走査では panda.config.ts / scripts / e2e も含めて src/ より多くの files を走査する", () => {
+    // src/ のみだった旧挙動 (54 files) より多いことを期待する。
+    // 厳密な数値は将来変動するため「54 を超えること」を緩めに検証する。
+    const result = runScript();
+    expect(result.status).toBe(0);
+    const match = result.stdout.match(/(\d+) files scanned/);
+    expect(match).not.toBeNull();
+    if (match === null) {
+      return;
+    }
+    const scanned = Number.parseInt(match[1] as string, 10);
+    expect(scanned).toBeGreaterThan(54);
+  });
+
   // ====================================================================
   // 違反パターン注入テスト
   //
-  // OS tmp ディレクトリに `src/` 相当の構造を作って lint script を実行する。
-  // 既存実装は固定で `<PROJECT_ROOT>/src` を走査するため、テストでは
-  // `LINT_TOKENS_SRC_DIR` env var で走査対象を tmp dir に切り替える。
+  // OS tmp ディレクトリに走査対象相当の構造を作って lint script を実行する。
+  // 既定の TARGET_PATHS は固定だが、テストでは `LINT_TOKENS_SRC_DIR` env var で
+  // 走査対象を tmp dir 1 つに絞り込む。
   // これにより src/ 直下に一時ファイルが残置するリスクを排除する。
   // ====================================================================
   describe("違反パターン検知", () => {
@@ -95,7 +118,7 @@ describe("lint:tokens (scripts/lintTokens.ts)", () => {
       expect(result.stderr).toContain("old-token-colors-bg-numeric");
     });
 
-    it("token(\"colors.fg.<digit>\") 参照を検出する", () => {
+    it('token("colors.fg.<digit>") 参照を検出する', () => {
       writeTmpFile("violation.ts", 'const v = token("colors.fg.1");\n');
       const result = runWithTmpDir();
       expect(result.status).toBe(1);
@@ -124,11 +147,168 @@ describe("lint:tokens (scripts/lintTokens.ts)", () => {
     });
 
     it(".test.ts ファイルは検査対象外で違反検出されない", () => {
+      writeTmpFile("violation.test.ts", "const v = token('colors.bg.0');\n");
+      const result = runWithTmpDir();
+      expect(result.status).toBe(0);
+    });
+  });
+
+  // ====================================================================
+  // コメント除外テスト (Issue #413)
+  //
+  // 走査範囲を panda.config.ts / scripts / e2e に拡大したことで、
+  // コメント中の旧→新マッピング表 (例: panda.config.ts の JSDoc) が
+  // 誤検知されないようにする。
+  //
+  // 文字列リテラル中の `//` `/*` はコメント開始と見做さないことも検証する
+  // (旧 token を文字列リテラルとして書いたケースは検知したいため)。
+  // ====================================================================
+  describe("コメント除外", () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), "lint-tokens-comment-test-"));
+    });
+
+    afterEach(() => {
+      rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    const writeTmpFile = (filename: string, content: string): void => {
+      writeFileSync(join(tmpDir, filename), content, "utf8");
+    };
+
+    const runWithTmpDir = () => runScript({ LINT_TOKENS_SRC_DIR: tmpDir });
+
+    it("行コメント (`//`) 中の旧 token は誤検知されない", () => {
       writeTmpFile(
-        "violation.test.ts",
-        "const v = token('colors.bg.0');\n",
+        "doc.ts",
+        "// 旧トークン bg.0 / fg.0 / colors.gruvbox.bg-0 は廃止済み\nconst v = 1;\n",
       );
       const result = runWithTmpDir();
+      expect(result.status).toBe(0);
+    });
+
+    it("ブロックコメント (`/* ... */`) 中の旧 token は誤検知されない", () => {
+      writeTmpFile(
+        "doc.ts",
+        "/* bg.0..bg.4 は R-2c で削除済み (panda.config.ts JSDoc 相当) */\nconst v = 1;\n",
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(0);
+    });
+
+    it("複数行にまたがるブロックコメント中の旧 token は誤検知されない", () => {
+      writeTmpFile(
+        "doc.ts",
+        [
+          "/**",
+          " * 旧トークン bg.0..bg.4 / fg.0..fg.4 / colors.gruvbox.* は",
+          " * R-2c (Issue #390) で削除済み。",
+          " * `token('colors.bg.0')` などの参照も同時に削除されている。",
+          " */",
+          "const v = 1;",
+          "",
+        ].join("\n"),
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(0);
+    });
+
+    it("ブロックコメント終了後の同一行の旧 token は検知される", () => {
+      writeTmpFile("violation.ts", "/* これはコメント */ const v = 'bg.0';\n");
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("old-bg-numeric");
+    });
+
+    it("文字列リテラル (シングルクォート) 中の `//` はコメント開始と見做さず旧 token を検知する", () => {
+      writeTmpFile(
+        "violation.ts",
+        "const v = '// bg.0 はリテラル中なので検知される';\n",
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("old-bg-numeric");
+    });
+
+    it("文字列リテラル (ダブルクォート) 中の `/*` はコメント開始と見做さず旧 token を検知する", () => {
+      writeTmpFile(
+        "violation.ts",
+        'const v = "/* bg.0 はリテラル中なので検知される */";\n',
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("old-bg-numeric");
+    });
+
+    it("テンプレートリテラル (バッククォート) 中の旧 token は検知される", () => {
+      writeTmpFile(
+        "violation.ts",
+        "const v = `bg.0 はテンプレートリテラル中で検知される`;\n",
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("old-bg-numeric");
+    });
+
+    it("行コメント以降に旧 token があってもコード部の旧 token は検知される", () => {
+      writeTmpFile(
+        "violation.ts",
+        "const v = 'bg.0'; // bg.0 / fg.0 は削除済み (この部分は検知されない)\n",
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      // 'bg.0' (コード部) のみ検知され、行コメント中の bg.0 / fg.0 は無視される。
+      const stderr = result.stderr;
+      expect(stderr).toContain("old-bg-numeric");
+      // 行コメント側にあった `fg.0` が誤検知されていないことを担保する。
+      expect(stderr).not.toContain("old-fg-numeric");
+    });
+
+    it("コメント中に旧 token を含むファイルとコードに旧 token を含むファイルが混在する場合、コードのみ検知される", () => {
+      writeTmpFile(
+        "doc.ts",
+        "// bg.0 / fg.0 / colors.gruvbox.bg-0 は廃止 (コメントなので無視)\nconst safe = 1;\n",
+      );
+      writeTmpFile("violation.tsx", "const c = css({ background: 'bg.2' });\n");
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      // 違反は 1 件のみ (doc.ts のコメントは検知されない)。
+      expect(result.stderr).toContain("1 legacy token reference(s) found");
+      expect(result.stderr).toContain("violation.tsx");
+      expect(result.stderr).not.toContain("doc.ts");
+    });
+  });
+
+  // ====================================================================
+  // 単一ファイル走査テスト (Issue #413)
+  //
+  // panda.config.ts のような単一ファイル指定にも対応していることを確認する。
+  // ====================================================================
+  describe("単一ファイル走査", () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), "lint-tokens-singlefile-test-"));
+    });
+
+    afterEach(() => {
+      rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it("LINT_TOKENS_SRC_DIR に単一ファイルを指定しても旧 token を検知する", () => {
+      const filePath = join(tmpDir, "single.ts");
+      writeFileSync(filePath, "const v = 'bg.0';\n", "utf8");
+      const result = runScript({ LINT_TOKENS_SRC_DIR: filePath });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("old-bg-numeric");
+    });
+
+    it("LINT_TOKENS_SRC_DIR に対象拡張子外の単一ファイルを指定すると 0 件になる", () => {
+      const filePath = join(tmpDir, "single.md");
+      writeFileSync(filePath, "bg.0 in markdown\n", "utf8");
+      const result = runScript({ LINT_TOKENS_SRC_DIR: filePath });
       expect(result.status).toBe(0);
     });
   });

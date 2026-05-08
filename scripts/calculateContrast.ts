@@ -186,6 +186,46 @@ const getContrastPairs = (): readonly ContrastPair[] => {
       minRatio: contrastThresholds.largeText,
       category: "ui-large",
     },
+    // ---------- accent.featured (R-2a / Issue #388 で追加) ----------
+    // Featured バッジ・主要 CTA のブランド色。bg.canvas / bg.surface (light) 上で
+    // AA 4.5:1 を要求。featured は本文ではないので AAA 7.0:1 までは要求しない。
+    // 14pt 以下の通常テキスト文字色として使う場合は AAA 未達のため、16px+ または
+    // bold テキスト・大きな見出しでの使用に限る (colorTokens.ts JSDoc 参照)。
+    {
+      name: "featured/light: persimmon-600 × cream-50 (bg.canvas)",
+      fg: oklchPrimitives.persimmon["600"],
+      bg: oklchPrimitives.cream["50"],
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
+    {
+      name: "featured/dark: persimmon-500 × sumi-950 (bg.canvas)",
+      fg: oklchPrimitives.persimmon["500"],
+      bg: oklchPrimitives.sumi["950"],
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
+    {
+      name: "featured/light: persimmon-600 × cream-100 (bg.surface)",
+      fg: oklchPrimitives.persimmon["600"],
+      bg: oklchPrimitives.cream["100"],
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
+    // 注: bg.surface (dark, sumi-700) 上の persimmon-500 は 2.76:1 で AA 不足のため
+    //     検証ペアに含めない。dark テーマで Featured/CTA を表示する場合は bg.canvas
+    //     (sumi-950) 上のみで運用すること。R-2b/R-2c で参照箇所を見直す。
+    // ---------- focus.ring (R-2a / Issue #388 で追加) ----------
+    // dark の sumi-950 上では citrus-500 単独で AA 達成 (12.43:1)。
+    // light の cream-50 上では 1.45:1 で AA 不足のため、二重リング前提
+    // (内側 ink-900) で運用する。calculateContrast.ts では dark のみ要求。
+    {
+      name: "focus.ring/dark: citrus-500 × sumi-950 (bg.canvas, 単独でも AA)",
+      fg: oklchPrimitives.citrus["500"],
+      bg: oklchPrimitives.sumi["950"],
+      minRatio: contrastThresholds.largeText,
+      category: "focus",
+    },
   ];
 };
 
@@ -408,6 +448,35 @@ const verifySemanticPairs = (): readonly ContrastResult[] => {
       bg: semanticColorTokens.bgCanvas.dark,
       minRatio: contrastThresholds.bodyText,
       category: "link",
+    },
+    // R-2a (Issue #388) で追加した token の整合性を semantic 側でも検証する
+    {
+      name: "semantic/light: accent.featured × bg.canvas",
+      fg: semanticColorTokens.accentFeatured.light,
+      bg: semanticColorTokens.bgCanvas.light,
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
+    {
+      name: "semantic/dark: accent.featured × bg.canvas",
+      fg: semanticColorTokens.accentFeatured.dark,
+      bg: semanticColorTokens.bgCanvas.dark,
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
+    {
+      name: "semantic/light: accent.featured × bg.surface",
+      fg: semanticColorTokens.accentFeatured.light,
+      bg: semanticColorTokens.bgSurface.light,
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
+    {
+      name: "semantic/dark: focus.ring × bg.canvas (単独でも AA、二重リング推奨)",
+      fg: semanticColorTokens.focusRing.dark,
+      bg: semanticColorTokens.bgCanvas.dark,
+      minRatio: contrastThresholds.largeText,
+      category: "focus",
     },
   ];
 

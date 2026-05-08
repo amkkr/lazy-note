@@ -106,9 +106,25 @@ const featuredMetaStyles = css({
 
 // Link wrapper (variant="card" は color: inherit なので、タイトルを継承色で表示できる)。
 // block にしてカード全体をクリック可能にする。
+//
+// AC #395 (vii) の focus.ring 要求に対応: focus-visible で二重リング
+// (内側 focus.ring (citrus) + 外側 light: ink-900 / dark: cream-50) を表示する。
+// panda.config.ts L362-367 の規定 (内側 13.03:1 AAA / 外側 AA 以上) に準拠。
+// FeaturedCard は H2 のみを Link で包む通常パターンなので、stretched link
+// (::after) ではなく Link 要素自体に focus ring を当てる。
 const featuredLinkStyles = css({
   display: "block",
   textDecoration: "none",
+  borderRadius: "sm",
+  "&:focus-visible": {
+    outline: "none",
+    boxShadow: {
+      _light:
+        "0 0 0 2px var(--colors-focus-ring), 0 0 0 4px var(--colors-ink-900)",
+      _dark:
+        "0 0 0 2px var(--colors-focus-ring), 0 0 0 4px var(--colors-cream-50)",
+    },
+  },
 });
 
 export const FeaturedCard = memo(({ post }: FeaturedCardProps) => {

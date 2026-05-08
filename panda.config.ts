@@ -262,12 +262,15 @@ export default defineConfig({
           // 新 token (bg.canvas / bg.surface / bg.elevated) への参照置換が
           // 完了したらここを丸ごと消す。
           //
-          // 旧名 -> 新マッピング (Issue #388 仕様):
-          //   bg.0 -> bg.canvas    の OKLCH 近似色
-          //   bg.1 -> bg.surface
-          //   bg.2 -> bg.elevated
-          //   bg.3 -> bg.surface (やや沈み込み、互換用)
-          //   bg.4 -> bg.elevated (互換用)
+          // 旧 → 新 マッピング表 (R-2c で削除予定):
+          //   bg.0 → bg.canvas (cream-50 / sumi-950)
+          //   bg.1 → bg.surface (cream-100 / sumi-700 相当)
+          //   bg.2 → bg.elevated (cream-50 / sumi-600 相当)
+          //   bg.3 → bg.surface (互換用、bg.1 と同値)
+          //   bg.4 → bg.elevated (互換用、bg.2 と同値)
+          // 注: bg.0..bg.4 の 5 段階を canvas/surface/elevated の 3 段階に圧縮。
+          // 隣接 (bg.1 vs bg.3) の境界表現が失われるため、R-2b/R-2c で
+          // 参照箇所の用途を見直す。
           // ----------------------------------------------------------------
           0: {
             value: {
@@ -357,12 +360,14 @@ export default defineConfig({
           // 新 token (fg.primary / fg.secondary / fg.muted) への参照置換が
           // 完了したらここを丸ごと消す。
           //
-          // 旧名 -> 新マッピング (Issue #388 仕様):
-          //   fg.0 -> fg.primary
-          //   fg.1 -> fg.primary
-          //   fg.2 -> fg.secondary
-          //   fg.3 -> fg.muted
-          //   fg.4 -> fg.muted
+          // 旧 → 新 マッピング表 (R-2c で削除予定):
+          //   fg.0 → fg.primary
+          //   fg.1 → fg.primary (互換用、fg.0 と同値)
+          //   fg.2 → fg.secondary
+          //   fg.3 → fg.muted
+          //   fg.4 → fg.muted (互換用、fg.3 と同値)
+          // 注: fg.0..fg.4 の 5 段階を primary/secondary/muted の 3 段階に圧縮。
+          // R-2b/R-2c で参照箇所の用途を見直す。
           // ----------------------------------------------------------------
           0: {
             value: {

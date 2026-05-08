@@ -28,12 +28,15 @@ const itemBaseStyles = css({
   fontSize: "sm",
 });
 
+// Editorial Citrus トークン (R-2b / Issue #389)
+// - card variant: 補助情報のため fg.muted を使用
+// - header variant: 見出し相当のため fg.primary を使用
 const itemCardStyles = css({
-  color: "fg.4",
+  color: "fg.muted",
 });
 
 const itemHeaderStyles = css({
-  color: "fg.0",
+  color: "fg.primary",
   background: "rgba(251, 241, 199, 0.15)",
   paddingY: "sm",
   paddingX: "md",

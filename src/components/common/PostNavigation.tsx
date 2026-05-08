@@ -15,7 +15,7 @@ const navStyles = css({
   marginTop: "xl",
   paddingTop: "xl",
   borderTop: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.surface",
 });
 
 const linkContainerStyles = css({
@@ -30,7 +30,8 @@ const linkContainerRightStyles = css({
 const labelStyles = css({
   display: "block",
   fontSize: "sm",
-  color: "fg.3",
+  // 補助ラベル (前/次の記事) は muted で控えめに
+  color: "fg.muted",
   marginBottom: "sm",
 });
 

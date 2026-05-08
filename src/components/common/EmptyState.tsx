@@ -48,7 +48,7 @@ export const EmptyState = ({
           className={css({
             fontSize: "2xl",
             fontWeight: "bold",
-            color: "fg.1",
+            color: "fg.primary",
             mb: "4",
           })}
         >
@@ -56,7 +56,7 @@ export const EmptyState = ({
         </h3>
         <p
           className={css({
-            color: "fg.3",
+            color: "fg.muted",
             fontSize: "lg",
             lineHeight: "body",
             mb: action ? "8" : "0",
@@ -72,7 +72,9 @@ export const EmptyState = ({
               alignItems: "center",
               gap: "2",
               bg: "gradients.primary",
-              color: "fg.0",
+              // gradients.primary は明るいグラデのため、明確な対比をとるよう
+              // 文字色は light=cream.50 / dark=ink.900 の CTA 配色を採用。
+              color: { _light: "cream.50", _dark: "ink.900" },
               px: "6",
               py: "3",
               borderRadius: "full",

@@ -127,27 +127,46 @@ export const PostDetailPage = ({
                   paddingLeft: "section",
                   paddingBottom: "section",
                 },
-                lineHeight: "body",
                 fontSize: "base",
                 color: "fg.1",
+                // Editorial Citrus 本文タイポグラフィ (Issue #391)。
+                // 本文 (p / ul / ol / blockquote) は max-width 36rem で 1 行の文字数を制限し、
+                // line-height 1.85 で Newsreader + 日本語明朝混植時の行送りを確保する。
+                // 見出しは max-width を本文より広く取り、pre / code は制約しない (横スクロール許容)。
                 "& h1, & h2, & h3": {
                   color: "fg.0",
                   fontWeight: "bold",
                   marginTop: "xl",
                   marginBottom: "md",
+                  lineHeight: "snug",
                 },
                 "& h1": { fontSize: "2xl" },
                 "& h2": { fontSize: "xl" },
                 "& h3": { fontSize: "lg" },
                 "& p": {
+                  maxWidth: "prose",
+                  marginRight: "auto",
+                  marginLeft: "auto",
                   marginBottom: "md",
+                  lineHeight: "prose",
                 },
                 "& ul, & ol": {
+                  maxWidth: "prose",
+                  marginRight: "auto",
+                  marginLeft: "auto",
                   paddingLeft: "lg",
                   marginBottom: "md",
+                  lineHeight: "prose",
                 },
                 "& li": {
                   marginBottom: "sm",
+                },
+                "& blockquote": {
+                  maxWidth: "prose",
+                  marginRight: "auto",
+                  marginLeft: "auto",
+                  marginBottom: "md",
+                  lineHeight: "prose",
                 },
                 "& a": {
                   color: "blue.light",
@@ -162,6 +181,7 @@ export const PostDetailPage = ({
                   padding: "2xs xs-sm",
                   borderRadius: "xs",
                   fontSize: "sm-lg",
+                  lineHeight: "relaxed",
                 },
                 "& pre": {
                   background: "bg.0",
@@ -170,6 +190,7 @@ export const PostDetailPage = ({
                   borderRadius: "sm",
                   overflow: "auto",
                   margin: "lg 0",
+                  lineHeight: "relaxed",
                 },
                 "& img": {
                   maxWidth: "100%",

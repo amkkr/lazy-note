@@ -54,6 +54,7 @@ export const Heading2 = ({
   children,
   variant = "article",
   className,
+  style,
 }: HeadingProps) => {
   const baseStyles = css({});
 
@@ -74,6 +75,7 @@ export const Heading2 = ({
   return (
     <h2
       className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}
+      style={style}
     >
       {children}
     </h2>
@@ -87,6 +89,7 @@ export const Heading3 = ({
   children,
   variant = "article",
   className,
+  style,
 }: HeadingProps) => {
   const baseStyles = css({});
 
@@ -102,6 +105,7 @@ export const Heading3 = ({
   return (
     <h3
       className={`${baseStyles} ${variantStyles[variant]} ${className || ""}`}
+      style={style}
     >
       {children}
     </h3>

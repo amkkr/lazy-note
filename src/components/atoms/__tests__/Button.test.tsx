@@ -166,4 +166,44 @@ describe("Button", () => {
     expect(screen.getByText("Icon")).toBeInTheDocument();
     expect(screen.getByText("Text")).toBeInTheDocument();
   });
+
+  // ====================================================================
+  // Editorial Citrus token Tripwire テスト (R-2b / Issue #389)
+  //
+  // Panda CSS が生成する class 名 (例: "bg_accent.brand") を検証することで、
+  // 後続 R-2c での旧 token 削除や semantic token 切替で誤って色が外れた場合に
+  // CI で検出できるようにする。
+  //
+  // class 名のフォーマット: <css-prop-prefix>_<token-path>
+  //   - background → "bg_..." (例: bg_accent.brand)
+  //   - color      → "c_..."  (例: c_accent.link)
+  // 詳細は styled-system/styles.css を参照。
+  // ====================================================================
+  describe("Editorial Citrus token 参照 (Tripwire)", () => {
+    it("primary variant は accent.brand の background class を持つ", () => {
+      render(<Button variant="primary">Primary</Button>);
+      const button = screen.getByRole("button", { name: "Primary" });
+      expect(button.className).toMatch(/bg_accent\.brand/);
+    });
+
+    it("secondary variant は bg.surface の background class を持つ", () => {
+      render(<Button variant="secondary">Secondary</Button>);
+      const button = screen.getByRole("button", { name: "Secondary" });
+      // R-2b 修正: bg.elevated × border bg.surface の同色問題を回避するため、
+      // bg を bg.surface に反転している。
+      expect(button.className).toMatch(/bg_bg\.surface/);
+    });
+
+    it("secondary variant は bg.elevated の border class を持つ", () => {
+      render(<Button variant="secondary">Secondary</Button>);
+      const button = screen.getByRole("button", { name: "Secondary" });
+      expect(button.className).toMatch(/bd-c_bg\.elevated|borderColor.*bg\.elevated/);
+    });
+
+    it("ghost variant は accent.link の color class を持つ", () => {
+      render(<Button variant="ghost">Ghost</Button>);
+      const button = screen.getByRole("button", { name: "Ghost" });
+      expect(button.className).toMatch(/c_accent\.link/);
+    });
+  });
 });

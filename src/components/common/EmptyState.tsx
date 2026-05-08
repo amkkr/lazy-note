@@ -41,7 +41,7 @@ export const EmptyState = ({
           className={css({
             mx: "auto",
             mb: "6",
-            color: "fg.3",
+            color: "fg.muted",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -53,15 +53,21 @@ export const EmptyState = ({
           className={css({
             fontSize: "2xl",
             fontWeight: "bold",
-            color: "fg.1",
+            color: "fg.primary",
             mb: "4",
           })}
         >
           {title}
         </h3>
+        {/*
+         * description は記事一覧の excerpt と同じく本文寄り用途のため、
+         * fg.muted (light: 6.54:1 AA) ではなく fg.secondary (light: 9.59:1 AAA /
+         * dark: 14.84:1 AAA) を採用する。
+         * (R-2c レビュー指摘: 補助情報ではなく読まれる前提のテキストのため。)
+         */}
         <p
           className={css({
-            color: "fg.3",
+            color: "fg.secondary",
             fontSize: "lg",
             lineHeight: "body",
             mb: action ? "8" : "0",
@@ -82,6 +88,11 @@ export const EmptyState = ({
               alignItems: "center",
               gap: "2",
               bg: "accent.brand",
+              // CTA 文字色は light=cream.50 / dark=ink.900 (calculateContrast.ts の
+              // cta/light: 5.74:1, cta/dark: 5.42:1 と同期)。
+              // TODO(R-2c+): fg.onBrand semantic token に置換予定
+              // (CTA 文字色を直書きせず semantic token に集約する。Button.tsx /
+              //  Link.tsx と表記を揃えており、将来一括で置換する想定。)
               color: { _light: "cream.50", _dark: "ink.900" },
               px: "6",
               py: "3",

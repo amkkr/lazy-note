@@ -199,4 +199,63 @@ describe("Link", () => {
     const link = screen.getByRole("link", { name: "Section" });
     expect(link).toHaveAttribute("href", "/#section");
   });
+
+  // ====================================================================
+  // Editorial Citrus token Tripwire テスト (R-2b / Issue #389)
+  //
+  // Panda CSS の生成 class 名 (例: "c_accent.link" / "bg_accent.brand")
+  // を検証し、後続 R-2c での誤削除を CI で検出する。
+  //
+  // class 名は <css-prop-prefix>_<token-path> (literal "." を含む)。
+  // 詳細は styled-system/styles.css を参照。
+  // ====================================================================
+  describe("Editorial Citrus token 参照 (Tripwire)", () => {
+    it("default variant は accent.link の color class を持つ", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/home">Home</Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "Home" });
+      expect(link.className).toMatch(/c_accent\.link/);
+    });
+
+    it("navigation variant は accent.link の color class を持つ", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/nav" variant="navigation">
+            Nav
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "Nav" });
+      expect(link.className).toMatch(/c_accent\.link/);
+    });
+
+    it("button variant は accent.brand の background class を持つ", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/cta" variant="button">
+            CTA
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "CTA" });
+      expect(link.className).toMatch(/bg_accent\.brand/);
+    });
+
+    it("card variant は hover 時に accent.link の color class が適用される", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/card" variant="card">
+            Card
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "Card" });
+      // hover 時の class 名は &:hover キーで個別生成される。
+      // Panda の生成名は [&:hover]:c_accent.link 形式となる。
+      expect(link.className).toMatch(/c_accent\.link/);
+    });
+  });
 });

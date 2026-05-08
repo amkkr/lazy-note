@@ -23,17 +23,19 @@ const listStyles = css({
 });
 
 const cardStyles = css({
-  background: "bg.1",
+  background: "bg.surface",
   borderRadius: "lg",
   overflow: "hidden",
   boxShadow: "card",
 });
 
+// borderColor は親 cardStyles の bg.surface と同色で消失するため
+// bg.elevated (ハイライト風) に変更 (R-2b 修正)。
 const cardHeaderStyles = css({
   padding: "sm-md",
   paddingBottom: "md",
   borderBottom: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.elevated",
   display: "flex",
   alignItems: "center",
   gap: "sm",
@@ -52,7 +54,7 @@ const cardContentStyles = css({
 });
 
 const skeletonBase = css({
-  background: "bg.2",
+  background: "bg.elevated",
   borderRadius: "sm",
   animation: "skeleton-pulse 1.5s ease-in-out infinite",
 });

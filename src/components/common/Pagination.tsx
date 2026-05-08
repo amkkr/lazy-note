@@ -31,7 +31,7 @@ const buttonMinWidthStyles = css({
 const pageInfoStyles = css({
   fontSize: "sm",
   fontWeight: "500",
-  color: "fg.1",
+  color: "fg.primary",
   minWidth: "100px",
   textAlign: "center",
   md: {

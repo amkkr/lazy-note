@@ -11,8 +11,11 @@ import { defineConfig } from "@pandacss/dev";
  * 必ず両方を揃え、scripts/calculateContrast.ts による AAA 実測を通すこと
  * (本文ペアが 7.20:1 を割った時点で merge ブロック)。
  *
- * 既存 Gruvbox はコードブロックハイライト (Shiki / Prism 等) 用に温存しており、
- * 本文・UI からは段階的に剥離する方針 (02-color-system.md §"既存 Gruvbox の取り扱い")。
+ * R-2c (Issue #390) で旧 5 段階トークン (bg.0..bg.4 / fg.0..fg.4) と旧パレット
+ * 階層を削除し、UI は OKLCH semantic token (bg.canvas / surface / elevated /
+ * fg.primary / secondary / muted / accent.brand / featured / link) に統一。
+ * コードブロック背景・前景は `bg.code` / `bg.codeInline` / `bg.codeBorder` /
+ * `fg.code` のリテラル hex で固定する (Shiki/Prism との視覚整合のため)。
  */
 export default defineConfig({
   // Whether to use css reset
@@ -114,39 +117,12 @@ export default defineConfig({
           },
 
           // ====================================================================
-          // 既存 Gruvbox (コードブロックハイライト専用に温存)
+          // コードハイライト系アクセント (Shiki/Prism 導入時の参照用に温存)
           //
           // 本文・UI トークンは Editorial Citrus に移行済み。
-          // Shiki / Prism のコードハイライトは慣れた配色を保つため Gruvbox を維持。
+          // 旧 5 段階パレット (旧 bg0..4 / fg0..4) は R-2c (Issue #390) で削除済み。
           // 詳細: docs/rfc/editorial-citrus/02-color-system.md §"既存 Gruvbox の取り扱い"
           // ====================================================================
-          gruvbox: {
-            dark: {
-              bg0: { value: "#282828" },
-              bg1: { value: "#3c3836" },
-              bg2: { value: "#504945" },
-              bg3: { value: "#665c54" },
-              bg4: { value: "#7c6f64" },
-              fg0: { value: "#fbf1c7" },
-              fg1: { value: "#ebdbb2" },
-              fg2: { value: "#d5c4a1" },
-              fg3: { value: "#bdae93" },
-              fg4: { value: "#a89984" },
-            },
-            light: {
-              bg0: { value: "#fbf1c7" },
-              bg1: { value: "#ebdbb2" },
-              bg2: { value: "#d5c4a1" },
-              bg3: { value: "#bdae93" },
-              bg4: { value: "#a89984" },
-              fg0: { value: "#282828" },
-              fg1: { value: "#3c3836" },
-              fg2: { value: "#504945" },
-              fg3: { value: "#665c54" },
-              fg4: { value: "#7c6f64" },
-            },
-          },
-          // 既存 Gruvbox 系アクセント (コードハイライト用に温存)
           red: {
             light: { value: "#fb4934" },
             dark: { value: "#cc241d" },
@@ -230,7 +206,7 @@ export default defineConfig({
         // R-2a (Issue #388) で追加した token:
         //   - accent.featured (persimmon 系、Featured バッジ・CTA 用)
         //   - focus.ring      (citrus-500、visible focus ring 専用、R-5 で利用)
-        //   - bg.code / bg.codeInline / bg.codeBorder / fg.code (Gruvbox 温存)
+        //   - bg.code / bg.codeInline / bg.codeBorder / fg.code (旧パレット温存)
         // R-2a (Issue #388) のレビューで削除した token:
         //   - accent.focus    (focus.ring と同値で混乱を招くため、参照 0 件のうちに削除)
         //
@@ -274,58 +250,12 @@ export default defineConfig({
             },
           },
           // ----------------------------------------------------------------
-          // 旧 Gruvbox エイリアス (R-2a で OKLCH 近似色へ切替済み)
+          // コードブロック専用トークン (R-2a / Issue #388 で追加、R-2c で hex 直接化)
           //
-          // R-2c 完了後の最終 PR で削除予定。R-2b / R-2c で個別 layer から
-          // 新 token (bg.canvas / bg.surface / bg.elevated) への参照置換が
-          // 完了したらここを丸ごと消す。
-          //
-          // 旧 → 新 マッピング表 (R-2c で削除予定):
-          //   bg.0 → bg.canvas (cream-50 / sumi-950)
-          //   bg.1 → bg.surface (cream-100 / sumi-700 相当)
-          //   bg.2 → bg.elevated (cream-50 / sumi-600 相当)
-          //   bg.3 → bg.surface (互換用、bg.1 と同値)
-          //   bg.4 → bg.elevated (互換用、bg.2 と同値)
-          // 注: bg.0..bg.4 の 5 段階を canvas/surface/elevated の 3 段階に圧縮。
-          // 隣接 (bg.1 vs bg.3) の境界表現が失われるため、R-2b/R-2c で
-          // 参照箇所の用途を見直す。
-          // ----------------------------------------------------------------
-          0: {
-            value: {
-              _light: "{colors.cream.50}",
-              _dark: "{colors.sumi.950}",
-            },
-          },
-          1: {
-            value: {
-              _light: "{colors.cream.100}",
-              _dark: "{colors.sumi.700}",
-            },
-          },
-          2: {
-            value: {
-              _light: "{colors.cream.50}",
-              _dark: "{colors.sumi.600}",
-            },
-          },
-          3: {
-            value: {
-              _light: "{colors.cream.100}",
-              _dark: "{colors.sumi.700}",
-            },
-          },
-          4: {
-            value: {
-              _light: "{colors.cream.50}",
-              _dark: "{colors.sumi.600}",
-            },
-          },
-          // ----------------------------------------------------------------
-          // コードブロック専用トークン (R-2a / Issue #388 で追加)
-          //
-          // **Editorial Citrus でも Gruvbox を温存。Shiki/Prism との整合性のため。**
-          // bg.0/2/3 を OKLCH 近似色に切り替えた一方、コードブロックは慣れた配色を
-          // 保つため Gruvbox 値に固定する。
+          // **Editorial Citrus でも従来配色を温存。Shiki/Prism との整合性のため。**
+          // R-2c (Issue #390) で旧 5 段階 token を削除した際、依存していた
+          // `colors.gruvbox.*` も削除したため、ここでは hex リテラルを直接記述する
+          // (値の同期: src/lib/colorTokens.ts の codeBlockColors)。
           // 詳細: docs/rfc/editorial-citrus/02-color-system.md §"既存 Gruvbox の取り扱い"
           //
           // 用途別マッピング:
@@ -335,20 +265,20 @@ export default defineConfig({
           // ----------------------------------------------------------------
           code: {
             value: {
-              _light: "{colors.gruvbox.light.bg0}",
-              _dark: "{colors.gruvbox.dark.bg0}",
+              _light: "#fbf1c7",
+              _dark: "#282828",
             },
           },
           codeInline: {
             value: {
-              _light: "{colors.gruvbox.light.bg2}",
-              _dark: "{colors.gruvbox.dark.bg2}",
+              _light: "#d5c4a1",
+              _dark: "#504945",
             },
           },
           codeBorder: {
             value: {
-              _light: "{colors.gruvbox.light.bg3}",
-              _dark: "{colors.gruvbox.dark.bg3}",
+              _light: "#bdae93",
+              _dark: "#665c54",
             },
           },
         },
@@ -372,62 +302,17 @@ export default defineConfig({
             },
           },
           // ----------------------------------------------------------------
-          // 旧 Gruvbox エイリアス (R-2a で OKLCH 近似色へ切替済み)
-          //
-          // R-2c 完了後の最終 PR で削除予定。R-2b / R-2c で個別 layer から
-          // 新 token (fg.primary / fg.secondary / fg.muted) への参照置換が
-          // 完了したらここを丸ごと消す。
-          //
-          // 旧 → 新 マッピング表 (R-2c で削除予定):
-          //   fg.0 → fg.primary
-          //   fg.1 → fg.primary (互換用、fg.0 と同値)
-          //   fg.2 → fg.secondary
-          //   fg.3 → fg.muted
-          //   fg.4 → fg.muted (互換用、fg.3 と同値)
-          // 注: fg.0..fg.4 の 5 段階を primary/secondary/muted の 3 段階に圧縮。
-          // R-2b/R-2c で参照箇所の用途を見直す。
-          // ----------------------------------------------------------------
-          0: {
-            value: {
-              _light: "{colors.ink.primary-on-cream}",
-              _dark: "{colors.bone.50}",
-            },
-          },
-          1: {
-            value: {
-              _light: "{colors.ink.primary-on-cream}",
-              _dark: "{colors.bone.50}",
-            },
-          },
-          2: {
-            value: {
-              _light: "{colors.ink.secondary-on-cream}",
-              _dark: "{colors.bone.100}",
-            },
-          },
-          3: {
-            value: {
-              _light: "{colors.sumi.600}",
-              _dark: "{colors.bone.100}",
-            },
-          },
-          4: {
-            value: {
-              _light: "{colors.sumi.600}",
-              _dark: "{colors.bone.100}",
-            },
-          },
-          // ----------------------------------------------------------------
-          // コードブロック本文の既定文字色 (R-2a / Issue #388 で追加)
+          // コードブロック本文の既定文字色 (R-2a / Issue #388 で追加、R-2c で hex 直接化)
           //
           // Shiki/Prism のシンタックスハイライトが適用されない箇所
           // (例: マークアップ未対応のコード片) のフォールバック文字色。
-          // Gruvbox fg1 を維持し、シンタックスハイライト全体と整合させる。
+          // 従来配色 (旧 Gruvbox fg1) を hex リテラルで温存し、シンタックスハイライト
+          // 全体と整合させる (値の同期: src/lib/colorTokens.ts の codeBlockColors)。
           // ----------------------------------------------------------------
           code: {
             value: {
-              _light: "{colors.gruvbox.light.fg1}",
-              _dark: "{colors.gruvbox.dark.fg1}",
+              _light: "#3c3836",
+              _dark: "#ebdbb2",
             },
           },
         },
@@ -460,19 +345,6 @@ export default defineConfig({
             value: {
               _light: "{colors.indigo.500}",
               _dark: "{colors.indigo.300}",
-            },
-          },
-          // 既存 Gruvbox 系 accent (段階的移行用に温存)
-          blue: {
-            value: {
-              _dark: "{colors.blue.light}",
-              _light: "{colors.blue.dark}",
-            },
-          },
-          "blue-hover": {
-            value: {
-              _dark: "{colors.aqua.light}",
-              _light: "{colors.aqua.dark}",
             },
           },
         },

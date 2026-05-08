@@ -15,7 +15,7 @@ const navStyles = css({
   marginTop: "xl",
   paddingTop: "xl",
   borderTop: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.surface",
 });
 
 const linkContainerStyles = css({
@@ -30,7 +30,11 @@ const linkContainerRightStyles = css({
 const labelStyles = css({
   display: "block",
   fontSize: "sm",
-  color: "fg.3",
+  // 「前/次の記事」ラベルは記事間の重要な誘導 UI のため fg.secondary を採用 (R-2b 修正)。
+  // 当初 fg.muted (補助情報用) を当てていたが、devils-advocate レビュー (Q1) で
+  // 「重要な誘導 UI に muted は弱すぎる」と指摘されたため fg.secondary に格上げ。
+  // light: cream-50 上 9.59:1 AAA / dark: sumi-950 上 14.84:1 AAA を確保。
+  color: "fg.secondary",
   marginBottom: "sm",
 });
 

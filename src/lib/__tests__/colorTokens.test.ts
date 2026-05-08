@@ -1,8 +1,10 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { parse, wcagContrast } from "culori";
 import { describe, expect, it } from "vitest";
 import {
+  codeBlockColors,
   contrastThresholds,
-  gruvboxCodeColors,
   oklchPrimitives,
   semanticColorTokens,
 } from "../colorTokens.ts";
@@ -318,56 +320,91 @@ describe("R-2a (Issue #388) で追加した semantic token", () => {
   });
 });
 
-describe("コードブロック token (Gruvbox 温存の Tripwire)", () => {
-  // Editorial Citrus 移行後もコードブロックは Gruvbox を温存する方針 (RFC 02 §既存 Gruvbox)。
-  // 値が誤って OKLCH 系に置き換わると Shiki/Prism のハイライトと衝突するため、
-  // リテラル値が Gruvbox 標準色と一致することを CI で固定する。
-  it("bgCode (light) が Gruvbox light bg0 (#fbf1c7) を指している", () => {
-    expect(semanticColorTokens.bgCode.light).toBe(gruvboxCodeColors.light.bg0);
+describe("コードブロック token (旧パレット温存の Tripwire)", () => {
+  // Editorial Citrus 移行後もコードブロックは従来配色を温存する方針
+  // (RFC 02 §既存 Gruvbox の取り扱い)。
+  // 値が誤って OKLCH 系に置き換わると Shiki/Prism 想定のハイライトと衝突するため、
+  // リテラル値がコードブロック標準色と一致することを CI で固定する。
+  it("bgCode (light) がコードブロック light bg0 (#fbf1c7) を指している", () => {
+    expect(semanticColorTokens.bgCode.light).toBe(codeBlockColors.light.bg0);
     expect(semanticColorTokens.bgCode.light).toBe("#fbf1c7");
   });
 
-  it("bgCode (dark) が Gruvbox dark bg0 (#282828) を指している", () => {
-    expect(semanticColorTokens.bgCode.dark).toBe(gruvboxCodeColors.dark.bg0);
+  it("bgCode (dark) がコードブロック dark bg0 (#282828) を指している", () => {
+    expect(semanticColorTokens.bgCode.dark).toBe(codeBlockColors.dark.bg0);
     expect(semanticColorTokens.bgCode.dark).toBe("#282828");
   });
 
-  it("bgCodeInline (light) が Gruvbox light bg2 (#d5c4a1) を指している", () => {
+  it("bgCodeInline (light) がコードブロック light bg2 (#d5c4a1) を指している", () => {
     expect(semanticColorTokens.bgCodeInline.light).toBe(
-      gruvboxCodeColors.light.bg2,
+      codeBlockColors.light.bg2,
     );
     expect(semanticColorTokens.bgCodeInline.light).toBe("#d5c4a1");
   });
 
-  it("bgCodeInline (dark) が Gruvbox dark bg2 (#504945) を指している", () => {
+  it("bgCodeInline (dark) がコードブロック dark bg2 (#504945) を指している", () => {
     expect(semanticColorTokens.bgCodeInline.dark).toBe(
-      gruvboxCodeColors.dark.bg2,
+      codeBlockColors.dark.bg2,
     );
     expect(semanticColorTokens.bgCodeInline.dark).toBe("#504945");
   });
 
-  it("bgCodeBorder (light) が Gruvbox light bg3 (#bdae93) を指している", () => {
+  it("bgCodeBorder (light) がコードブロック light bg3 (#bdae93) を指している", () => {
     expect(semanticColorTokens.bgCodeBorder.light).toBe(
-      gruvboxCodeColors.light.bg3,
+      codeBlockColors.light.bg3,
     );
     expect(semanticColorTokens.bgCodeBorder.light).toBe("#bdae93");
   });
 
-  it("bgCodeBorder (dark) が Gruvbox dark bg3 (#665c54) を指している", () => {
+  it("bgCodeBorder (dark) がコードブロック dark bg3 (#665c54) を指している", () => {
     expect(semanticColorTokens.bgCodeBorder.dark).toBe(
-      gruvboxCodeColors.dark.bg3,
+      codeBlockColors.dark.bg3,
     );
     expect(semanticColorTokens.bgCodeBorder.dark).toBe("#665c54");
   });
 
-  it("fgCode (light) が Gruvbox light fg1 (#3c3836) を指している", () => {
-    expect(semanticColorTokens.fgCode.light).toBe(gruvboxCodeColors.light.fg1);
+  it("fgCode (light) がコードブロック light fg1 (#3c3836) を指している", () => {
+    expect(semanticColorTokens.fgCode.light).toBe(codeBlockColors.light.fg1);
     expect(semanticColorTokens.fgCode.light).toBe("#3c3836");
   });
 
-  it("fgCode (dark) が Gruvbox dark fg1 (#ebdbb2) を指している", () => {
-    expect(semanticColorTokens.fgCode.dark).toBe(gruvboxCodeColors.dark.fg1);
+  it("fgCode (dark) がコードブロック dark fg1 (#ebdbb2) を指している", () => {
+    expect(semanticColorTokens.fgCode.dark).toBe(codeBlockColors.dark.fg1);
     expect(semanticColorTokens.fgCode.dark).toBe("#ebdbb2");
+  });
+});
+
+describe("panda.config.ts と colorTokens.ts の hex 同期 Tripwire", () => {
+  // panda.config.ts と src/lib/colorTokens.ts の codeBlockColors 系 hex 値が
+  // 同期しているか検証。Panda CSS の制約 (theme.tokens.colors の値が文字列リテラル
+  // 必須) で R-2c (Issue #390) では旧パレット階層を panda.config.ts から削除した結果、
+  // bg.code / bg.codeInline / bg.codeBorder / fg.code は両ファイルで hex リテラルを
+  // 二重管理する形になっている。
+  // panda.config.ts 側だけ書き換わっても CI で検出できないため、本 Tripwire で
+  // ソース文字列上の hex 出現を検証して乖離を CI で検出する。
+  // (より厳密な AST パースは過剰のため、文字列 contains で十分な精度とする。)
+  it("panda.config.ts 中に codeBlockColors の light hex が全て出現する", async () => {
+    const pandaSource = await fs.readFile(
+      path.resolve(__dirname, "../../../panda.config.ts"),
+      "utf-8",
+    );
+
+    expect(pandaSource).toContain(codeBlockColors.light.bg0); // #fbf1c7 (bg.code)
+    expect(pandaSource).toContain(codeBlockColors.light.bg2); // #d5c4a1 (bg.codeInline)
+    expect(pandaSource).toContain(codeBlockColors.light.bg3); // #bdae93 (bg.codeBorder)
+    expect(pandaSource).toContain(codeBlockColors.light.fg1); // #3c3836 (fg.code)
+  });
+
+  it("panda.config.ts 中に codeBlockColors の dark hex が全て出現する", async () => {
+    const pandaSource = await fs.readFile(
+      path.resolve(__dirname, "../../../panda.config.ts"),
+      "utf-8",
+    );
+
+    expect(pandaSource).toContain(codeBlockColors.dark.bg0); // #282828 (bg.code)
+    expect(pandaSource).toContain(codeBlockColors.dark.bg2); // #504945 (bg.codeInline)
+    expect(pandaSource).toContain(codeBlockColors.dark.bg3); // #665c54 (bg.codeBorder)
+    expect(pandaSource).toContain(codeBlockColors.dark.fg1); // #ebdbb2 (fg.code)
   });
 });
 

@@ -103,14 +103,20 @@ export const oklchPrimitives: OklchPrimitives = {
 } as const;
 
 /**
- * Gruvbox 値のうちコードブロック専用 token で参照する subset。
+ * コードブロック専用トークンで参照する hex リテラル subset。
  *
- * Editorial Citrus 移行後もコードブロック (Shiki/Prism) は Gruvbox を温存する
- * 方針のため (02-color-system.md §"既存 Gruvbox の取り扱い")、bg/fg の OKLCH
- * 移行とは独立にこのリテラル値を維持する。panda.config.ts の `gruvbox.*.bg0` 等と
- * 一致させること。
+ * Editorial Citrus 移行後もコードブロック (Shiki/Prism 想定) は従来配色を温存
+ * する方針のため (02-color-system.md §"既存 Gruvbox の取り扱い")、bg/fg の
+ * OKLCH 移行とは独立にこのリテラル値を維持する。
+ *
+ * R-2c (Issue #390) で旧パレット階層を panda.config.ts から削除したため、
+ * panda.config.ts の `bg.code` / `bg.codeInline` / `bg.codeBorder` /
+ * `fg.code` は hex リテラルを直接記述している。値を変える場合は両方を揃えること。
+ *
+ * キー名 (bg0/bg2/bg3/fg1) は元パレットの段階番号を踏襲しているが、現在は
+ * UI トークンとは独立した「コードブロック表示用の固定値」として扱う。
  */
-export const gruvboxCodeColors = {
+export const codeBlockColors = {
   light: {
     bg0: "#fbf1c7",
     bg2: "#d5c4a1",
@@ -186,21 +192,21 @@ export interface SemanticColorTokens {
    */
   readonly focusRing: SemanticColorPair;
   /**
-   * コードブロック背景 (`<pre>`)。Editorial Citrus でも Gruvbox を温存する。
+   * コードブロック背景 (`<pre>`)。Editorial Citrus でも従来配色を温存する。
    * 02-color-system.md §"既存 Gruvbox の取り扱い"。
    */
   readonly bgCode: SemanticColorPair;
   /**
-   * インラインコード背景 (`<code>`)。Gruvbox bg2。
+   * インラインコード背景 (`<code>`)。コードブロック中間階調 (旧 bg2)。
    */
   readonly bgCodeInline: SemanticColorPair;
   /**
-   * コピーボタン枠など、コードブロック付随 UI のボーダー色。Gruvbox bg3。
+   * コピーボタン枠など、コードブロック付随 UI のボーダー色 (旧 bg3)。
    */
   readonly bgCodeBorder: SemanticColorPair;
   /**
-   * コード本文の既定文字色。シンタックスハイライト未適用箇所のフォールバック。
-   * Gruvbox fg1。
+   * コード本文の既定文字色。シンタックスハイライト未適用箇所のフォールバック
+   * (旧 fg1)。
    */
   readonly fgCode: SemanticColorPair;
 }
@@ -247,20 +253,20 @@ export const semanticColorTokens: SemanticColorTokens = {
     dark: oklchPrimitives.citrus["500"],
   },
   bgCode: {
-    light: gruvboxCodeColors.light.bg0,
-    dark: gruvboxCodeColors.dark.bg0,
+    light: codeBlockColors.light.bg0,
+    dark: codeBlockColors.dark.bg0,
   },
   bgCodeInline: {
-    light: gruvboxCodeColors.light.bg2,
-    dark: gruvboxCodeColors.dark.bg2,
+    light: codeBlockColors.light.bg2,
+    dark: codeBlockColors.dark.bg2,
   },
   bgCodeBorder: {
-    light: gruvboxCodeColors.light.bg3,
-    dark: gruvboxCodeColors.dark.bg3,
+    light: codeBlockColors.light.bg3,
+    dark: codeBlockColors.dark.bg3,
   },
   fgCode: {
-    light: gruvboxCodeColors.light.fg1,
-    dark: gruvboxCodeColors.dark.fg1,
+    light: codeBlockColors.light.fg1,
+    dark: codeBlockColors.dark.fg1,
   },
 } as const;
 

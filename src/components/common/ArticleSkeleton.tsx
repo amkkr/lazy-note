@@ -2,7 +2,7 @@ import { memo } from "react";
 import { css } from "../../../styled-system/css";
 
 const wrapperStyles = css({
-  background: "bg.0",
+  background: "bg.canvas",
   minHeight: "100vh",
 });
 
@@ -15,13 +15,17 @@ const innerStyles = css({
   },
 });
 
+// border は bg.surface 同色で視覚消失していたため bg.elevated に変更 (R-2b 修正)。
+// 旧 5 段階 token (background) と (border) で明度差があったが、Editorial Citrus
+// で機械的に bg.surface に圧縮した結果 1.0:1 となっていた。bg.elevated を採用すると
+// 背景 surface より明るい "ハイライト" 風の枠線になり、視覚的に区別可能。
 const articleStyles = css({
-  background: "bg.1",
+  background: "bg.surface",
   borderRadius: "lg",
   overflow: "hidden",
   boxShadow: "card-hover",
   border: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.elevated",
 });
 
 // R-4 (Issue #392) で gradients.primary をフラットな bg.surface に置換。
@@ -35,9 +39,11 @@ const headerStyles = css({
   },
 });
 
+// 親 articleStyles の bg.surface 上に置く 1px divider のため、同色だと消失する。
+// bg.elevated (より明るい色) でハイライト風の区切り線にする (R-2b 修正)。
 const dividerStyles = css({
   height: "1px",
-  background: "bg.3",
+  background: "bg.elevated",
 });
 
 const contentStyles = css({
@@ -54,7 +60,7 @@ const contentStyles = css({
 });
 
 const skeletonBase = css({
-  background: "bg.2",
+  background: "bg.elevated",
   borderRadius: "sm",
   animation: "skeleton-pulse 1.5s ease-in-out infinite",
 });
@@ -97,10 +103,11 @@ const headingStyles = css({
   marginBottom: "md",
 });
 
+// borderBottom も bg.surface 同色で視覚消失していたため bg.elevated に変更 (R-2b 修正)。
 const navStyles = css({
-  background: "bg.1",
+  background: "bg.surface",
   borderBottom: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.elevated",
   paddingY: "sm-md",
   paddingX: "md",
   display: "flex",

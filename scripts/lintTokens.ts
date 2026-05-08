@@ -12,8 +12,12 @@
  *   6. `var(--colors-fg-<digit>)`
  *   7. `token('colors.gruvbox.<...>')` (旧 Gruvbox 階層、R-2c で削除済み)
  *
- * 走査対象: `src/**` 配下の `.ts` / `.tsx` / `.css`
- * 除外: `**`/`__tests__/**`/`*.test.ts` (lint-tokens 自身を Tripwire させるテストは別途存在しうるため、テストでは検出しない)
+ * 走査対象 (Issue #413 で拡張):
+ *   - `<root>/src/**` の `.ts` / `.tsx` / `.css`
+ *   - `<root>/panda.config.ts` (theme tokens 正本)
+ *   - `<root>/scripts/**` の `.ts` (走査スクリプト自身は自己除外)
+ *   - `<root>/e2e/**` の `.ts` / `.spec.ts`
+ * 除外: `**`/`__tests__/**`/`*.test.ts` (lint-tokens 自身を Tripwire させるテストは別途存在しうるため、テストでは検出しない) / `scripts/lintTokens.ts` (自己除外)
  *
  * 結果:
  *   - 0 件: exit 0 (CI 通過)
@@ -40,14 +44,22 @@ import { extname, join, relative, resolve } from "node:path";
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 
 /**
- * 走査対象ディレクトリ。
- * 既定は `<PROJECT_ROOT>/src` だが、テストから `LINT_TOKENS_SRC_DIR` env で
- * 別ディレクトリ (OS tmp 配下に作った擬似 src 等) を指定できる。
- * 副作用として src/ 直下に一時ファイルを残置するリスクを排除する。
+ * 走査対象パス (Issue #413 で複数 path 化)。
+ * 既定は `src/`, `panda.config.ts`, `scripts/`, `e2e/` だが、テストから
+ * `LINT_TOKENS_SRC_DIR` env で別パス (OS tmp 配下に作った擬似 src 等)
+ * を単一指定できる。副作用として src/ 直下に一時ファイルを残置するリスクを
+ * 排除する。
+ *
+ * env で指定された場合はそのパス 1 つに絞り込む (テスト時の独立性確保のため)。
  */
-const SRC_DIR = process.env.LINT_TOKENS_SRC_DIR
-  ? resolve(process.env.LINT_TOKENS_SRC_DIR)
-  : join(PROJECT_ROOT, "src");
+const TARGET_PATHS: readonly string[] = process.env.LINT_TOKENS_SRC_DIR
+  ? [resolve(process.env.LINT_TOKENS_SRC_DIR)]
+  : [
+      join(PROJECT_ROOT, "src"),
+      join(PROJECT_ROOT, "panda.config.ts"),
+      join(PROJECT_ROOT, "scripts"),
+      join(PROJECT_ROOT, "e2e"),
+    ];
 
 /** 走査対象拡張子 */
 const TARGET_EXTENSIONS = new Set([".ts", ".tsx", ".css"]);
@@ -57,8 +69,15 @@ const TARGET_EXTENSIONS = new Set([".ts", ".tsx", ".css"]);
  * - 自テストの中で「文字列としてパターンを書いている」可能性があるため `.test.ts(x)` は除外する。
  *   ただし `__tests__` 配下の通常テストは内部実装ではなく動作検証なので、
  *   旧 token をハードコードする可能性は低い。実害が出たら個別に除外を増やす。
+ * - `scripts/lintTokens.ts` (本ファイル): パターン定義 (LINT_PATTERNS) や
+ *   CI 失敗時のヒントメッセージで旧 token 名を文字列リテラルで参照しており、
+ *   走査範囲拡大 (Issue #413) で自己検知してしまうため自身を除外する。
  */
-const EXCLUDED_FILE_SUFFIXES = [".test.ts", ".test.tsx"];
+const EXCLUDED_FILE_SUFFIXES = [
+  ".test.ts",
+  ".test.tsx",
+  "scripts/lintTokens.ts",
+];
 
 /**
  * lint パターン定義。
@@ -124,14 +143,45 @@ interface Violation {
 }
 
 /**
- * 指定ディレクトリを再帰走査し、対象ファイルのパスリストを返す。
+ * 指定パスを走査し、対象ファイルのパスリストを返す (Issue #413)。
  *
+ * - 単一ファイル指定 (panda.config.ts 等) なら拡張子と除外 suffix を確認した
+ *   上でそのファイルを返す。
+ * - ディレクトリ指定なら再帰的に走査する。
  * - `node_modules` / 隠しディレクトリ (`.` から始まる) はスキップする
  *   (scripts/ から実行する都合、`src/` 配下に限ればこれらは出てこないが
  *   将来 PROJECT_ROOT 走査に変えたとき耐えるためガードを入れておく)。
+ * - 走査対象が存在しない場合は空配列を返す (例: e2e/ 未配置構成でも壊れない)。
  */
-const collectTargetFiles = (dir: string): string[] => {
+const collectTargetFiles = (target: string): string[] => {
   const results: string[] = [];
+
+  let stats;
+  try {
+    stats = statSync(target);
+  } catch {
+    return results;
+  }
+
+  // 単一ファイル指定 (panda.config.ts 等) のショートカット。
+  if (stats.isFile()) {
+    const ext = extname(target);
+    if (!TARGET_EXTENSIONS.has(ext)) {
+      return results;
+    }
+    const isExcluded = EXCLUDED_FILE_SUFFIXES.some((suffix) =>
+      target.endsWith(suffix),
+    );
+    if (isExcluded) {
+      return results;
+    }
+    results.push(target);
+    return results;
+  }
+
+  if (!stats.isDirectory()) {
+    return results;
+  }
 
   const walk = (current: string): void => {
     const entries = readdirSync(current);
@@ -142,14 +192,14 @@ const collectTargetFiles = (dir: string): string[] => {
       }
 
       const fullPath = join(current, entry);
-      const stats = statSync(fullPath);
+      const entryStats = statSync(fullPath);
 
-      if (stats.isDirectory()) {
+      if (entryStats.isDirectory()) {
         walk(fullPath);
         continue;
       }
 
-      if (!stats.isFile()) {
+      if (!entryStats.isFile()) {
         continue;
       }
 
@@ -169,7 +219,7 @@ const collectTargetFiles = (dir: string): string[] => {
     }
   };
 
-  walk(dir);
+  walk(target);
   return results;
 };
 
@@ -357,7 +407,10 @@ const formatViolation = (v: Violation): string => {
 };
 
 const main = (): void => {
-  const files = collectTargetFiles(SRC_DIR);
+  const files: string[] = [];
+  for (const target of TARGET_PATHS) {
+    files.push(...collectTargetFiles(target));
+  }
   const violations: Violation[] = [];
 
   for (const file of files) {

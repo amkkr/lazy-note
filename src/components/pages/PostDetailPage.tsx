@@ -72,6 +72,20 @@ export const PostDetailPage = ({
             },
           })}
         >
+          {/*
+           * article の border について (R-2c / Issue #390 レビュー指摘):
+           * - 親 wrapper bg.canvas (light: cream-50) 上に article bg.surface
+           *   (light: cream-100) を乗せている。
+           * - border は bg.elevated (light: cream-50) で、light テーマでは
+           *   外側 bg.canvas と border が同色 (1.0:1) となり境界線として視覚的に
+           *   消失する設計上の制約がある。
+           * - ただし article 自体の bg (cream-100) が外側 bg.canvas (cream-50) と
+           *   1.06:1 のコントラストで「板」として視認可能なため、border は
+           *   強調用 (dark テーマでは sumi-600 で明確に視認) として機能する。
+           * - light での完全な border 視認性が必要になった場合は、専用の
+           *   `border.subtle` semantic token を別 PR (R-5 等) で新設する想定。
+           * - VR snapshot で実視認性を別途確認する。
+           */}
           <article
             className={css({
               background: "bg.surface",
@@ -109,7 +123,13 @@ export const PostDetailPage = ({
               />
             </header>
 
-            {/* Divider */}
+            {/* Divider
+             *
+             * article 内 (bg.surface = light: cream-100) に置く 1px divider のため、
+             * bg.elevated (light: cream-50 / dark: sumi-600) との 1.06:1 (light) /
+             * 明確 (dark) のコントラストで区切りを表現する。light テーマでは
+             * 1.06:1 と薄いが、本文と header を視覚的に分離する補助線として機能。
+             */}
             <div
               className={css({
                 height: "1px",

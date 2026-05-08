@@ -2,7 +2,7 @@ import { memo } from "react";
 import { css } from "../../../styled-system/css";
 
 const wrapperStyles = css({
-  background: "bg.0",
+  background: "bg.canvas",
   minHeight: "100vh",
 });
 
@@ -16,12 +16,12 @@ const innerStyles = css({
 });
 
 const articleStyles = css({
-  background: "bg.1",
+  background: "bg.surface",
   borderRadius: "lg",
   overflow: "hidden",
   boxShadow: "card-hover",
   border: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.surface",
 });
 
 const headerStyles = css({
@@ -34,7 +34,7 @@ const headerStyles = css({
 
 const dividerStyles = css({
   height: "1px",
-  background: "bg.3",
+  background: "bg.surface",
 });
 
 const contentStyles = css({
@@ -51,7 +51,7 @@ const contentStyles = css({
 });
 
 const skeletonBase = css({
-  background: "bg.2",
+  background: "bg.elevated",
   borderRadius: "sm",
   animation: "skeleton-pulse 1.5s ease-in-out infinite",
 });
@@ -95,9 +95,9 @@ const headingStyles = css({
 });
 
 const navStyles = css({
-  background: "bg.1",
+  background: "bg.surface",
   borderBottom: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.surface",
   paddingY: "sm-md",
   paddingX: "md",
   display: "flex",

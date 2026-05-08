@@ -135,23 +135,25 @@ button:focus-visible {
 
 [data-theme="dark"] { color-scheme: dark; }
 [data-theme="dark"] .copy-btn {
-  background: var(--colors-bg-3);
-  color: var(--colors-fg-2);
-  border: 1px solid var(--colors-bg-3);
+  /* コピーボタンはコードブロックに付随する UI のため Gruvbox 系 token を使用。
+     Editorial Citrus でもコードブロックは Gruvbox を温存する方針 (RFC §既存 Gruvbox)。 */
+  background: var(--colors-bg-code-border);
+  color: var(--colors-fg-code);
+  border: 1px solid var(--colors-bg-code-border);
 }
 [data-theme="dark"] .copy-btn:hover {
-  background: var(--colors-bg-2);
-  color: var(--colors-fg-0);
+  background: var(--colors-bg-code-inline);
+  color: var(--colors-fg-code);
 }
 
 [data-theme="light"] { color-scheme: light; }
 [data-theme="light"] .copy-btn {
-  background: var(--colors-bg-2);
-  color: var(--colors-fg-2);
-  border: 1px solid var(--colors-bg-3);
+  background: var(--colors-bg-code-inline);
+  color: var(--colors-fg-code);
+  border: 1px solid var(--colors-bg-code-border);
 }
 [data-theme="light"] .copy-btn:hover {
-  background: var(--colors-bg-3);
-  color: var(--colors-fg-0);
+  background: var(--colors-bg-code-border);
+  color: var(--colors-fg-code);
 }
 

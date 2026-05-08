@@ -103,6 +103,29 @@ export const oklchPrimitives: OklchPrimitives = {
 } as const;
 
 /**
+ * Gruvbox 値のうちコードブロック専用 token で参照する subset。
+ *
+ * Editorial Citrus 移行後もコードブロック (Shiki/Prism) は Gruvbox を温存する
+ * 方針のため (02-color-system.md §"既存 Gruvbox の取り扱い")、bg/fg の OKLCH
+ * 移行とは独立にこのリテラル値を維持する。panda.config.ts の `gruvbox.*.bg0` 等と
+ * 一致させること。
+ */
+export const gruvboxCodeColors = {
+  light: {
+    bg0: "#fbf1c7",
+    bg2: "#d5c4a1",
+    bg3: "#bdae93",
+    fg1: "#3c3836",
+  },
+  dark: {
+    bg0: "#282828",
+    bg2: "#504945",
+    bg3: "#665c54",
+    fg1: "#ebdbb2",
+  },
+} as const;
+
+/**
  * セマンティックトークン (light / dark の 2 値マッピング)。
  *
  * トークン階層は意図的に 1 段に留めている (過剰多層化を回避)。
@@ -150,6 +173,24 @@ export interface SemanticColorTokens {
    * 独立 namespace へ昇格させた。
    */
   readonly focusRing: SemanticColorPair;
+  /**
+   * コードブロック背景 (`<pre>`)。Editorial Citrus でも Gruvbox を温存する。
+   * 02-color-system.md §"既存 Gruvbox の取り扱い"。
+   */
+  readonly bgCode: SemanticColorPair;
+  /**
+   * インラインコード背景 (`<code>`)。Gruvbox bg2。
+   */
+  readonly bgCodeInline: SemanticColorPair;
+  /**
+   * コピーボタン枠など、コードブロック付随 UI のボーダー色。Gruvbox bg3。
+   */
+  readonly bgCodeBorder: SemanticColorPair;
+  /**
+   * コード本文の既定文字色。シンタックスハイライト未適用箇所のフォールバック。
+   * Gruvbox fg1。
+   */
+  readonly fgCode: SemanticColorPair;
 }
 
 export const semanticColorTokens: SemanticColorTokens = {
@@ -196,6 +237,22 @@ export const semanticColorTokens: SemanticColorTokens = {
   focusRing: {
     light: oklchPrimitives.citrus["500"],
     dark: oklchPrimitives.citrus["500"],
+  },
+  bgCode: {
+    light: gruvboxCodeColors.light.bg0,
+    dark: gruvboxCodeColors.dark.bg0,
+  },
+  bgCodeInline: {
+    light: gruvboxCodeColors.light.bg2,
+    dark: gruvboxCodeColors.dark.bg2,
+  },
+  bgCodeBorder: {
+    light: gruvboxCodeColors.light.bg3,
+    dark: gruvboxCodeColors.dark.bg3,
+  },
+  fgCode: {
+    light: gruvboxCodeColors.light.fg1,
+    dark: gruvboxCodeColors.dark.fg1,
   },
 } as const;
 

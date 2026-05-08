@@ -2,6 +2,7 @@ import { parse, wcagContrast } from "culori";
 import { describe, expect, it } from "vitest";
 import {
   contrastThresholds,
+  gruvboxCodeColors,
   oklchPrimitives,
   semanticColorTokens,
 } from "../colorTokens.ts";
@@ -291,6 +292,59 @@ describe("R-2a (Issue #388) で追加した semantic token", () => {
     // 内側は外側と AA 4.5:1 以上のコントラストでリングそのものを認知できる必要がある。
     const r = ratio(semanticColorTokens.focusRing.light, oklchPrimitives.ink["900"]);
     expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+});
+
+describe("コードブロック token (Gruvbox 温存の Tripwire)", () => {
+  // Editorial Citrus 移行後もコードブロックは Gruvbox を温存する方針 (RFC 02 §既存 Gruvbox)。
+  // 値が誤って OKLCH 系に置き換わると Shiki/Prism のハイライトと衝突するため、
+  // リテラル値が Gruvbox 標準色と一致することを CI で固定する。
+  it("bgCode (light) が Gruvbox light bg0 (#fbf1c7) を指している", () => {
+    expect(semanticColorTokens.bgCode.light).toBe(gruvboxCodeColors.light.bg0);
+    expect(semanticColorTokens.bgCode.light).toBe("#fbf1c7");
+  });
+
+  it("bgCode (dark) が Gruvbox dark bg0 (#282828) を指している", () => {
+    expect(semanticColorTokens.bgCode.dark).toBe(gruvboxCodeColors.dark.bg0);
+    expect(semanticColorTokens.bgCode.dark).toBe("#282828");
+  });
+
+  it("bgCodeInline (light) が Gruvbox light bg2 (#d5c4a1) を指している", () => {
+    expect(semanticColorTokens.bgCodeInline.light).toBe(
+      gruvboxCodeColors.light.bg2,
+    );
+    expect(semanticColorTokens.bgCodeInline.light).toBe("#d5c4a1");
+  });
+
+  it("bgCodeInline (dark) が Gruvbox dark bg2 (#504945) を指している", () => {
+    expect(semanticColorTokens.bgCodeInline.dark).toBe(
+      gruvboxCodeColors.dark.bg2,
+    );
+    expect(semanticColorTokens.bgCodeInline.dark).toBe("#504945");
+  });
+
+  it("bgCodeBorder (light) が Gruvbox light bg3 (#bdae93) を指している", () => {
+    expect(semanticColorTokens.bgCodeBorder.light).toBe(
+      gruvboxCodeColors.light.bg3,
+    );
+    expect(semanticColorTokens.bgCodeBorder.light).toBe("#bdae93");
+  });
+
+  it("bgCodeBorder (dark) が Gruvbox dark bg3 (#665c54) を指している", () => {
+    expect(semanticColorTokens.bgCodeBorder.dark).toBe(
+      gruvboxCodeColors.dark.bg3,
+    );
+    expect(semanticColorTokens.bgCodeBorder.dark).toBe("#665c54");
+  });
+
+  it("fgCode (light) が Gruvbox light fg1 (#3c3836) を指している", () => {
+    expect(semanticColorTokens.fgCode.light).toBe(gruvboxCodeColors.light.fg1);
+    expect(semanticColorTokens.fgCode.light).toBe("#3c3836");
+  });
+
+  it("fgCode (dark) が Gruvbox dark fg1 (#ebdbb2) を指している", () => {
+    expect(semanticColorTokens.fgCode.dark).toBe(gruvboxCodeColors.dark.fg1);
+    expect(semanticColorTokens.fgCode.dark).toBe("#ebdbb2");
   });
 });
 

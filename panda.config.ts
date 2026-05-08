@@ -292,6 +292,37 @@ export default defineConfig({
               _dark: "{colors.sumi.600}",
             },
           },
+          // ----------------------------------------------------------------
+          // コードブロック専用トークン (R-2a / Issue #388 で追加)
+          //
+          // **Editorial Citrus でも Gruvbox を温存。Shiki/Prism との整合性のため。**
+          // bg.0/2/3 を OKLCH 近似色に切り替えた一方、コードブロックは慣れた配色を
+          // 保つため Gruvbox 値に固定する。
+          // 詳細: docs/rfc/editorial-citrus/02-color-system.md §"既存 Gruvbox の取り扱い"
+          //
+          // 用途別マッピング:
+          //   bg.code        : <pre> ブロック背景 (Shiki/Prism のキャンバス)
+          //   bg.codeInline  : <code> インライン背景 (本文中の `code`)
+          //   bg.codeBorder  : copy ボタン枠など、コードブロック付随 UI のボーダー
+          // ----------------------------------------------------------------
+          code: {
+            value: {
+              _light: "{colors.gruvbox.light.bg0}",
+              _dark: "{colors.gruvbox.dark.bg0}",
+            },
+          },
+          codeInline: {
+            value: {
+              _light: "{colors.gruvbox.light.bg2}",
+              _dark: "{colors.gruvbox.dark.bg2}",
+            },
+          },
+          codeBorder: {
+            value: {
+              _light: "{colors.gruvbox.light.bg3}",
+              _dark: "{colors.gruvbox.dark.bg3}",
+            },
+          },
         },
         fg: {
           primary: {
@@ -354,6 +385,19 @@ export default defineConfig({
             value: {
               _light: "{colors.sumi.600}",
               _dark: "{colors.bone.100}",
+            },
+          },
+          // ----------------------------------------------------------------
+          // コードブロック本文の既定文字色 (R-2a / Issue #388 で追加)
+          //
+          // Shiki/Prism のシンタックスハイライトが適用されない箇所
+          // (例: マークアップ未対応のコード片) のフォールバック文字色。
+          // Gruvbox fg1 を維持し、シンタックスハイライト全体と整合させる。
+          // ----------------------------------------------------------------
+          code: {
+            value: {
+              _light: "{colors.gruvbox.light.fg1}",
+              _dark: "{colors.gruvbox.dark.fg1}",
             },
           },
         },

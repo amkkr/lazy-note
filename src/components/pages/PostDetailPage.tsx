@@ -157,15 +157,15 @@ export const PostDetailPage = ({
                   },
                 },
                 "& code": {
-                  background: "bg.2",
+                  background: "bg.codeInline",
                   color: "orange.light",
                   padding: "2xs xs-sm",
                   borderRadius: "xs",
                   fontSize: "sm-lg",
                 },
                 "& pre": {
-                  background: "bg.0",
-                  color: "fg.1",
+                  background: "bg.code",
+                  color: "fg.code",
                   padding: "lg",
                   borderRadius: "sm",
                   overflow: "auto",

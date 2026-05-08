@@ -5,7 +5,7 @@ import { MetaInfo } from "../MetaInfo";
 describe("MetaInfo", () => {
   it("作成日と著者が表示できる", () => {
     // R-4 (Issue #392) で日付/著者の絵文字 (Calendar / PenLine) を
-    // Lucide icon (装飾扱い) に置換。SR からは aria-hidden で隠れ、
+    // inline SVG icon (装飾扱い) に置換。SR からは aria-hidden で隠れ、
     // 隣接テキストで意味が伝わる。
     const { container } = render(
       <MetaInfo createdAt="2024-01-01" author="山田太郎" />,

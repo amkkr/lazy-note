@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { BookOpen, FileText, Search } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
+import { Calendar, FileQuestion, FileText } from "../../atoms/icons";
 import { EmptyState } from "../EmptyState";
 
 interface MockLinkProps {
@@ -26,7 +26,7 @@ vi.mock("react-router-dom", async () => {
 });
 
 describe("EmptyState", () => {
-  // R-4 (Issue #392) で icon prop を Lucide コンポーネント型に変更。
+  // R-4 (Issue #392) で icon prop を inline SVG コンポーネント型に変更。
   const defaultProps = {
     icon: FileText,
     title: "まだ記事がありません",
@@ -36,7 +36,7 @@ describe("EmptyState", () => {
   it("アイコン、タイトル、説明文が表示できる", () => {
     const { container } = render(<EmptyState {...defaultProps} />);
 
-    // 装飾アイコン (Lucide svg) は aria-hidden で SR から隠される。
+    // 装飾アイコン (inline SVG) は aria-hidden で SR から隠される。
     expect(container.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(screen.getByText("まだ記事がありません")).toBeInTheDocument();
     expect(
@@ -64,9 +64,9 @@ describe("EmptyState", () => {
   });
 
   it("異なるアイコンが表示できる", () => {
-    // Lucide Search icon に切り替えても常に 1 つの装飾 svg が描画される。
+    // inline SVG の Calendar に切り替えても常に 1 つの装飾 svg が描画される。
     const { container } = render(
-      <EmptyState {...defaultProps} icon={Search} />,
+      <EmptyState {...defaultProps} icon={Calendar} />,
     );
 
     const decorativeIcons = container.querySelectorAll(
@@ -77,7 +77,7 @@ describe("EmptyState", () => {
 
   it("長いテキストでもレイアウトできる", () => {
     const longProps = {
-      icon: BookOpen,
+      icon: FileQuestion,
       title:
         "これは非常に長いタイトルのテストです。レイアウトが崩れないことを確認します。",
       description:

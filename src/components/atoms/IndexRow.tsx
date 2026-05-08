@@ -1,6 +1,7 @@
-import { memo } from "react";
+import { type CSSProperties, memo } from "react";
 import { css } from "../../../styled-system/css";
 import type { PostSummary } from "../../lib/markdown";
+import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { Link } from "./Link";
 
 interface IndexRowProps {
@@ -172,16 +173,28 @@ export const IndexRow = memo(({ post, index }: IndexRowProps) => {
   // zero-padded 2 桁。100 を超える場合は 3 桁になっても許容。
   const numberLabel = String(index + 1).padStart(2, "0");
 
+  // Hero morph (Issue #397): Index 行のタイトルにも `view-transition-name`
+  // を付与し、記事詳細の H1 と morph させる。Featured / Bento は posts[0..6]
+  // で表示され Index は posts[7..] のため、同一ページ内での name 衝突はない
+  // (HomePage 1 ページに収まる最大 16 件で重複 ID を持つ post は存在しない)。
+  const heroNameStyle: CSSProperties = {
+    viewTransitionName: buildPostHeroTransitionName(String(post.id)),
+  };
+
   return (
     <li className={indexRowStyles}>
       <span className={`index-row-number ${indexNumberStyles}`}>
         {numberLabel}
       </span>
-      <span className={`index-row-title ${indexTitleStyles}`}>
+      <span
+        className={`index-row-title ${indexTitleStyles}`}
+        style={heroNameStyle}
+      >
         <Link
           to={`/posts/${post.id}`}
           variant="card"
           className={indexStretchedLinkStyles}
+          viewTransition
         >
           {post.title || "無題の記事"}
         </Link>

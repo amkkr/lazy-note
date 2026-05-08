@@ -106,4 +106,27 @@ describe("FeaturedCard", () => {
 
     expect(screen.getByRole("article")).toBeInTheDocument();
   });
+
+  // ====================================================================
+  // View Transitions Hero morph (Issue #397)
+  //
+  // タイトル H2 に `view-transition-name: post-{id}` のインラインスタイルが
+  // 付与されており、PostDetailPage の H1 と同じ name で morph が成立する
+  // ことを検証する。
+  // ====================================================================
+  describe("View Transitions Hero morph", () => {
+    it("タイトル H2 に view-transition-name: post-{id} を付与する", () => {
+      render(
+        <MemoryRouter>
+          <FeaturedCard post={buildPost({ id: "feat-vt" })} />
+        </MemoryRouter>,
+      );
+
+      const heading = screen.getByRole("heading", {
+        name: "Featured 記事のタイトル",
+        level: 2,
+      });
+      expect(heading.style.viewTransitionName).toBe("post-feat-vt");
+    });
+  });
 });

@@ -534,38 +534,18 @@ export default defineConfig({
           },
         },
       },
-      gradients: {
-        hero: {
-          value: {
-            _dark: "linear-gradient(135deg, #458588 0%, #689d6a 100%)",
-            _light: "linear-gradient(135deg, #076678 0%, #79740e 100%)",
-          },
-        },
-        card: {
-          value: {
-            _dark: "linear-gradient(145deg, #3c3836 0%, #282828 100%)",
-            _light: "linear-gradient(145deg, #ebdbb2 0%, #fbf1c7 100%)",
-          },
-        },
-        accent: {
-          value: {
-            _dark: "linear-gradient(90deg, #fe8019 0%, #d65d0e 100%)",
-            _light: "linear-gradient(90deg, #af3a03 0%, #d65d0e 100%)",
-          },
-        },
-        primary: {
-          value: {
-            _dark: "linear-gradient(135deg, #458588 0%, #689d6a 100%)",
-            _light: "linear-gradient(135deg, #076678 0%, #79740e 100%)",
-          },
-        },
-        cardStripe: {
-          value: {
-            _dark: "linear-gradient(90deg, #458588 0%, #689d6a 100%)",
-            _light: "linear-gradient(90deg, #076678 0%, #79740e 100%)",
-          },
-        },
-      },
+      // ----------------------------------------------------------------
+      // gradients は R-4 (Issue #392) で削除。
+      //
+      // Editorial Citrus / Calm 思想 (装飾ノイズの徹底削除、紙面的な
+      // editorial 表現) に基づき、UI 用グラデーションは廃止し、
+      // bg.canvas / bg.surface / bg.elevated と accent.brand の単色
+      // 運用に統一した。RFC §"Calm" 参照。
+      //
+      // 旧 token (gradients.hero / card / accent / primary / cardStripe)
+      // の参照は 0 件 (R-4 PR で grep 確認済み)。再導入する場合は RFC
+      // 改訂と Calm 思想との整合議論を経ること。
+      // ----------------------------------------------------------------
     },
   },
 

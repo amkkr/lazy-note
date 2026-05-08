@@ -1,9 +1,10 @@
 import DOMPurify from "dompurify";
-import { useRef } from "react";
+import { type CSSProperties, useRef } from "react";
 import { css } from "../../../styled-system/css";
 import { useCodeBlockCopy } from "../../hooks/useCodeBlockCopy";
 import { useImageLightbox } from "../../hooks/useImageLightbox";
 import type { Post, PostSummary } from "../../lib/markdown";
+import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { Link } from "../atoms/Link";
 import { Heading1 } from "../atoms/Typography";
 import { ImageLightbox } from "../common/ImageLightbox";
@@ -25,6 +26,15 @@ export const PostDetailPage = ({
   const contentRef = useRef<HTMLDivElement>(null);
   useCodeBlockCopy(contentRef);
   const { isOpen, imageSrc, imageAlt, close } = useImageLightbox(contentRef);
+
+  // Hero morph (Issue #397): 記事詳細の H1 に `view-transition-name: post-{id}`
+  // を付与する。HomePage 側の Featured / Bento / Index タイトルと同じ name に
+  // することで、SPA 遷移時にブラウザが H1 へ morph する。VT 未対応 / reduced
+  // motion 時はこの style があってもアニメーションは発火しない (CSS 側の
+  // メディアクエリで disable される)。
+  const heroNameStyle: CSSProperties = {
+    viewTransitionName: buildPostHeroTransitionName(String(post.id)),
+  };
   return (
     <>
       {/* Navigation */}
@@ -112,6 +122,7 @@ export const PostDetailPage = ({
               <Heading1
                 variant="page"
                 className={css({ marginBottom: "card" })}
+                style={heroNameStyle}
               >
                 {post.title || "無題の記事"}
               </Heading1>

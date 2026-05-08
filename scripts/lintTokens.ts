@@ -12,18 +12,32 @@
  *   6. `var(--colors-fg-<digit>)`
  *   7. `token('colors.gruvbox.<...>')` (旧 Gruvbox 階層、R-2c で削除済み)
  *
- * 走査対象: `src/**` 配下の `.ts` / `.tsx` / `.css`
- * 除外: `**`/`__tests__/**`/`*.test.ts` (lint-tokens 自身を Tripwire させるテストは別途存在しうるため、テストでは検出しない)
+ * 走査対象 (Issue #413 で拡張):
+ *   - `<root>/src/**` の `.ts` / `.tsx` / `.css`
+ *   - `<root>/panda.config.ts` (theme tokens 正本)
+ *   - `<root>/scripts/**` の `.ts` (走査スクリプト自身は自己除外)
+ *   - `<root>/e2e/**` の `.ts` / `.spec.ts`
+ * 除外:
+ *   - `__tests__/**` ディレクトリ (lint-tokens 自身を Tripwire させるテストや
+ *     fixture でハードコードされた旧 token を検出してしまうのを避けるため、
+ *     ディレクトリ単位で skip する)
+ *   - `*.test.ts` / `*.test.tsx` (上記 `__tests__/**` 配下以外で配置されているテスト)
+ *   - `scripts/lintTokens.ts` (自己除外: 本ファイルにパターンを文字列リテラルで保持しているため)
  *
  * 結果:
  *   - 0 件: exit 0 (CI 通過)
  *   - 1 件以上: exit 1 (CI ブロック)
+ *   - 走査ファイル 0 件: exit 2 (構成不備 / 致命エラー、Issue #413 / DA 致命 2 対応)
  *
  * 設計メモ:
  * - 標準ライブラリ (`node:fs` / `node:path`) のみで実装し、追加依存は導入しない。
  * - サブディレクトリ走査は再帰的に実装する (glob ライブラリ不要)。
  * - パターンは Plain RegExp で書き、Panda の式リテラル展開や CSS 変数の
  *   双方を統一的に検出する。
+ * - 行コメント (`//`) と複数行コメント (`/* ... *\/`) 内は走査対象から
+ *   除外する (Issue #413)。コメント中の旧 token 言及 (旧→新マッピング表)
+ *   による false positive を防ぐ。文字列リテラル中の `//` `/*` は
+ *   コメント開始と見做さない。
  *
  * 拡張メモ:
  * - 追加の旧 token を検知したい場合は `LINT_PATTERNS` に正規表現を追加するだけで良い。
@@ -36,14 +50,22 @@ import { extname, join, relative, resolve } from "node:path";
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 
 /**
- * 走査対象ディレクトリ。
- * 既定は `<PROJECT_ROOT>/src` だが、テストから `LINT_TOKENS_SRC_DIR` env で
- * 別ディレクトリ (OS tmp 配下に作った擬似 src 等) を指定できる。
- * 副作用として src/ 直下に一時ファイルを残置するリスクを排除する。
+ * 走査対象パス (Issue #413 で複数 path 化)。
+ * 既定は `src/`, `panda.config.ts`, `scripts/`, `e2e/` だが、テストから
+ * `LINT_TOKENS_SRC_DIR` env で別パス (OS tmp 配下に作った擬似 src 等)
+ * を単一指定できる。副作用として src/ 直下に一時ファイルを残置するリスクを
+ * 排除する。
+ *
+ * env で指定された場合はそのパス 1 つに絞り込む (テスト時の独立性確保のため)。
  */
-const SRC_DIR = process.env.LINT_TOKENS_SRC_DIR
-  ? resolve(process.env.LINT_TOKENS_SRC_DIR)
-  : join(PROJECT_ROOT, "src");
+const TARGET_PATHS: readonly string[] = process.env.LINT_TOKENS_SRC_DIR
+  ? [resolve(process.env.LINT_TOKENS_SRC_DIR)]
+  : [
+      join(PROJECT_ROOT, "src"),
+      join(PROJECT_ROOT, "panda.config.ts"),
+      join(PROJECT_ROOT, "scripts"),
+      join(PROJECT_ROOT, "e2e"),
+    ];
 
 /** 走査対象拡張子 */
 const TARGET_EXTENSIONS = new Set([".ts", ".tsx", ".css"]);
@@ -51,21 +73,36 @@ const TARGET_EXTENSIONS = new Set([".ts", ".tsx", ".css"]);
 /**
  * 除外する suffix (検知対象から外したい末尾パターン)。
  * - 自テストの中で「文字列としてパターンを書いている」可能性があるため `.test.ts(x)` は除外する。
- *   ただし `__tests__` 配下の通常テストは内部実装ではなく動作検証なので、
- *   旧 token をハードコードする可能性は低い。実害が出たら個別に除外を増やす。
+ *   `__tests__` 配下のテストは walkDirectory のディレクトリ単位 skip でも除外しているが、
+ *   `__tests__` 外に配置された `*.test.ts(x)` を救うため suffix 除外も併用する。
+ * - `scripts/lintTokens.ts` (本ファイル): パターン定義 (LINT_PATTERNS) や
+ *   CI 失敗時のヒントメッセージで旧 token 名を文字列リテラルで参照しており、
+ *   走査範囲拡大 (Issue #413) で自己検知してしまうため自身を除外する。
  */
-const EXCLUDED_FILE_SUFFIXES = [".test.ts", ".test.tsx"];
+const EXCLUDED_FILE_SUFFIXES = [
+  ".test.ts",
+  ".test.tsx",
+  "scripts/lintTokens.ts",
+];
 
 /**
  * lint パターン定義。
  *
  * 各パターンには human-readable な name を付与しておき、検出時に
  * 「どの旧 token に違反したか」を分かりやすく表示できるようにする。
+ *
+ * scope:
+ *   - "line" (既定): 行単位で走査する。コメント除去後の各行に対して RegExp 実行。
+ *   - "file": ファイル全体を 1 つのテキストとして走査する。
+ *     panda.config.ts のような複数行にまたがるオブジェクトリテラル
+ *     (例: `bg: {\n  "0": { value: ... }\n}`) を検出するため。
+ *     コメント除去はファイル単位で適用する。
  */
 interface LintPattern {
   readonly name: string;
   readonly description: string;
   readonly pattern: RegExp;
+  readonly scope?: "line" | "file";
 }
 
 const LINT_PATTERNS: readonly LintPattern[] = [
@@ -108,6 +145,40 @@ const LINT_PATTERNS: readonly LintPattern[] = [
     // token('colors.gruvbox.bg-0') 形式。kebab-case や数字を含む値も拾う。
     pattern: /token\(['"]colors\.gruvbox\.[a-z0-9-]+['"]\)/g,
   },
+  // ====================================================================
+  // オブジェクトキー記法検知 (Issue #413 / DA 致命 1 対応)
+  //
+  // panda.config.ts のような theme 定義ファイルでは、旧 5 段階トークンが
+  // `bg: { "0": { value: "..." } }` の形で再導入される可能性がある。
+  // これは `bg.0` のドット記法とは別形式で、行単位 RegExp では捕まえにくい。
+  //
+  // 複数行にまたがるオブジェクトリテラルを検出するため scope: "file" を指定し、
+  // ファイル全体に対して `[^}]*?` (非欲張り) で展開する。`/s` フラグで
+  // 改行も `.` に含めるが、本パターンは `[^}]` を使っているため `s` フラグは
+  // 厳密には不要。ただし将来 `.` を含むパターンが追加されたとき安全側に倒すため付与する。
+  // ====================================================================
+  {
+    name: "old-bg-numeric-key",
+    description:
+      "オブジェクトキー記法 `bg: { '0': ... }` で旧 5 段階 token を再導入している可能性",
+    // `bg: {` から閉じ `}` まで遡って数値キーを検出。`}` を含まない範囲で短く match。
+    pattern: /\bbg\s*:\s*\{[^}]*?['"]?[0-9]['"]?\s*:/gs,
+    scope: "file",
+  },
+  {
+    name: "old-fg-numeric-key",
+    description:
+      "オブジェクトキー記法 `fg: { '0': ... }` で旧 5 段階 token を再導入している可能性",
+    pattern: /\bfg\s*:\s*\{[^}]*?['"]?[0-9]['"]?\s*:/gs,
+    scope: "file",
+  },
+  {
+    name: "old-gruvbox-key",
+    description:
+      "オブジェクトキー記法 `gruvbox: {` で旧 Gruvbox パレットを再導入している可能性",
+    pattern: /\bgruvbox\s*:\s*\{/g,
+    scope: "file",
+  },
 ] as const;
 
 interface Violation {
@@ -120,32 +191,73 @@ interface Violation {
 }
 
 /**
- * 指定ディレクトリを再帰走査し、対象ファイルのパスリストを返す。
+ * 指定パスを走査し、対象ファイルのパスリストを返す (Issue #413)。
  *
+ * - 単一ファイル指定 (panda.config.ts 等) なら拡張子と除外 suffix を確認した
+ *   上でそのファイルを返す。
+ * - ディレクトリ指定なら再帰的に走査する。
  * - `node_modules` / 隠しディレクトリ (`.` から始まる) はスキップする
  *   (scripts/ から実行する都合、`src/` 配下に限ればこれらは出てこないが
  *   将来 PROJECT_ROOT 走査に変えたとき耐えるためガードを入れておく)。
+ * - 走査対象が存在しない場合は空配列を返す (例: e2e/ 未配置構成でも壊れない)。
  */
-const collectTargetFiles = (dir: string): string[] => {
+const collectTargetFiles = (target: string): string[] => {
   const results: string[] = [];
+
+  let stats;
+  try {
+    stats = statSync(target);
+  } catch {
+    return results;
+  }
+
+  // 単一ファイル指定 (panda.config.ts 等) のショートカット。
+  if (stats.isFile()) {
+    const ext = extname(target);
+    if (!TARGET_EXTENSIONS.has(ext)) {
+      return results;
+    }
+    const isExcluded = EXCLUDED_FILE_SUFFIXES.some((suffix) =>
+      target.endsWith(suffix),
+    );
+    if (isExcluded) {
+      return results;
+    }
+    results.push(target);
+    return results;
+  }
+
+  if (!stats.isDirectory()) {
+    return results;
+  }
 
   const walk = (current: string): void => {
     const entries = readdirSync(current);
 
     for (const entry of entries) {
-      if (entry.startsWith(".") || entry === "node_modules") {
+      // 隠しディレクトリ / `node_modules` / `__tests__` を skip。
+      // `__tests__` は本ファイル冒頭 JSDoc で「除外対象」と明記済みだが、
+      // 実装側で skip しないとテスト fixture (例: `__tests__/util.ts` 等の
+      // 非 `.test.ts` ファイル) が `EXCLUDED_FILE_SUFFIXES` (suffix だけで
+      // 判定) を素通りしてしまい、テストコード中の旧 token 言及で CI が
+      // 落ちる潜在バグになる (Issue #413 / DA 重大 2 対応)。
+      if (
+        entry.startsWith(".") ||
+        entry === "node_modules" ||
+        entry === "__tests__"
+      ) {
         continue;
       }
 
       const fullPath = join(current, entry);
-      const stats = statSync(fullPath);
+      const entryStats = statSync(fullPath);
 
-      if (stats.isDirectory()) {
+      if (entryStats.isDirectory()) {
         walk(fullPath);
         continue;
       }
 
-      if (!stats.isFile()) {
+      if (!entryStats.isFile()) {
         continue;
       }
 
@@ -165,48 +277,285 @@ const collectTargetFiles = (dir: string): string[] => {
     }
   };
 
-  walk(dir);
+  walk(target);
   return results;
+};
+
+/**
+ * 1 行から行コメント (`//`) と複数行コメント (`/* ... *\/`) を除去する
+ * 簡易ストリッパー (Issue #413)。
+ *
+ * - state machine で「コメントブロック内かどうか」を保持する必要があるため
+ *   呼び出し側でブロック状態を渡してもらい、新しい状態と検査用文字列を返す。
+ * - 文字列リテラル (`"..."` / `'...'` / `` `...` ``) 内の `//` や `/*` は
+ *   コメント開始と見做さず、そのまま検査対象に残す (旧 token を文字列リテラル
+ *   として記述したケースも検知したいため)。
+ * - column 位置を維持するため、コメント領域は同じ長さの空白で置換する。
+ *
+ * 戻り値:
+ *   - sanitized: 検査対象として残す部分 (コメント領域は空白に置換済み)。
+ *   - inBlockComment: 行末で複数行コメントが継続中かどうか。
+ */
+interface CommentStripState {
+  readonly inBlockComment: boolean;
+}
+
+interface CommentStripResult {
+  readonly sanitized: string;
+  readonly inBlockComment: boolean;
+}
+
+const stripComments = (
+  line: string,
+  state: CommentStripState,
+): CommentStripResult => {
+  let inBlockComment = state.inBlockComment;
+  let inSingle = false;
+  let inDouble = false;
+  let inBacktick = false;
+  const out: string[] = [];
+
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    const next = i + 1 < line.length ? line[i + 1] : "";
+
+    if (inBlockComment) {
+      if (ch === "*" && next === "/") {
+        inBlockComment = false;
+        out.push(" ", " ");
+        i += 1;
+        continue;
+      }
+      out.push(" ");
+      continue;
+    }
+
+    if (inSingle) {
+      out.push(ch);
+      if (ch === "\\" && next !== "") {
+        out.push(next);
+        i += 1;
+        continue;
+      }
+      if (ch === "'") {
+        inSingle = false;
+      }
+      continue;
+    }
+
+    if (inDouble) {
+      out.push(ch);
+      if (ch === "\\" && next !== "") {
+        out.push(next);
+        i += 1;
+        continue;
+      }
+      if (ch === '"') {
+        inDouble = false;
+      }
+      continue;
+    }
+
+    if (inBacktick) {
+      out.push(ch);
+      if (ch === "\\" && next !== "") {
+        out.push(next);
+        i += 1;
+        continue;
+      }
+      if (ch === "`") {
+        inBacktick = false;
+      }
+      continue;
+    }
+
+    // 文字列開始
+    if (ch === "'") {
+      inSingle = true;
+      out.push(ch);
+      continue;
+    }
+    if (ch === '"') {
+      inDouble = true;
+      out.push(ch);
+      continue;
+    }
+    if (ch === "`") {
+      inBacktick = true;
+      out.push(ch);
+      continue;
+    }
+
+    // コメント開始
+    if (ch === "/" && next === "/") {
+      // 行末まで全て空白扱い
+      for (let j = i; j < line.length; j += 1) {
+        out.push(" ");
+      }
+      return { sanitized: out.join(""), inBlockComment: false };
+    }
+    if (ch === "/" && next === "*") {
+      inBlockComment = true;
+      out.push(" ", " ");
+      i += 1;
+      continue;
+    }
+
+    out.push(ch);
+  }
+
+  return { sanitized: out.join(""), inBlockComment };
+};
+
+/**
+ * ファイル全体に対してコメント除去を適用した結果と、
+ * 各行の元テキスト / 行頭オフセットを返すユーティリティ。
+ *
+ * `scope: "file"` パターンの match.index (ファイル全体オフセット) から
+ * 行番号 / カラム位置 / 元行 snippet を逆引きするのに使う。
+ */
+interface SanitizedFile {
+  /** コメント領域を空白に置換したファイル全体テキスト */
+  readonly sanitized: string;
+  /** 各行の元テキスト (snippet 表示用) */
+  readonly originalLines: string[];
+  /** 各行の先頭 offset (sanitized 上の絶対位置) */
+  readonly lineStartOffsets: number[];
+}
+
+const sanitizeFile = (content: string): SanitizedFile => {
+  const lines = content.split(/\r?\n/);
+  const sanitizedLines: string[] = [];
+  const lineStartOffsets: number[] = [];
+  let cursor = 0;
+  let stripState: CommentStripState = { inBlockComment: false };
+
+  for (const line of lines) {
+    lineStartOffsets.push(cursor);
+    const { sanitized, inBlockComment } = stripComments(line, stripState);
+    stripState = { inBlockComment };
+    sanitizedLines.push(sanitized);
+    // sanitizedLines は join("\n") で連結する想定。改行 1 文字ぶん cursor を進める。
+    cursor += sanitized.length + 1;
+  }
+
+  return {
+    sanitized: sanitizedLines.join("\n"),
+    originalLines: lines,
+    lineStartOffsets,
+  };
+};
+
+/**
+ * sanitized 全体オフセットから「何行目の何カラム目か」を逆引きする。
+ * lineStartOffsets は昇順なので二分探索で O(log n)。
+ */
+const offsetToLineColumn = (
+  offset: number,
+  lineStartOffsets: readonly number[],
+): { readonly line: number; readonly column: number } => {
+  let lo = 0;
+  let hi = lineStartOffsets.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1;
+    const start = lineStartOffsets[mid];
+    if (start === undefined) {
+      // 配列範囲外を二分探索で踏むことは無いはずだが、型ガードとして扱う。
+      hi = mid - 1;
+      continue;
+    }
+    if (start <= offset) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  const lineIndex = lo;
+  const start = lineStartOffsets[lineIndex] ?? 0;
+  return { line: lineIndex + 1, column: offset - start + 1 };
 };
 
 /**
  * 1 ファイル分の検査。
  *
- * - 行単位で検出位置 (line / column) を出すと CI ログでジャンプしやすい。
+ * - 行単位 (`scope: "line"` 既定) で検出位置 (line / column) を出すと
+ *   CI ログでジャンプしやすい。
+ * - 複数行 (`scope: "file"`) パターンはファイル全体のテキストに RegExp を実行し、
+ *   match.index から逆引きで行 / カラムを出す。
  * - 大文字小文字は区別する (token 名は確定的にケースが決まっている)。
+ * - 行コメント / ブロックコメント内は検査対象から除外する (Issue #413)。
  */
 const scanFile = (
   filePath: string,
   patterns: readonly LintPattern[],
 ): Violation[] => {
   const content = readFileSync(filePath, "utf8");
-  const lines = content.split(/\r?\n/);
   const violations: Violation[] = [];
 
-  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
-    const line = lines[lineIndex];
-    if (line === undefined) {
-      continue;
-    }
+  const fileScope = sanitizeFile(content);
+  const { sanitized, originalLines, lineStartOffsets } = fileScope;
 
-    for (const { name, description, pattern } of patterns) {
-      // RegExp の lastIndex を使い回すため毎回新規インスタンスにする。
+  for (const { name, description, pattern, scope } of patterns) {
+    if (scope === "file") {
+      // ファイル全体に対して走査。複数行にまたがるパターン (panda.config.ts の
+      // `bg: { "0": ... }` 等) を捕捉するために使う。
       const regex = new RegExp(pattern.source, pattern.flags);
-      let match: RegExpExecArray | null = regex.exec(line);
+      let match: RegExpExecArray | null = regex.exec(sanitized);
       while (match !== null) {
+        const { line, column } = offsetToLineColumn(
+          match.index,
+          lineStartOffsets,
+        );
+        const snippetLine = originalLines[line - 1] ?? "";
         violations.push({
           file: filePath,
-          line: lineIndex + 1,
-          column: match.index + 1,
+          line,
+          column,
           patternName: name,
           description,
-          snippet: line.trim(),
+          snippet: snippetLine.trim(),
         });
-        // 無限ループ回避: 0 幅マッチには進める。
         if (match.index === regex.lastIndex) {
           regex.lastIndex += 1;
         }
-        match = regex.exec(line);
+        match = regex.exec(sanitized);
+      }
+    } else {
+      // 既定の line scope: 行ごとに RegExp を実行。
+      for (let lineIndex = 0; lineIndex < originalLines.length; lineIndex += 1) {
+        const line = originalLines[lineIndex];
+        if (line === undefined) {
+          continue;
+        }
+        // sanitizeFile で算出済みの sanitized 行を再利用するため、
+        // 全体テキストから該当行のスライスを取り出す。
+        const start = lineStartOffsets[lineIndex] ?? 0;
+        const nextStart =
+          lineStartOffsets[lineIndex + 1] ?? sanitized.length + 1;
+        // nextStart は次行の先頭 (改行直後)。改行 1 文字ぶん除いた範囲を取る。
+        const sanitizedLine = sanitized.slice(
+          start,
+          Math.max(start, nextStart - 1),
+        );
+
+        const regex = new RegExp(pattern.source, pattern.flags);
+        let match: RegExpExecArray | null = regex.exec(sanitizedLine);
+        while (match !== null) {
+          violations.push({
+            file: filePath,
+            line: lineIndex + 1,
+            column: match.index + 1,
+            patternName: name,
+            description,
+            // 元のコメント込みの行を見せたほうが文脈が分かるので元行を表示する。
+            snippet: line.trim(),
+          });
+          // 無限ループ回避: 0 幅マッチには進める。
+          if (match.index === regex.lastIndex) {
+            regex.lastIndex += 1;
+          }
+          match = regex.exec(sanitizedLine);
+        }
       }
     }
   }
@@ -220,7 +569,24 @@ const formatViolation = (v: Violation): string => {
 };
 
 const main = (): void => {
-  const files = collectTargetFiles(SRC_DIR);
+  const files: string[] = [];
+  for (const target of TARGET_PATHS) {
+    files.push(...collectTargetFiles(target));
+  }
+
+  // 0 files scanned ガード (Issue #413 / DA 致命 2 対応)。
+  // `LINT_TOKENS_SRC_DIR=/nonexistent` のような誤設定や `TARGET_PATHS` の
+  // 全パスが空 / 非存在になっている状態では、走査が成立せず Tripwire
+  // 自体が機能しない。`exit 0` だと CI が誤って通ってしまうため、
+  // 走査ファイル 0 件は構成不備として `exit 2` で fail-fast する
+  // (旧 token 検出による `exit 1` と区別する)。
+  if (files.length === 0) {
+    console.error(
+      "lint:tokens FATAL: no files scanned. TARGET_PATHS or LINT_TOKENS_SRC_DIR may be misconfigured.",
+    );
+    process.exit(2);
+  }
+
   const violations: Violation[] = [];
 
   for (const file of files) {

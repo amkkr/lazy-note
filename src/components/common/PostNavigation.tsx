@@ -57,7 +57,13 @@ export const PostNavigation = memo(
       <nav className={navStyles} aria-label="前後の記事">
         <div className={linkContainerStyles}>
           {olderPost && (
-            <Link to={`/posts/${olderPost.id}`} variant="card">
+            // viewTransition=true で記事 → 記事の遷移時にも Hero morph
+            // (前/次記事タイトル → 詳細 H1) が動作する (Issue #397 / 推奨 6)。
+            <Link
+              to={`/posts/${olderPost.id}`}
+              variant="card"
+              viewTransition={true}
+            >
               <span className={labelStyles}>← 前の記事</span>
               <span className={titleStyles}>{olderPost.title}</span>
             </Link>
@@ -65,7 +71,11 @@ export const PostNavigation = memo(
         </div>
         <div className={`${linkContainerStyles} ${linkContainerRightStyles}`}>
           {newerPost && (
-            <Link to={`/posts/${newerPost.id}`} variant="card">
+            <Link
+              to={`/posts/${newerPost.id}`}
+              variant="card"
+              viewTransition={true}
+            >
               <span className={labelStyles}>次の記事 →</span>
               <span className={titleStyles}>{newerPost.title}</span>
             </Link>

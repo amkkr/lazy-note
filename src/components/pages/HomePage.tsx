@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { css } from "../../../styled-system/css";
 import type { PostSummary } from "../../lib/markdown";
+import { FileText } from "../atoms/icons";
 import { Link } from "../atoms/Link";
 import { Heading2 } from "../atoms/Typography";
 import { EmptyState } from "../common/EmptyState";
@@ -82,7 +83,7 @@ export const HomePage = memo(
       <div className={containerStyles}>
         {posts.length === 0 ? (
           <EmptyState
-            icon="📝"
+            icon={FileText}
             title="新しい記事をお楽しみに"
             description="まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。"
           />

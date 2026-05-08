@@ -3,13 +3,9 @@ import { css } from "../../../styled-system/css";
 
 interface BrandNameProps {
   variant?: "header" | "footer";
-  showIcon?: boolean;
 }
 
-export const BrandName = ({
-  variant = "header",
-  showIcon = true,
-}: BrandNameProps) => {
+export const BrandName = ({ variant = "header" }: BrandNameProps) => {
   const isHeader = variant === "header";
 
   return (
@@ -27,7 +23,7 @@ export const BrandName = ({
         }),
       })}
     >
-      {showIcon && "✨ "}Lazy Note
+      Lazy Note
     </Link>
   );
 };

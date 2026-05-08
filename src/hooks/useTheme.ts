@@ -35,7 +35,10 @@ const readStoredPreference = (): ResolvedTheme | null => {
  */
 const readSystemTheme = (): ResolvedTheme => {
   try {
-    if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+    if (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function"
+    ) {
       return window.matchMedia(MEDIA_QUERY).matches ? "light" : "dark";
     }
   } catch {

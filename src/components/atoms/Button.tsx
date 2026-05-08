@@ -41,8 +41,9 @@ const baseButtonStyles = css({
 // バリアントスタイル
 // 旧 Gruvbox トークン群を Editorial Citrus セマンティック token に置換 (R-2b)。
 // - primary は CTA 系のため accent.brand (persimmon) を使用。
-//   文字色は light=cream.50, dark=ink.900 (CTA 専用ペア、scripts/calculateContrast.ts で
-//   light 5.74:1 AA / dark は ink-900 × persimmon-500 で AA pass を担保)。
+//   文字色は fg.onBrand (Issue #408 で primitive 直書きから semantic token に集約)。
+//   light: fg.onBrand (cream-50) × accent.brand (persimmon-600) = 5.74:1 AA。
+//   dark : fg.onBrand (ink-900)  × accent.brand (persimmon-500) = 5.42:1 AA。
 // - secondary は表面階層のため bg.elevated / bg.surface で構成し、文字色は fg.primary。
 //   light: bg.elevated (cream-50) × fg.primary (ink-primary) = 17.16:1 AAA。
 //   dark : bg.elevated (sumi-600) × fg.primary (bone-50) = 7.76:1 AAA (実測)。
@@ -52,10 +53,7 @@ const baseButtonStyles = css({
 const variantStyles = {
   primary: css({
     background: "accent.brand",
-    // TODO(R-2c+): fg.onBrand semantic token に置換予定
-    // (CTA 文字色を直書きせず semantic token に集約する。R-2a #388 は merge 準備中
-    //  のため再変更は避け、R-2c または別 hotfix で導入。)
-    color: { _light: "cream.50", _dark: "ink.900" },
+    color: "fg.onBrand",
     "&:hover:not(:disabled)": {
       background: "accent.brand",
       transform: "translateY(-1px)",

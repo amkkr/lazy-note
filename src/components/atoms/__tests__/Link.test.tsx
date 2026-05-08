@@ -244,6 +244,21 @@ describe("Link", () => {
       expect(link.className).toMatch(/bg_accent\.brand/);
     });
 
+    // Issue #408: CTA 文字色は primitive 直書きから fg.onBrand semantic token
+    // に集約済み。Panda 生成 class 名の `c_fg.onBrand` を Tripwire として固定し、
+    // primitive 直書き ({_light: cream.50, _dark: ink.900}) への退行を検出する。
+    it("button variant は fg.onBrand の color class を持つ", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/cta" variant="button">
+            CTA
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "CTA" });
+      expect(link.className).toMatch(/c_fg\.onBrand/);
+    });
+
     it("card variant は hover 時に accent.link の color class が適用される", () => {
       render(
         <MemoryRouter>

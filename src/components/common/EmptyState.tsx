@@ -78,9 +78,9 @@ export const EmptyState = ({
         </p>
         {action && (
           // R-4 (Issue #392) で CTA の文字色を AA pass の組合せに修正。
-          // accent.brand 背景に対し:
-          //   - light (persimmon-600 上): cream.50 で 5.74:1 PASS (AA)
-          //   - dark  (persimmon-500 上): ink.900 で 5.42:1 PASS (AA)
+          // accent.brand 背景に対し fg.onBrand (Issue #408 で semantic token 化):
+          //   - light: fg.onBrand (cream-50) × accent.brand (persimmon-600) = 5.74:1 PASS (AA)
+          //   - dark : fg.onBrand (ink-900)  × accent.brand (persimmon-500) = 5.42:1 PASS (AA)
           // calculateContrast.ts の `cta/light` `cta/dark` ペアと同期させる。
           //
           // R-5 (Issue #393) AC i: accent.brand 背景上の CTA は
@@ -93,12 +93,7 @@ export const EmptyState = ({
               alignItems: "center",
               gap: "2",
               bg: "accent.brand",
-              // CTA 文字色は light=cream.50 / dark=ink.900 (calculateContrast.ts の
-              // cta/light: 5.74:1, cta/dark: 5.42:1 と同期)。
-              // TODO(R-2c+): fg.onBrand semantic token に置換予定
-              // (CTA 文字色を直書きせず semantic token に集約する。Button.tsx /
-              //  Link.tsx と表記を揃えており、将来一括で置換する想定。)
-              color: { _light: "cream.50", _dark: "ink.900" },
+              color: "fg.onBrand",
               px: "6",
               py: "3",
               borderRadius: "full",

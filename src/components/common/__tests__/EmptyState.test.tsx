@@ -129,4 +129,23 @@ describe("EmptyState", () => {
       );
     });
   });
+
+  // ====================================================================
+  // Issue #408 fg.onBrand semantic token Tripwire
+  //
+  // CTA 文字色は primitive 直書きから fg.onBrand semantic token に集約済み。
+  // Panda 生成 class 名の `c_fg.onBrand` を Tripwire として固定し、
+  // primitive 直書き ({_light: cream.50, _dark: ink.900}) への退行を検出する。
+  // ====================================================================
+  describe("Issue #408 fg.onBrand 参照 (Tripwire)", () => {
+    it("CTA Link は fg.onBrand の color class を持つ", () => {
+      const action = {
+        label: "記事を作成",
+        href: "/posts/new",
+      };
+      render(<EmptyState {...defaultProps} action={action} />);
+      const actionLink = screen.getByRole("link", { name: "記事を作成" });
+      expect(actionLink.className).toMatch(/c_fg\.onBrand/);
+    });
+  });
 });

@@ -186,6 +186,15 @@ describe("Button", () => {
       expect(button.className).toMatch(/bg_accent\.brand/);
     });
 
+    // Issue #408: CTA 文字色は primitive 直書きから fg.onBrand semantic token
+    // に集約済み。Panda 生成 class 名の `c_fg.onBrand` を Tripwire として固定し、
+    // primitive 直書き ({_light: cream.50, _dark: ink.900}) への退行を検出する。
+    it("primary variant は fg.onBrand の color class を持つ", () => {
+      render(<Button variant="primary">Primary</Button>);
+      const button = screen.getByRole("button", { name: "Primary" });
+      expect(button.className).toMatch(/c_fg\.onBrand/);
+    });
+
     it("secondary variant は bg.surface の background class を持つ", () => {
       render(<Button variant="secondary">Secondary</Button>);
       const button = screen.getByRole("button", { name: "Secondary" });

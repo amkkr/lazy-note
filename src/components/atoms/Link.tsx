@@ -49,7 +49,9 @@ export const Link = ({
   // - default / navigation / card のリンク色は accent.link (indigo) で統一。
   //   light: cream-50 上 7.82:1 AAA / dark: sumi-950 上 8.79:1 AAA。
   // - button variant は CTA 扱いのため accent.brand を使用。
-  //   文字色は light=cream.50, dark=ink.900 (CTA 専用ペア、AA pass を担保)。
+  //   文字色は fg.onBrand (Issue #408 で primitive 直書きから semantic token に集約)。
+  //   light: fg.onBrand (cream-50) × accent.brand (persimmon-600) = 5.74:1 AA。
+  //   dark : fg.onBrand (ink-900)  × accent.brand (persimmon-500) = 5.42:1 AA。
   // - hover で色相を切り替えず、background の変化や filter で表現する
   //   (Editorial Citrus の「accent は単色運用」方針)。
   const variantStyles = {
@@ -76,10 +78,7 @@ export const Link = ({
       justifyContent: "center",
       padding: "sm-md md",
       background: "accent.brand",
-      // TODO(R-2c+): fg.onBrand semantic token に置換予定
-      // (CTA 文字色を直書きせず semantic token に集約する。R-2a #388 は merge 準備中
-      //  のため再変更は避け、R-2c または別 hotfix で導入。)
-      color: { _light: "cream.50", _dark: "ink.900" },
+      color: "fg.onBrand",
       fontWeight: "600",
       borderRadius: "md",
       // R-5 (Issue #393) AC (ii): CTA は背景色で誘導するため下線なし。

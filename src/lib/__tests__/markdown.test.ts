@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { escapeHtmlAttr, parseMarkdown } from "../markdown";
 
+// 極長入力境界値テストで使用するバイト数。1MB 程度の入力で escapeHtmlAttr が
+// throw せず、長さ・末尾エスケープが保たれることを確認する用途。
+const ONE_MEGABYTE = 1024 * 1024;
+
 describe("markdown.ts", () => {
   describe("parseMarkdown", () => {
     it("正しいMarkdownファイルを解析できる", () => {
@@ -847,10 +851,14 @@ const x = "hello";
        * 設計意図: BiDi 制御文字 (U+202E) はテキスト方向制御の意図的な利用も
        * あり得るため escapeHtmlAttr では除去しない。攻撃ベクター
        * (ファイル名偽装等) として利用される場合は外部レイヤで対処する前提。
+       *
+       * U+202E は直書きするとファイル単位で右から左の表示制御がかかり、
+       * レビュー時に意図せぬ視覚的混乱を生むため `\u202E` エスケープ表記に
+       * 統一する。
        */
-      const input = "a‮b";
+      const input = "a\u202Eb";
 
-      expect(escapeHtmlAttr(input)).toBe("a‮b");
+      expect(escapeHtmlAttr(input)).toBe("a\u202Eb");
     });
 
     it("escapeHtmlAttrはバックスラッシュをエスケープせず同一文字列で返す", () => {
@@ -865,13 +873,13 @@ const x = "hello";
     });
 
     it("約1MBの極長入力でもthrowせず処理を完了できる", () => {
-      const long = "a".repeat(1024 * 1024);
+      const long = "a".repeat(ONE_MEGABYTE);
 
       expect(escapeHtmlAttr(long).length).toBe(long.length);
     });
 
     it("約1MBの極長入力に含まれる特殊文字もエスケープされる", () => {
-      const long = `${"a".repeat(1024 * 1024)}<`;
+      const long = `${"a".repeat(ONE_MEGABYTE)}<`;
 
       expect(escapeHtmlAttr(long).endsWith("&lt;")).toBe(true);
     });

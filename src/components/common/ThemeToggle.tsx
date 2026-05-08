@@ -13,6 +13,13 @@ import { useTheme } from "../../hooks/useTheme";
  * - タッチターゲットは 56x28px。WCAG 2.5.8 (AA: 24x24px) を満たす
  *   (2.5.5 AAA: 44x44px には届かないため、将来的に拡張余地あり)
  */
+// Editorial Citrus トークン (R-2b / Issue #389)
+// - スイッチ本体: 沈み込みトラック相当のため bg.elevated
+// - ボーダー: bg.surface で軽く差別化
+// - フォーカスリング: focus.ring (citrus-500)。R-2a で旧 focus 用 token を削除し
+//   focus.ring に一本化したのに伴い、CSS 変数も var(--colors-focus-ring) に修正。
+//   ※ R-5 で box-shadow inset/outset の二重リング共通化を予定。
+// - サム (動く丸): fg.primary
 const switchStyles = css({
   position: "relative",
   display: "inline-flex",
@@ -23,14 +30,14 @@ const switchStyles = css({
   padding: "0",
   borderRadius: "full",
   border: "2px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.surface",
   cursor: "pointer",
   transition: "all 0.2s ease",
-  background: "bg.2",
+  background: "bg.elevated",
   outline: "none",
   // キーボードフォーカス時のみ citrus-500 リングを表示
   _focusVisible: {
-    boxShadow: "0 0 0 2px var(--colors-accent-focus)",
+    boxShadow: "0 0 0 2px var(--colors-focus-ring)",
   },
 });
 
@@ -39,7 +46,7 @@ const thumbStyles = css({
   width: "20px",
   height: "20px",
   borderRadius: "full",
-  background: "fg.0",
+  background: "fg.primary",
   transition: "transform 0.2s ease",
 });
 

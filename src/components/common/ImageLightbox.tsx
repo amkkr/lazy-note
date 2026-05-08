@@ -40,14 +40,17 @@ const imageStyle = css({
   borderRadius: "md",
 });
 
+// Editorial Citrus トークンに置換 (R-2b / Issue #389)
+// - モーダル上の浮き上がる閉じるボタン: bg.elevated を使用
+// - hover で bg.surface に沈み込ませる
 const closeButtonStyle = css({
   position: "absolute",
   top: "sm",
   right: "sm",
-  background: "bg.2",
-  color: "fg.0",
+  background: "bg.elevated",
+  color: "fg.primary",
   border: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.surface",
   borderRadius: "full",
   width: "xl",
   height: "xl",
@@ -58,7 +61,7 @@ const closeButtonStyle = css({
   fontSize: "base",
   lineHeight: 1,
   _hover: {
-    background: "bg.3",
+    background: "bg.surface",
   },
 });
 
@@ -69,12 +72,15 @@ const spinnerContainerStyle = css({
   padding: "xl",
 });
 
+// スピナーの軌道色とリング色を Editorial Citrus トークンに置換 (R-2b)
+// - 環色: bg.surface
+// - 進捗ハイライト: accent.link (リンク誘導と同色、汎用 UI ハイライト)
 const spinnerStyle = css({
   width: "xl",
   height: "xl",
   border: "4px solid",
-  borderColor: "bg.3",
-  borderTopColor: "blue.light",
+  borderColor: "bg.surface",
+  borderTopColor: "accent.link",
   borderRadius: "full",
   animation: "spin 1s linear infinite",
 });

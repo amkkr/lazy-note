@@ -11,11 +11,15 @@ interface TableOfContentsProps {
   toc: TocItem[];
 }
 
+// Editorial Citrus トークン (R-2b / Issue #389)
+// - 目次は本文と同じレイヤーに配置するため bg.canvas を使用
+// - ボーダーは bg.surface で薄く差別化
+// - 見出し / リンクの hover 背景は bg.elevated
 const containerStyle = css({
-  background: "bg.0",
+  background: "bg.canvas",
   borderRadius: "sm",
   border: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.surface",
   marginTop: "md",
   marginBottom: "md",
 });
@@ -27,13 +31,13 @@ const buttonStyle = css({
   justifyContent: "space-between",
   padding: "sm-md md",
   background: "transparent",
-  color: "fg.0",
+  color: "fg.primary",
   fontWeight: "bold",
   fontSize: "base",
   cursor: "pointer",
   borderRadius: "sm",
   "&:hover": {
-    background: "bg.2",
+    background: "bg.elevated",
   },
 });
 
@@ -54,14 +58,14 @@ const listItemStyle = css({
 const linkBaseStyle = css({
   display: "block",
   padding: "xs-sm sm-md",
-  color: "fg.2",
+  color: "fg.secondary",
   textDecoration: "none",
   borderRadius: "xs",
   fontSize: "sm-lg",
   lineHeight: "1.4",
   "&:hover": {
-    color: "fg.0",
-    background: "bg.2",
+    color: "fg.primary",
+    background: "bg.elevated",
   },
 });
 

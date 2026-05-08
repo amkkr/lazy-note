@@ -4,6 +4,10 @@ import { useScrollPosition } from "../../hooks/useScrollPosition";
 
 const SHOW_THRESHOLD = 300;
 
+// Editorial Citrus トークン (R-2b / Issue #389)
+// - 浮き上がる固定ボタンのため bg.elevated を背景に使用
+// - hover 時に bg.surface に沈み込ませて押下感を演出
+// - 文字色は本文色 fg.primary。bg.elevated 上で AAA を担保。
 const buttonStyles = css({
   position: "fixed",
   bottom: "32px",
@@ -11,10 +15,10 @@ const buttonStyles = css({
   width: "48px",
   height: "48px",
   borderRadius: "full",
-  background: "bg.2",
-  color: "fg.1",
+  background: "bg.elevated",
+  color: "fg.primary",
   border: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.surface",
   cursor: "pointer",
   display: "flex",
   alignItems: "center",
@@ -24,7 +28,7 @@ const buttonStyles = css({
   zIndex: 50,
   transition: "all 0.2s ease",
   "&:hover": {
-    background: "bg.3",
+    background: "bg.surface",
     transform: "translateY(-2px)",
     boxShadow: "card-hover",
   },

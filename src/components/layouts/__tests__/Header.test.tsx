@@ -23,13 +23,15 @@ describe("Header", () => {
   });
 
   it("記事数を表示できる", () => {
+    // R-4 (Issue #392) で BookOpen 装飾は削除し、aria-label で意味を伝える形に変更。
     render(
       <MemoryRouter>
         <Header postCount={5} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("📚 5記事")).toBeInTheDocument();
+    expect(screen.getByLabelText("記事 5 件")).toBeInTheDocument();
+    expect(screen.getByText("5記事")).toBeInTheDocument();
   });
 
   it("記事数が0でも表示できる", () => {
@@ -39,7 +41,8 @@ describe("Header", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("📚 0記事")).toBeInTheDocument();
+    expect(screen.getByLabelText("記事 0 件")).toBeInTheDocument();
+    expect(screen.getByText("0記事")).toBeInTheDocument();
   });
 
   it("postCountがundefinedの場合は件数表示が非表示になる", () => {
@@ -59,7 +62,8 @@ describe("Header", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("📚 999記事")).toBeInTheDocument();
+    expect(screen.getByLabelText("記事 999 件")).toBeInTheDocument();
+    expect(screen.getByText("999記事")).toBeInTheDocument();
   });
 
   it("headerタグが使用されている", () => {

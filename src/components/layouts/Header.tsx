@@ -43,6 +43,7 @@ export const Header = ({ postCount }: HeaderProps) => {
         >
           {postCount !== undefined && (
             <div
+              aria-label={`記事 ${postCount} 件`}
               className={css({
                 background: "bg.2",
                 color: "fg.1",
@@ -54,7 +55,7 @@ export const Header = ({ postCount }: HeaderProps) => {
                 boxShadow: "card",
               })}
             >
-              📚 {postCount}記事
+              {postCount}記事
             </div>
           )}
           <ThemeToggle />

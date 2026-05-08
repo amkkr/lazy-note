@@ -1,9 +1,18 @@
+import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
 import { center } from "../../../styled-system/patterns";
 
 interface EmptyStateProps {
-  icon: string;
+  /**
+   * 装飾用 Lucide アイコンコンポーネント。
+   *
+   * R-4 (Issue #392) で旧 `string` icon (絵文字) から Lucide icon に変更。
+   * 装飾扱いとして `aria-hidden` で SR から隠し、`title` / `description` で
+   * 意味を伝える。Calm 思想 (装飾ノイズの徹底削除) に沿って円形 gradient
+   * 背景は廃止し、線画アイコンを単独で配置する。
+   */
+  icon: LucideIcon;
   title: string;
   description: string;
   action?: {
@@ -13,7 +22,7 @@ interface EmptyStateProps {
 }
 
 export const EmptyState = ({
-  icon,
+  icon: Icon,
   title,
   description,
   action,
@@ -30,19 +39,15 @@ export const EmptyState = ({
       >
         <div
           className={css({
-            width: "24",
-            height: "24",
             mx: "auto",
             mb: "6",
-            bg: "gradients.accent",
-            borderRadius: "full",
+            color: "fg.3",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "2xl",
           })}
         >
-          {icon}
+          <Icon aria-hidden="true" size={48} strokeWidth={1.5} />
         </div>
         <h3
           className={css({
@@ -71,7 +76,7 @@ export const EmptyState = ({
               display: "inline-flex",
               alignItems: "center",
               gap: "2",
-              bg: "gradients.primary",
+              bg: "accent.brand",
               color: "fg.0",
               px: "6",
               py: "3",

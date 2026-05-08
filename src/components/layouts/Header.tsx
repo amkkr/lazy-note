@@ -1,4 +1,5 @@
 import { css } from "../../../styled-system/css";
+import { visuallyHidden } from "../../../styled-system/patterns";
 import { BrandName } from "../common/BrandName";
 import { ThemeToggle } from "../common/ThemeToggle";
 
@@ -43,10 +44,13 @@ export const Header = ({ postCount }: HeaderProps) => {
         >
           {postCount !== undefined && (
             // R-4 (Issue #392) で BookOpen 装飾を削除。
-            // 表記を「全 N 件」とし、視覚と SR で同じ意味が伝わるように統一。
-            // aria-label で SR には「記事 N 件」と意味明確に補完する。
+            // 視覚は短く「全 N 件」、SR は意味明確に「記事 N 件」と読み上げる
+            // 両立対応 (DA 重大 5、Reviewer praise)。
+            // - 視覚テキスト: aria-hidden で SR から隠す
+            // - 補助テキスト: visuallyHidden パターンで視覚から隠し SR にだけ届ける
+            // div に直接 aria-label を付けると Biome a11y
+            // (useAriaPropsSupportedByRole) を踏むため、テキスト二重化方式を採用。
             <div
-              aria-label={`記事 ${postCount} 件`}
               className={css({
                 background: "bg.2",
                 color: "fg.1",
@@ -58,7 +62,8 @@ export const Header = ({ postCount }: HeaderProps) => {
                 boxShadow: "card",
               })}
             >
-              全 {postCount} 件
+              <span aria-hidden="true">全 {postCount} 件</span>
+              <span className={visuallyHidden()}>記事 {postCount} 件</span>
             </div>
           )}
           <ThemeToggle />

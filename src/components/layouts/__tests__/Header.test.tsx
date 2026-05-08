@@ -22,9 +22,9 @@ describe("Header", () => {
     expect(screen.getByText("BrandName (header)")).toBeInTheDocument();
   });
 
-  it("記事数を表示できる", () => {
+  it("記事数を視覚短縮形「全 N 件」で表示できる", () => {
     // R-4 (Issue #392) で BookOpen 装飾は削除し、表記を「全 N 件」に統一。
-    // 視覚と SR の両方で同じ意味が伝わるようにする。
+    // 視覚短縮形は aria-hidden の span に分離し、SR からは隠す。
     render(
       <MemoryRouter>
         <Header postCount={5} />
@@ -32,23 +32,26 @@ describe("Header", () => {
     );
 
     expect(screen.getByText("全 5 件")).toBeInTheDocument();
+    expect(screen.getByText("全 5 件")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
   });
 
-  it("記事数バッジに SR 補完用の aria-label が付与される", () => {
-    // R-4 (Issue #392) で「全 N 件」表記に aria-label="記事 N 件" を補う。
-    // 視覚は短縮表記、SR は意味明確の両立を CI で固定する。
+  it("記事数バッジに SR 用「記事 N 件」テキストを補完する", () => {
+    // R-4 (Issue #392) 視覚短縮形「全 N 件」だけでは意味が曖昧なため、
+    // visuallyHidden パターンの span で SR にだけ「記事 N 件」を届ける。
+    // 視覚短縮 / SR 意味明確の両立を CI で固定する (DA 重大 5)。
     render(
       <MemoryRouter>
         <Header postCount={5} />
       </MemoryRouter>,
     );
 
-    expect(
-      screen.getByLabelText("記事 5 件"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("記事 5 件")).toBeInTheDocument();
   });
 
-  it("記事数が0でも表示できる", () => {
+  it("記事数が0でも視覚と SR の両方で表示される", () => {
     render(
       <MemoryRouter>
         <Header postCount={0} />
@@ -56,7 +59,7 @@ describe("Header", () => {
     );
 
     expect(screen.getByText("全 0 件")).toBeInTheDocument();
-    expect(screen.getByLabelText("記事 0 件")).toBeInTheDocument();
+    expect(screen.getByText("記事 0 件")).toBeInTheDocument();
   });
 
   it("postCountがundefinedの場合は件数表示が非表示になる", () => {

@@ -70,6 +70,11 @@ export const EmptyState = ({
           {description}
         </p>
         {action && (
+          // R-4 (Issue #392) で CTA の文字色を AA pass の組合せに修正。
+          // accent.brand 背景に対し:
+          //   - light (persimmon-600 上): cream.50 で 5.74:1 PASS (AA)
+          //   - dark  (persimmon-500 上): ink.900 で 5.42:1 PASS (AA)
+          // calculateContrast.ts の `cta/light` `cta/dark` ペアと同期させる。
           <Link
             to={action.href}
             className={css({
@@ -77,7 +82,7 @@ export const EmptyState = ({
               alignItems: "center",
               gap: "2",
               bg: "accent.brand",
-              color: "fg.0",
+              color: { _light: "cream.50", _dark: "ink.900" },
               px: "6",
               py: "3",
               borderRadius: "full",

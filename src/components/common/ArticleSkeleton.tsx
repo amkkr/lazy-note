@@ -15,17 +15,18 @@ const innerStyles = css({
   },
 });
 
-// border は bg.surface 同色で視覚消失していたため bg.elevated に変更 (R-2b 修正)。
-// 旧 5 段階 token (background) と (border) で明度差があったが、Editorial Citrus
-// で機械的に bg.surface に圧縮した結果 1.0:1 となっていた。bg.elevated を採用すると
-// 背景 surface より明るい "ハイライト" 風の枠線になり、視覚的に区別可能。
+// border は bg.surface 同色 / bg.elevated 同色で視覚消失していたため border.subtle
+// に置換 (Issue #409)。R-2b では bg.elevated 反転で凌いでいたが、light テーマでは
+// 外側 bg.canvas (cream-50) と同色になり 1.0:1 で再消失する設計上の限界があった。
+// border.subtle は border 専用色で、WCAG 1.4.11 の 3:1 を bg.canvas / bg.surface
+// 上で満たす (light: 3.29-3.49:1 / dark: 3.76-7.05:1)。
 const articleStyles = css({
   background: "bg.surface",
   borderRadius: "lg",
   overflow: "hidden",
   boxShadow: "card-hover",
   border: "1px solid",
-  borderColor: "bg.elevated",
+  borderColor: "border.subtle",
 });
 
 // R-4 (Issue #392) で gradients.primary をフラットな bg.surface に置換。
@@ -103,11 +104,13 @@ const headingStyles = css({
   marginBottom: "md",
 });
 
-// borderBottom も bg.surface 同色で視覚消失していたため bg.elevated に変更 (R-2b 修正)。
+// borderBottom も bg.surface 同色で視覚消失していたため border.subtle に置換
+// (Issue #409。R-2b の bg.elevated 反転は light で外側 canvas と同色化する
+// 制約があり、border 専用色に置き換えて 1.4.11 3:1 を確保する)。
 const navStyles = css({
   background: "bg.surface",
   borderBottom: "1px solid",
-  borderColor: "bg.elevated",
+  borderColor: "border.subtle",
   paddingY: "sm-md",
   paddingX: "md",
   display: "flex",

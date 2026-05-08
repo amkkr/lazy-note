@@ -211,4 +211,38 @@ describe("PostDetailPage", () => {
       expect(contentContainer.contains(tocButton)).toBe(false);
     });
   });
+
+  // ==========================================================================
+  // Issue #409: bg.muted / border.subtle 階層 token 新設の Tripwire。
+  //
+  // R-2b/R-2c で旧 5 段階を 3 段階に圧縮した結果、border に bg.elevated を流用
+  // すると外側 bg.canvas と同色化して視覚消失する設計上の問題があった。
+  // border.subtle (border 専用色) で 1.4.11 (3:1) を確保している。
+  // ==========================================================================
+  describe("border.subtle 階層 token 適用", () => {
+    it("article の border が border.subtle 専用 token を参照している", () => {
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const article = container.querySelector("article");
+      expect(article).toBeInTheDocument();
+      // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
+      expect(article?.className).toMatch(/bd-c_border\.subtle/);
+    });
+
+    it("ページナビゲーションの borderBottom が border.subtle を参照している", () => {
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const nav = container.querySelector('nav[aria-label="ページナビゲーション"]');
+      expect(nav).toBeInTheDocument();
+      expect(nav?.className).toMatch(/bd-c_border\.subtle/);
+    });
+  });
 });

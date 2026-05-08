@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -402,6 +402,94 @@ describe("lint:tokens (scripts/lintTokens.ts)", () => {
       const result = runScript({ LINT_TOKENS_SRC_DIR: filePath });
       expect(result.status).toBe(2);
       expect(result.stderr).toContain("lint:tokens FATAL: no files scanned");
+    });
+  });
+
+  // ====================================================================
+  // __tests__/ ディレクトリ除外テスト (DA 重大 2 対応)
+  //
+  // ヘッダ JSDoc に「`__tests__/**` 除外」と明記されているが、旧実装は
+  // walkDirectory でディレクトリ単位の skip をしていなかった。
+  // テスト fixture (例: `__tests__/util.ts` のような非 `.test.ts` ファイル) を
+  // 追加すると EXCLUDED_FILE_SUFFIXES (suffix 判定) を素通りして CI が落ちる
+  // 潜在バグになるため、ディレクトリ単位で除外する。
+  // ====================================================================
+  describe("__tests__ ディレクトリ除外", () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), "lint-tokens-tests-dir-"));
+    });
+
+    afterEach(() => {
+      rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    const runWithTmpDir = () => runScript({ LINT_TOKENS_SRC_DIR: tmpDir });
+
+    it("__tests__/ 配下の非 .test.ts ファイル (fixture) は走査されない", () => {
+      // 0 files ガードを回避するため、走査対象になる通常 .ts も併置する。
+      writeFileSync(join(tmpDir, "safe.ts"), "const safe = 1;\n", "utf8");
+      const testsDir = join(tmpDir, "__tests__");
+      mkdirSync(testsDir);
+      writeFileSync(
+        join(testsDir, "fixture.ts"),
+        "const v = token('colors.bg.0');\n",
+        "utf8",
+      );
+      const result = runWithTmpDir();
+      // fixture は __tests__/ 配下なので skip され、違反検出されない。
+      expect(result.status).toBe(0);
+    });
+
+    it("__tests__/ 配下の .test.ts も走査されない", () => {
+      writeFileSync(join(tmpDir, "safe.ts"), "const safe = 1;\n", "utf8");
+      const testsDir = join(tmpDir, "__tests__");
+      mkdirSync(testsDir);
+      writeFileSync(
+        join(testsDir, "violation.test.ts"),
+        "const v = token('colors.bg.0');\n",
+        "utf8",
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(0);
+    });
+
+    it("__tests__/ 配下の .css fixture も走査されない", () => {
+      writeFileSync(join(tmpDir, "safe.ts"), "const safe = 1;\n", "utf8");
+      const testsDir = join(tmpDir, "__tests__");
+      mkdirSync(testsDir);
+      writeFileSync(
+        join(testsDir, "fixture.css"),
+        "a { color: var(--colors-fg-2); }\n",
+        "utf8",
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(0);
+    });
+
+    it("__tests__/ 兄弟ディレクトリの違反は通常通り検出される", () => {
+      // __tests__ skip で他のディレクトリの走査が止まらないことの保証。
+      const testsDir = join(tmpDir, "__tests__");
+      mkdirSync(testsDir);
+      writeFileSync(
+        join(testsDir, "fixture.ts"),
+        "const v = token('colors.bg.0');\n",
+        "utf8",
+      );
+      const siblingDir = join(tmpDir, "lib");
+      mkdirSync(siblingDir);
+      writeFileSync(
+        join(siblingDir, "violation.ts"),
+        "const v = 'bg.0';\n",
+        "utf8",
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      // __tests__ 配下のものは検出されず、lib/ 配下のもののみ検出。
+      expect(result.stderr).toContain("1 legacy token reference(s) found");
+      expect(result.stderr).toContain("violation.ts");
+      expect(result.stderr).not.toContain("fixture.ts");
     });
   });
 

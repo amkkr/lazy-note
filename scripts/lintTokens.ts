@@ -17,11 +17,17 @@
  *   - `<root>/panda.config.ts` (theme tokens 正本)
  *   - `<root>/scripts/**` の `.ts` (走査スクリプト自身は自己除外)
  *   - `<root>/e2e/**` の `.ts` / `.spec.ts`
- * 除外: `**`/`__tests__/**`/`*.test.ts` (lint-tokens 自身を Tripwire させるテストは別途存在しうるため、テストでは検出しない) / `scripts/lintTokens.ts` (自己除外)
+ * 除外:
+ *   - `__tests__/**` ディレクトリ (lint-tokens 自身を Tripwire させるテストや
+ *     fixture でハードコードされた旧 token を検出してしまうのを避けるため、
+ *     ディレクトリ単位で skip する)
+ *   - `*.test.ts` / `*.test.tsx` (上記 `__tests__/**` 配下以外で配置されているテスト)
+ *   - `scripts/lintTokens.ts` (自己除外: 本ファイルにパターンを文字列リテラルで保持しているため)
  *
  * 結果:
  *   - 0 件: exit 0 (CI 通過)
  *   - 1 件以上: exit 1 (CI ブロック)
+ *   - 走査ファイル 0 件: exit 2 (構成不備 / 致命エラー、Issue #413 / DA 致命 2 対応)
  *
  * 設計メモ:
  * - 標準ライブラリ (`node:fs` / `node:path`) のみで実装し、追加依存は導入しない。
@@ -67,8 +73,8 @@ const TARGET_EXTENSIONS = new Set([".ts", ".tsx", ".css"]);
 /**
  * 除外する suffix (検知対象から外したい末尾パターン)。
  * - 自テストの中で「文字列としてパターンを書いている」可能性があるため `.test.ts(x)` は除外する。
- *   ただし `__tests__` 配下の通常テストは内部実装ではなく動作検証なので、
- *   旧 token をハードコードする可能性は低い。実害が出たら個別に除外を増やす。
+ *   `__tests__` 配下のテストは walkDirectory のディレクトリ単位 skip でも除外しているが、
+ *   `__tests__` 外に配置された `*.test.ts(x)` を救うため suffix 除外も併用する。
  * - `scripts/lintTokens.ts` (本ファイル): パターン定義 (LINT_PATTERNS) や
  *   CI 失敗時のヒントメッセージで旧 token 名を文字列リテラルで参照しており、
  *   走査範囲拡大 (Issue #413) で自己検知してしまうため自身を除外する。
@@ -229,7 +235,17 @@ const collectTargetFiles = (target: string): string[] => {
     const entries = readdirSync(current);
 
     for (const entry of entries) {
-      if (entry.startsWith(".") || entry === "node_modules") {
+      // 隠しディレクトリ / `node_modules` / `__tests__` を skip。
+      // `__tests__` は本ファイル冒頭 JSDoc で「除外対象」と明記済みだが、
+      // 実装側で skip しないとテスト fixture (例: `__tests__/util.ts` 等の
+      // 非 `.test.ts` ファイル) が `EXCLUDED_FILE_SUFFIXES` (suffix だけで
+      // 判定) を素通りしてしまい、テストコード中の旧 token 言及で CI が
+      // 落ちる潜在バグになる (Issue #413 / DA 重大 2 対応)。
+      if (
+        entry.startsWith(".") ||
+        entry === "node_modules" ||
+        entry === "__tests__"
+      ) {
         continue;
       }
 

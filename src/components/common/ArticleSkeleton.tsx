@@ -16,7 +16,7 @@ const innerStyles = css({
 });
 
 // border は bg.surface 同色で視覚消失していたため bg.elevated に変更 (R-2b 修正)。
-// 旧 Gruvbox では bg.1 (背景) / bg.3 (border) で明度差があったが、Editorial Citrus
+// 旧 5 段階 token (background) と (border) で明度差があったが、Editorial Citrus
 // で機械的に bg.surface に圧縮した結果 1.0:1 となっていた。bg.elevated を採用すると
 // 背景 surface より明るい "ハイライト" 風の枠線になり、視覚的に区別可能。
 const articleStyles = css({

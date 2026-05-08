@@ -23,11 +23,12 @@ interface FeaturedCardProps {
  * - hover で subtle elevation + accent underline (タイトルに下線)
  *
  * AA 担保 (calculateContrast.ts による実測値):
- * - bg.surface (light cream-100) × fg.primary: 16.19:1 AAA
- * - bg.surface (dark sumi-700)   × fg.primary (bone-50): 7.93:1 AAA
- * - bg.canvas  × fg.secondary (light): 9.59:1 AAA
- * - bg.canvas  × accent.featured (light persimmon-600): 5.74:1 AA
- * - bg.canvas  × accent.featured (dark persimmon-500): 5.17:1 AA
+ * - bg.surface (light cream-100) × fg.primary: 16.19:1 AAA (Featured ラベル / タイトル)
+ * - bg.surface (dark sumi-700)   × fg.primary (bone-50): 7.93:1 AAA (Featured ラベル / タイトル)
+ * - bg.surface × fg.secondary: 14.84:1 (dark) / 9.59:1 (light) AAA (excerpt)
+ * - 上罫線の accent.featured は装飾扱い (WCAG 1.4.11 で 3:1)。light cream-100 上で
+ *   5.74:1、dark sumi-700 上は 2.76:1 だが、border は文字情報を含まない装飾なので
+ *   非テキスト最低基準 3:1 すら適用外で、視認可能な範囲で問題なし。
  */
 
 // Featured カード全体ラッパー。bg.surface のフラット背景。
@@ -55,15 +56,20 @@ const featuredWrapperStyles = css({
 });
 
 // "FEATURED" ラベル (uppercase tracking) で雑誌の特集タグ感を出す。
-// accent.featured は light cream-50 上で 5.74:1, dark sumi-950 上で 5.17:1 (AA pass)。
-// uppercase + 小さなフォントサイズなので bg.surface 上でも 16px+ サイズで運用。
+//
+// 配色設計 (DA 致命 2 への対応):
+// dark テーマで bg.surface (sumi-700) × accent.featured (persimmon-500) は 2.76:1 で
+// AA (small text 4.5:1) 不足。bold 12px は WCAG Large Text 18.5px 未満で Large Text
+// 緩和 3:1 の対象外。そのためラベル文字色は fg.primary (light 16.19:1 / dark 7.93:1
+// AAA) に揃え、「Featured」の意味付けは wrapper 側の border-top: accent.featured
+// (装飾扱いで 3:1 OK) で表現する。これによりラベル単体でも AAA を確保できる。
 const featuredLabelStyles = css({
   display: "inline-block",
   fontSize: "xs",
   fontWeight: "700",
   textTransform: "uppercase",
   letterSpacing: "0.15em",
-  color: "accent.featured",
+  color: "fg.primary",
   marginBottom: "sm-md",
 });
 

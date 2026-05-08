@@ -155,9 +155,16 @@ const bentoStretchedLinkStyles = css({
     // クリック領域として透明
     background: "transparent",
   },
-  // focus-visible 時はフォーカスリングを article 全体に視覚的に乗せる
+  // focus-visible 時はフォーカスリングを article 全体に視覚的に乗せる。
+  // panda.config.ts L362-367 の規定に従い、内側 = focus.ring (citrus) で要素背景に対し
+  // 13.03:1 AAA、外側 = light: ink-900 / dark: cream-50 で周囲背景に対し AA 以上を確保。
   "&:focus-visible::after": {
-    boxShadow: "0 0 0 2px var(--colors-bg-canvas), 0 0 0 4px var(--colors-focus-ring)",
+    boxShadow: {
+      _light:
+        "0 0 0 2px var(--colors-focus-ring), 0 0 0 4px var(--colors-ink-900)",
+      _dark:
+        "0 0 0 2px var(--colors-focus-ring), 0 0 0 4px var(--colors-cream-50)",
+    },
   },
 });
 

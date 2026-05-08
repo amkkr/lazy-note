@@ -119,6 +119,30 @@ describe("HomePage", () => {
     expect(link2).toHaveAttribute("href", "/posts/test-post-2");
   });
 
+  // Issue #419: 親 articleStyles の bg.surface 上に置く 1px divider について、
+  // 旧 token (bg.elevated) は light 環境で外側との差が 1.06:1 で視覚消失していた。
+  // border 専用 token (border.subtle) に置換した後、Tripwire テストで CI 検出する。
+  it("articleHeader の borderBottom が border.subtle 専用 token を参照している", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <HomePage
+          posts={mockPosts}
+          currentPage={1}
+          totalPages={1}
+          onPageChange={mockOnPageChange}
+        />
+      </MemoryRouter>,
+    );
+
+    // 各 article 要素の最初の子 div (articleHeader) を取得し、
+    // Panda が生成する `bd-c_border.subtle` クラスが付与されているか検証。
+    const articles = container.querySelectorAll("article");
+    expect(articles.length).toBeGreaterThan(0);
+    const articleHeader = articles[0]?.firstElementChild;
+    expect(articleHeader).toBeInTheDocument();
+    expect(articleHeader?.className).toMatch(/bd-c_border\.subtle/);
+  });
+
   it("タイトルがない記事は「無題の記事」と表示される", () => {
     const postsWithoutTitle: Post[] = [
       {

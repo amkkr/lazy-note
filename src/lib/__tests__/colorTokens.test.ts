@@ -293,6 +293,19 @@ describe("R-2a (Issue #388) で追加した semantic token", () => {
     const r = ratio(semanticColorTokens.focusRing.light, oklchPrimitives.ink["900"]);
     expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
   });
+
+  it("focusRing は light テーマで bgCanvas に単独適用すると AA を満たさない (二重リング運用前提)", () => {
+    // citrus-500 (focusRing) を light テーマの cream-50 (bgCanvas) 上に直接置くと
+    // 1.45:1 となり 1.4.11 (UI 装飾 3:1) すら満たさない。
+    // R-5 (フォーカス可視性強化) では必ず内側に ink-900 を伴う二重リング (boxShadow
+    // inset/outset の二重指定) で運用すること。本テストは開発者が単独運用に
+    // 走らないようにする Tripwire (negative test)。
+    const r = ratio(
+      semanticColorTokens.focusRing.light,
+      semanticColorTokens.bgCanvas.light,
+    );
+    expect(r).toBeLessThan(contrastThresholds.largeText);
+  });
 });
 
 describe("コードブロック token (Gruvbox 温存の Tripwire)", () => {

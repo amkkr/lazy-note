@@ -171,6 +171,13 @@ export interface SemanticColorTokens {
    *
    * 値は accentFocus と同じ citrus-500 だが、focus は accent ではないため
    * 独立 namespace へ昇格させた。
+   *
+   * **運用ルール (重要)**:
+   *   必ず内側に ink-900 (or sumi-950) を伴う二重リングで使うこと。
+   *   light テーマ単独使用は cream-50 上で 1.45:1 となり AA 不足。
+   *   R-5 で boxShadow inset/outset の二重指定を共通化する予定。
+   *   - dark sumi-950 上: 12.43:1 (AAA) → 単独でも可
+   *   - light cream-50 上: 1.45:1 (FAIL) → 二重リング必須
    */
   readonly focusRing: SemanticColorPair;
   /**

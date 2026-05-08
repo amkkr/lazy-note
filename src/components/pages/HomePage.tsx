@@ -33,7 +33,7 @@ const postListStyles = css({
 });
 
 const articleStyles = css({
-  background: "bg.1",
+  background: "bg.surface",
   borderRadius: "lg",
   overflow: "hidden",
   boxShadow: "card",
@@ -44,11 +44,14 @@ const articleStyles = css({
   },
 });
 
+// 親 articleStyles の bg.surface 上に置く 1px divider のため、bg.surface だと
+// 同色で消失する。bg.elevated (より明るい色) でハイライト風の区切り線にする
+// (R-2b 修正方針を踏襲)。
 const articleHeaderStyles = css({
   padding: "sm-md",
   paddingBottom: "md",
   borderBottom: "1px solid",
-  borderColor: "bg.3",
+  borderColor: "bg.elevated",
   md: {
     padding: "card",
     paddingBottom: "md",
@@ -65,7 +68,7 @@ const articleContentStyles = css({
 
 const excerptStyles = css({
   fontSize: "sm",
-  color: "fg.3",
+  color: "fg.muted",
   lineHeight: "body",
   marginTop: "sm",
 });

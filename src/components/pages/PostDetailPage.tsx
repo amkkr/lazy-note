@@ -31,9 +31,9 @@ export const PostDetailPage = ({
       <nav
         aria-label="ページナビゲーション"
         className={css({
-          background: "bg.1",
+          background: "bg.surface",
           borderBottom: "1px solid",
-          borderColor: "bg.3",
+          borderColor: "bg.elevated",
           paddingY: "sm-md",
           paddingX: "md",
           display: "flex",
@@ -58,7 +58,7 @@ export const PostDetailPage = ({
 
       <div
         className={css({
-          background: "bg.0",
+          background: "bg.canvas",
           minHeight: "100vh",
         })}
       >
@@ -74,19 +74,19 @@ export const PostDetailPage = ({
         >
           <article
             className={css({
-              background: "bg.1",
+              background: "bg.surface",
               borderRadius: "lg",
               overflow: "hidden",
               boxShadow: "card-hover",
               border: "1px solid",
-              borderColor: "bg.3",
+              borderColor: "bg.elevated",
             })}
           >
             {/* Article Header with Gradient */}
             <header
               className={css({
                 background: "gradients.primary",
-                color: "fg.0",
+                color: "fg.primary",
                 padding: "md",
                 md: {
                   padding: "section",
@@ -111,7 +111,7 @@ export const PostDetailPage = ({
             <div
               className={css({
                 height: "1px",
-                background: "bg.3",
+                background: "bg.elevated",
               })}
             />
 
@@ -129,9 +129,9 @@ export const PostDetailPage = ({
                 },
                 lineHeight: "body",
                 fontSize: "base",
-                color: "fg.1",
+                color: "fg.primary",
                 "& h1, & h2, & h3": {
-                  color: "fg.0",
+                  color: "fg.primary",
                   fontWeight: "bold",
                   marginTop: "xl",
                   marginBottom: "md",
@@ -150,15 +150,18 @@ export const PostDetailPage = ({
                   marginBottom: "sm",
                 },
                 "& a": {
-                  color: "blue.light",
+                  color: "accent.link",
                   textDecoration: "underline",
                   "&:hover": {
-                    color: "aqua.light",
+                    color: "accent.link",
                   },
                 },
+                // インラインコードの文字色は fg.code (Gruvbox 温存) を使用。
+                // 強調色 (旧 orange.light) は本 R-2c で UI 用 token に集約するため、
+                // ここはコードハイライトと整合する fg.code に揃える。
                 "& code": {
                   background: "bg.codeInline",
-                  color: "orange.light",
+                  color: "fg.code",
                   padding: "2xs xs-sm",
                   borderRadius: "xs",
                   fontSize: "sm-lg",

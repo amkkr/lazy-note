@@ -11,7 +11,7 @@ describe("BrandName", () => {
       </MemoryRouter>,
     );
 
-    const brandName = screen.getByText("✨ Lazy Note");
+    const brandName = screen.getByText("Lazy Note");
     expect(brandName).toBeInTheDocument();
     // Panda CSSはfs_lgのようなクラス名を生成する
     expect(brandName.className).toContain("fs_lg");
@@ -24,7 +24,7 @@ describe("BrandName", () => {
       </MemoryRouter>,
     );
 
-    const brandName = screen.getByText("✨ Lazy Note");
+    const brandName = screen.getByText("Lazy Note");
     expect(brandName).toBeInTheDocument();
     // Panda CSSはfs_smのようなクラス名を生成する
     expect(brandName.className).toContain("fs_sm");
@@ -37,32 +37,20 @@ describe("BrandName", () => {
       </MemoryRouter>,
     );
 
-    const brandName = screen.getByText("✨ Lazy Note");
+    const brandName = screen.getByText("Lazy Note");
     expect(brandName).toBeInTheDocument();
   });
 
-  it("showIcon=falseの時、アイコンが表示されない", () => {
+  it("ブランド表記に装飾絵文字を含めない", () => {
+    // R-4 (Issue #392) の Calm 思想徹底のため、旧 Sparkles 装飾は削除済み。
     render(
       <MemoryRouter>
-        <BrandName showIcon={false} />
+        <BrandName />
       </MemoryRouter>,
     );
 
     const brandName = screen.getByText("Lazy Note");
-    expect(brandName).toBeInTheDocument();
-    expect(brandName.textContent).not.toContain("✨");
-  });
-
-  it("showIcon=trueの時、アイコンが表示される", () => {
-    render(
-      <MemoryRouter>
-        <BrandName showIcon={true} />
-      </MemoryRouter>,
-    );
-
-    const brandName = screen.getByText("✨ Lazy Note");
-    expect(brandName).toBeInTheDocument();
-    expect(brandName.textContent).toContain("✨");
+    expect(brandName.textContent).toBe("Lazy Note");
   });
 
   it("ホームページへのリンクとして機能する", () => {
@@ -72,7 +60,7 @@ describe("BrandName", () => {
       </MemoryRouter>,
     );
 
-    const link = screen.getByRole("link", { name: "✨ Lazy Note" });
+    const link = screen.getByRole("link", { name: "Lazy Note" });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/");
   });
@@ -84,7 +72,7 @@ describe("BrandName", () => {
       </MemoryRouter>,
     );
 
-    const link = screen.getByRole("link", { name: "✨ Lazy Note" });
+    const link = screen.getByRole("link", { name: "Lazy Note" });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/");
   });

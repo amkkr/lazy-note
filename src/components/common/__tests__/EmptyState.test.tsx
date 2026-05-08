@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { Calendar, FileQuestion, FileText } from "../../atoms/icons";
 import { EmptyState } from "../EmptyState";
 
 interface MockLinkProps {
@@ -25,16 +26,18 @@ vi.mock("react-router-dom", async () => {
 });
 
 describe("EmptyState", () => {
+  // R-4 (Issue #392) で icon prop を inline SVG コンポーネント型に変更。
   const defaultProps = {
-    icon: "📝",
+    icon: FileText,
     title: "まだ記事がありません",
     description: "最初の記事を作成してみましょう",
   };
 
   it("アイコン、タイトル、説明文が表示できる", () => {
-    render(<EmptyState {...defaultProps} />);
+    const { container } = render(<EmptyState {...defaultProps} />);
 
-    expect(screen.getByText("📝")).toBeInTheDocument();
+    // 装飾アイコン (inline SVG) は aria-hidden で SR から隠される。
+    expect(container.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(screen.getByText("まだ記事がありません")).toBeInTheDocument();
     expect(
       screen.getByText("最初の記事を作成してみましょう"),
@@ -61,15 +64,20 @@ describe("EmptyState", () => {
   });
 
   it("異なるアイコンが表示できる", () => {
-    render(<EmptyState {...defaultProps} icon="🔍" />);
+    // inline SVG の Calendar に切り替えても常に 1 つの装飾 svg が描画される。
+    const { container } = render(
+      <EmptyState {...defaultProps} icon={Calendar} />,
+    );
 
-    expect(screen.getByText("🔍")).toBeInTheDocument();
-    expect(screen.queryByText("📝")).not.toBeInTheDocument();
+    const decorativeIcons = container.querySelectorAll(
+      'svg[aria-hidden="true"]',
+    );
+    expect(decorativeIcons.length).toBe(1);
   });
 
   it("長いテキストでもレイアウトできる", () => {
     const longProps = {
-      icon: "📚",
+      icon: FileQuestion,
       title:
         "これは非常に長いタイトルのテストです。レイアウトが崩れないことを確認します。",
       description:

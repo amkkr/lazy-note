@@ -231,7 +231,9 @@ describe("semantic トークン (light/dark の本文ペア)", () => {
   });
 
   it("light bgCanvas が cream-50 (primitives) を指している", () => {
-    expect(semanticColorTokens.bgCanvas.light).toBe(oklchPrimitives.cream["50"]);
+    expect(semanticColorTokens.bgCanvas.light).toBe(
+      oklchPrimitives.cream["50"],
+    );
   });
 
   it("dark bgCanvas が sumi-950 (primitives) を指している", () => {

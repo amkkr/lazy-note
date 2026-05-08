@@ -77,4 +77,22 @@ describe("PostNavigation", () => {
 
     expect(container.innerHTML).toBe("");
   });
+
+  // Issue #419: PostDetailPage の bg.canvas 上に置かれる前後ナビ区切り線について、
+  // 旧 token (bg.surface) は light 環境で外側 bg.canvas との差が 1.06:1 で
+  // 視覚消失していた。border 専用 token (border.subtle) に置換した後、
+  // Tripwire テストで CI 検出する。
+  it("nav の borderTop が border.subtle 専用 token を参照している", () => {
+    const olderPost = createMockPost("20240101100000", "古い記事タイトル");
+    const newerPost = createMockPost("20240103100000", "新しい記事タイトル");
+
+    const { container } = render(
+      <PostNavigation olderPost={olderPost} newerPost={newerPost} />,
+    );
+
+    const nav = container.querySelector("nav");
+    expect(nav).toBeInTheDocument();
+    // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
+    expect(nav?.className).toMatch(/bd-c_border\.subtle/);
+  });
 });

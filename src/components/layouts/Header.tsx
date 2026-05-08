@@ -42,8 +42,9 @@ export const Header = ({ postCount }: HeaderProps) => {
           })}
         >
           {postCount !== undefined && (
+            // R-4 (Issue #392) で 📚 装飾を削除。
+            // 表記を「全 N 件」とし、視覚と SR で同じ意味が伝わるように統一。
             <div
-              aria-label={`記事 ${postCount} 件`}
               className={css({
                 background: "bg.2",
                 color: "fg.1",
@@ -55,7 +56,7 @@ export const Header = ({ postCount }: HeaderProps) => {
                 boxShadow: "card",
               })}
             >
-              {postCount}記事
+              全 {postCount} 件
             </div>
           )}
           <ThemeToggle />

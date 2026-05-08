@@ -155,6 +155,23 @@ export interface SemanticColorTokens {
   readonly fgSecondary: SemanticColorPair;
   /** 注釈・補助 */
   readonly fgMuted: SemanticColorPair;
+  /**
+   * CTA (accent.brand 背景) 上の文字色 (Issue #408 で追加)
+   *
+   * Button.tsx (primary variant) / Link.tsx (button variant) /
+   * EmptyState.tsx の CTA Link で使用していた primitive 直書き
+   * (`{_light: "cream.50", _dark: "ink.900"}`) を semantic token として集約。
+   *
+   * **使用ルール (重要)**:
+   *   - 必ず accent.brand 背景上で使うこと。bg.canvas / surface 上では
+   *     light の cream-50 が背景に同化するため使用不可。
+   *   - hover/focus でブランド背景を維持する場合に文字色も同期させること。
+   *
+   * **WCAG コントラスト (scripts/calculateContrast.ts cta/* ペアと同期)**:
+   *   - light (cream-50 × persimmon-600): 5.74:1 PASS (AA)
+   *   - dark  (ink-900   × persimmon-500): 5.42:1 PASS (AA)
+   */
+  readonly fgOnBrand: SemanticColorPair;
   /** ブランド色 (CTA) */
   readonly accentBrand: SemanticColorPair;
   /**
@@ -235,6 +252,10 @@ export const semanticColorTokens: SemanticColorTokens = {
   fgMuted: {
     light: oklchPrimitives.sumi["600"],
     dark: oklchPrimitives.bone["100"],
+  },
+  fgOnBrand: {
+    light: oklchPrimitives.cream["50"],
+    dark: oklchPrimitives.ink["900"],
   },
   accentBrand: {
     light: oklchPrimitives.persimmon["600"],

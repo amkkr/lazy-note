@@ -478,6 +478,25 @@ const verifySemanticPairs = (): readonly ContrastResult[] => {
       minRatio: contrastThresholds.largeText,
       category: "focus",
     },
+    // Issue #408: fg.onBrand × accent.brand のペア (CTA 文字色)。
+    // primitive ペア cta/light cta/dark と同じ結果を semantic 層でも要求し、
+    // 両層の同期が崩れた瞬間に検出する。
+    //   - light (cream-50 × persimmon-600): 5.74:1 PASS (AA)
+    //   - dark  (ink-900   × persimmon-500): 5.42:1 PASS (AA)
+    {
+      name: "semantic/light: fg.onBrand × accent.brand (CTA 文字色)",
+      fg: semanticColorTokens.fgOnBrand.light,
+      bg: semanticColorTokens.accentBrand.light,
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
+    {
+      name: "semantic/dark: fg.onBrand × accent.brand (CTA 文字色)",
+      fg: semanticColorTokens.fgOnBrand.dark,
+      bg: semanticColorTokens.accentBrand.dark,
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
   ];
 
   return semanticPairs.map(computeContrast);

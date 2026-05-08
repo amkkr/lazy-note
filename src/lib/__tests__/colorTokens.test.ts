@@ -320,6 +320,36 @@ describe("R-2a (Issue #388) で追加した semantic token", () => {
   });
 });
 
+describe("Issue #408 fg.onBrand semantic token", () => {
+  // CTA (accent.brand 背景) 上の文字色を集約する semantic token。
+  // Button.tsx / Link.tsx / EmptyState.tsx の primitive 直書きを置換。
+  it("fgOnBrand は light で cream-50 を指している", () => {
+    expect(semanticColorTokens.fgOnBrand.light).toBe(
+      oklchPrimitives.cream["50"],
+    );
+  });
+
+  it("fgOnBrand は dark で ink-900 を指している", () => {
+    expect(semanticColorTokens.fgOnBrand.dark).toBe(oklchPrimitives.ink["900"]);
+  });
+
+  it("fgOnBrand × accentBrand (light) が AA 4.5:1 以上である (cta/light: 5.74:1)", () => {
+    const r = ratio(
+      semanticColorTokens.fgOnBrand.light,
+      semanticColorTokens.accentBrand.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("fgOnBrand × accentBrand (dark) が AA 4.5:1 以上である (cta/dark: 5.42:1)", () => {
+    const r = ratio(
+      semanticColorTokens.fgOnBrand.dark,
+      semanticColorTokens.accentBrand.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+});
+
 describe("コードブロック token (旧パレット温存の Tripwire)", () => {
   // Editorial Citrus 移行後もコードブロックは従来配色を温存する方針
   // (RFC 02 §既存 Gruvbox の取り扱い)。

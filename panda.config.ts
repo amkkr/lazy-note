@@ -302,6 +302,27 @@ export default defineConfig({
             },
           },
           // ----------------------------------------------------------------
+          // CTA (accent.brand 背景) 上の文字色 (Issue #408 で追加)
+          //
+          // Button.tsx (primary variant) / Link.tsx (button variant) /
+          // EmptyState.tsx の CTA Link で使用していた primitive 直書き
+          // ({_light: "cream.50", _dark: "ink.900"}) を semantic token として
+          // 集約する。値の正本は src/lib/colorTokens.ts の semanticColorTokens.fgOnBrand。
+          //
+          // WCAG コントラスト (scripts/calculateContrast.ts cta/* ペアと同期):
+          //   - light (cream-50 × persimmon-600): 5.74:1 PASS (AA)
+          //   - dark  (ink-900   × persimmon-500): 5.42:1 PASS (AA)
+          //
+          // 必ず accent.brand 背景上で使うこと。bg.canvas / surface 上では
+          // light の cream-50 が背景に同化するため使用不可。
+          // ----------------------------------------------------------------
+          onBrand: {
+            value: {
+              _light: "{colors.cream.50}",
+              _dark: "{colors.ink.900}",
+            },
+          },
+          // ----------------------------------------------------------------
           // コードブロック本文の既定文字色 (R-2a / Issue #388 で追加、R-2c で hex 直接化)
           //
           // Shiki/Prism のシンタックスハイライトが適用されない箇所

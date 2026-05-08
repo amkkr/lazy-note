@@ -108,6 +108,26 @@ a:hover {
   color: var(--colors-accent-link);
 }
 
+/*
+ * R-5 (Issue #393) prefers-reduced-motion: reduce 時の transition / animation
+ * 無効化。WCAG 2.3.3 / 2.2.2 対応。
+ * - グローバルな transition/animation を `none` 相当に抑制する。
+ * - 個別コンポーネントの :hover transform などは _motionReduce で個別対応。
+ * - fade-in / progress-bar など意味を持つ transition は src/styles/transitions.ts
+ *   側で同条件を適用する。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -166,9 +186,21 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button:focus,
+/*
+ * R-5 (Issue #393) で button のグローバル focus を再設計。
+ * - WebKit デフォルトの 4px outline は二重リング上で重複し、形状を破壊する
+ *   (Editorial Citrus の Calm 思想に反する)。
+ * - 個別 atom (Button / Link / ThemeToggle) では box-shadow による
+ *   二重リングを `src/styles/focusRing.ts` から適用する。
+ * - グローバルではフォールバックとして outline/offset の最低限のみ用意し、
+ *   focus-visible のみで描画する (マウスクリック時の視覚ノイズを回避)。
+ */
+button:focus {
+  outline: none;
+}
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid var(--colors-focus-ring);
+  outline-offset: 2px;
 }
 
 @keyframes spin {

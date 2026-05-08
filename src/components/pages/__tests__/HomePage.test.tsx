@@ -233,11 +233,12 @@ describe("HomePage", () => {
         screen.getByRole("heading", { name: "Index" }),
       ).toBeInTheDocument();
 
-      // 8-10 件目は IndexRow として表示される (zero-padded 番号)
-      // Index 内で連番なので 8 件目=01, 9 件目=02, 10 件目=03
-      expect(screen.getByText("01")).toBeInTheDocument();
-      expect(screen.getByText("02")).toBeInTheDocument();
-      expect(screen.getByText("03")).toBeInTheDocument();
+      // 8-10 件目は IndexRow として表示される (zero-padded 番号)。
+      // 全体連番 (Featured 1 + Bento 6 = 7 件オフセット) なので
+      // 8 件目=08, 9 件目=09, 10 件目=10。
+      expect(screen.getByText("08")).toBeInTheDocument();
+      expect(screen.getByText("09")).toBeInTheDocument();
+      expect(screen.getByText("10")).toBeInTheDocument();
 
       // Index リンクが正しい記事 ID を持つ
       const link8 = screen.getByRole("link", { name: "テスト記事8" });

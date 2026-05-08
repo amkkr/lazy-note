@@ -26,6 +26,14 @@ interface HomePageProps {
  * - Bento: 2-7 記事目 (最大 6 件、BentoCard) - 2x2 + 非対称 grid
  * - Index: 8 記事目以降 (IndexRow) - Magazine 風 `01 — タイトル ─── 著者 ── 日付`
  *
+ * 件数前提:
+ * - usePosts.ts の POSTS_PER_PAGE = 16 に揃え、1 ページに Featured 1 + Bento 6
+ *   + Index 9 が収まる構成を基準とする。Magazine 風 Index TOC が意味を持つには
+ *   1 ページ目に Index が複数件並ぶ必要があり、10 件区切りでは TOC が成立しない。
+ * - 件数依存の挙動 (3〜6 件の Bento 配列縮退、7 件で Index 出現境界、16 件超で
+ *   Pagination 起動) は VR snapshot で確認する想定。本 PR ではエッジケース
+ *   (1〜6 件運用時のレイアウト微調整) は別 Issue で対応する。
+ *
  * レスポンシブ:
  * - mobile (< 768px):  Featured 大 + Bento 1col + Index (leader 非表示で改行)
  * - tablet (768-1024): Featured 大 + Bento 2col + Index
@@ -182,10 +190,13 @@ export const HomePage = memo(
               </h3>
               <ul className={indexListStyles}>
                 {indexPosts.map((post, idx) => (
-                  // index は Index 内の連番 (Featured/Bento は別カウント)。
-                  // 全体連番にしたい場合は idx + 7 にすれば良いが、
-                  // Magazine 風 TOC の "01..." は Index 自身のカウントが直感的。
-                  <IndexRow key={post.id} post={post} index={idx} />
+                  // 全体連番 (Featured 1 件 + Bento 6 件 = 7 件オフセット)。
+                  // POSTS_PER_PAGE = 16 で 1 ページ完結を前提としているため、
+                  // currentPage は加味せず idx + 7 で 8, 9, ... を表示する。
+                  // 16 件超で Pagination が発生した場合は、Featured / Bento は
+                  // 1 ページ目限定の意味付けを維持しつつ Index 番号は 1 ページ
+                  // 完結のままで良い (各ページが独立した Magazine の章扱い)。
+                  <IndexRow key={post.id} post={post} index={idx + 7} />
                 ))}
               </ul>
             </section>

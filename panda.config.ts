@@ -218,7 +218,9 @@ export default defineConfig({
         //   - bg.canvas × fg.primary   (dark):  16.98:1 PASS (AAA)
         //   - bg.canvas × fg.secondary (light):  9.59:1 PASS (AAA)
         //   - bg.canvas × fg.secondary (dark):  14.84:1 PASS (AAA)
-        //   - bg.canvas × fg.muted     (light):  9.59:1 PASS (AAA)
+        //   - bg.canvas × fg.muted     (light):  6.54:1 PASS (AA, AAA 未達)
+        //     ※ fg.muted は本文として運用しない (補助情報のみ)。本文用途では
+        //        sumi-700 へ振り直すか fg.secondary を使うこと。
         //   - bg.canvas × fg.muted     (dark):  14.84:1 PASS (AAA)
         //   - bg.surface × fg.primary  (light): 16.19:1 PASS (AAA)
         //   - bg.canvas × accent.link  (light):  7.82:1 PASS (AAA)
@@ -226,6 +228,8 @@ export default defineConfig({
         //   - bg.canvas × accent.featured (light, persimmon-600): 5.74:1 PASS (AA)
         //   - bg.canvas × accent.featured (dark, persimmon-500):  5.17:1 PASS (AA)
         //   - focus.ring × bg.canvas (dark, citrus × sumi-950): 12.43:1 PASS (AAA)
+        //   - focus.ring × bg.canvas (light, citrus × cream-50): 1.45:1 FAIL
+        //     ※ light テーマで単独使用すると AA 不足。必ず二重リング運用すること。
         //   - focus.ring 二重リング (citrus-500 × ink-900 内側): 13.03:1 PASS (AAA)
         //   - focus.ring 二重リング外側 (ink-900 × persimmon-600): 3.28:1 PASS (UI 装飾 3:1)
         // ====================================================================

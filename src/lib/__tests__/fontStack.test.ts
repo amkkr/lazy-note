@@ -73,28 +73,48 @@ describe("formatFontStack", () => {
     const formatted = formatFontStack(["A B", "C", "serif"]);
     expect(formatted).toBe('"A B", "C", serif');
   });
+
+  it("空配列を渡すと空文字列を返す", () => {
+    expect(formatFontStack([])).toBe("");
+  });
+
+  it("単一の generic family serif をクォートせず serif として返す", () => {
+    expect(formatFontStack(["serif"])).toBe("serif");
+  });
+
+  it("単一の generic family ui-monospace をクォートせず ui-monospace として返す", () => {
+    expect(formatFontStack(["ui-monospace"])).toBe("ui-monospace");
+  });
 });
 
 describe("index.html (preload リンク)", () => {
   const indexHtml = readProjectFile("index.html");
 
   it("Newsreader VF Latin を preload する link を含む", () => {
-    expect(indexHtml).toContain(
-      `href="${fontAssetPaths.newsreaderLatin}"`,
-    );
+    expect(indexHtml).toContain(`href="${fontAssetPaths.newsreaderLatin}"`);
     expect(indexHtml).toContain('rel="preload"');
   });
 
-  it("preload link が as=\"font\" を指定している", () => {
+  it('preload link が as="font" を指定している', () => {
     expect(indexHtml).toMatch(/rel="preload"[\s\S]*?as="font"/);
   });
 
-  it("preload link が type=\"font/woff2\" を指定している", () => {
+  it('preload link が type="font/woff2" を指定している', () => {
     expect(indexHtml).toMatch(/rel="preload"[\s\S]*?type="font\/woff2"/);
   });
 
   it("preload link が crossorigin 属性を持つ", () => {
     expect(indexHtml).toMatch(/rel="preload"[\s\S]*?crossorigin/);
+  });
+
+  it("preload で読み込むフォントは 1 個のみ (フォント合計 KB 削減方針)", () => {
+    // index.html 内の <link rel="preload" ... as="font"> 出現数をカウントする。
+    // 設計方針: 一次フォント Newsreader Latin Roman の 1 本のみを preload する。
+    const preloadFontMatches = indexHtml.match(
+      /<link[^>]*rel="preload"[^>]*as="font"[^>]*>/g,
+    );
+    expect(preloadFontMatches).not.toBeNull();
+    expect(preloadFontMatches?.length).toBe(1);
   });
 });
 
@@ -113,7 +133,9 @@ describe("src/index.css (@font-face と :root font-family)", () => {
   it("@font-face で size-adjust または ascent-override を指定し CLS を吸収する", () => {
     // どちらか (または両方) があれば fallback メトリクスとの差分を吸収できる
     const hasSizeAdjust = /size-adjust:\s*\d+(?:\.\d+)?%/.test(indexCss);
-    const hasAscentOverride = /ascent-override:\s*\d+(?:\.\d+)?%/.test(indexCss);
+    const hasAscentOverride = /ascent-override:\s*\d+(?:\.\d+)?%/.test(
+      indexCss,
+    );
     expect(hasSizeAdjust || hasAscentOverride).toBe(true);
   });
 
@@ -136,21 +158,12 @@ describe("src/index.css (@font-face と :root font-family)", () => {
   });
 });
 
-describe("panda.config.ts (theme.tokens.fonts.serif)", () => {
+describe("panda.config.ts (R-1 では fonts トークン未登録)", () => {
   const pandaConfig = readProjectFile("panda.config.ts");
 
-  it("serif トークンに Newsreader 一次指定のスタックを定義している", () => {
-    // tokens.fonts.serif の value 文字列に Newsreader が一次指定で入っていること
-    expect(pandaConfig).toMatch(/serif:\s*{[\s\S]*?Newsreader[\s\S]*?serif/);
-  });
-
-  it("serif トークンに和文フォールバック Hiragino Mincho ProN と Yu Mincho を含む", () => {
-    const fontsBlockMatch = pandaConfig.match(
-      /fonts:\s*{[\s\S]*?serif:\s*{[\s\S]*?value:[\s\S]*?,\s*}/,
-    );
-    expect(fontsBlockMatch).not.toBeNull();
-    const fontsBlock = fontsBlockMatch?.[0] ?? "";
-    expect(fontsBlock).toContain("Hiragino Mincho ProN");
-    expect(fontsBlock).toContain("Yu Mincho");
+  it("R-1 では theme.tokens.fonts を追加していない (R-2 / R-3 で textStyles と一緒に整備)", () => {
+    // 既存の `fontSizes:` / `lineHeights:` トークンと衝突しないよう、
+    // `fonts: {` ブロック (フォントファミリトークン) のみ存在しないことを確認する。
+    expect(pandaConfig).not.toMatch(/\bfonts:\s*{/);
   });
 });

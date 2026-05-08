@@ -34,7 +34,16 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, relative, resolve } from "node:path";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
-const SRC_DIR = join(PROJECT_ROOT, "src");
+
+/**
+ * 走査対象ディレクトリ。
+ * 既定は `<PROJECT_ROOT>/src` だが、テストから `LINT_TOKENS_SRC_DIR` env で
+ * 別ディレクトリ (OS tmp 配下に作った擬似 src 等) を指定できる。
+ * 副作用として src/ 直下に一時ファイルを残置するリスクを排除する。
+ */
+const SRC_DIR = process.env.LINT_TOKENS_SRC_DIR
+  ? resolve(process.env.LINT_TOKENS_SRC_DIR)
+  : join(PROJECT_ROOT, "src");
 
 /** 走査対象拡張子 */
 const TARGET_EXTENSIONS = new Set([".ts", ".tsx", ".css"]);

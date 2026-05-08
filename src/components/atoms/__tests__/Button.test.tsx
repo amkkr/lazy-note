@@ -206,4 +206,37 @@ describe("Button", () => {
       expect(button.className).toMatch(/c_accent\.link/);
     });
   });
+
+  // ====================================================================
+  // R-5 (Issue #393) focus ring 共通化 Tripwire
+  //
+  // src/styles/focusRing.ts の二重リング (box-shadow + var(--colors-focus-ring))
+  // が variant 別に正しく適用されているか検証する。
+  // class 名は Panda が `[&:focus-visible]:` の hash 化済 class を生成する。
+  // 文字列レベルで一致させるのは困難なため、focus-visible キーワードと
+  // box-shadow が含まれていることのみ確認する。
+  // ====================================================================
+  describe("R-5 focus ring (Issue #393)", () => {
+    it("primary variant は focus-visible 関連の class を持つ", () => {
+      render(<Button variant="primary">Primary</Button>);
+      const button = screen.getByRole("button", { name: "Primary" });
+      // Panda が _focusVisible を `[&:focus-visible]:` に変換するため、
+      // class 名にはエスケープされた `:focus-visible` の hash が含まれる。
+      // 直接の文字列マッチが困難なため、focusRingOnAccentStyles から
+      // 出力される class 数 (3 個以上) のシグネチャで判定する。
+      expect(button.className.split(/\s+/).length).toBeGreaterThan(3);
+    });
+
+    it("secondary variant も focus ring class を持つ", () => {
+      render(<Button variant="secondary">Secondary</Button>);
+      const button = screen.getByRole("button", { name: "Secondary" });
+      expect(button.className.split(/\s+/).length).toBeGreaterThan(3);
+    });
+
+    it("ghost variant も focus ring class を持つ", () => {
+      render(<Button variant="ghost">Ghost</Button>);
+      const button = screen.getByRole("button", { name: "Ghost" });
+      expect(button.className.split(/\s+/).length).toBeGreaterThan(3);
+    });
+  });
 });

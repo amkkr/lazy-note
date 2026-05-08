@@ -1,14 +1,23 @@
 @layer reset, base, tokens, recipes, utilities;
 @import "../styled-system/styles.css";
 
+/* Editorial Citrus 移行 (R-2b / Issue #389):
+   旧 Gruvbox 直接参照の CSS 変数 (--colors-fg-1 / --colors-bg-0 /
+   --colors-blue-light / --colors-aqua-light / --colors-fg-2) を
+   新 semantic token (--colors-fg-primary / --colors-bg-canvas /
+   --colors-accent-link / --colors-fg-secondary) に置換する。
+   R-2c で旧 token を削除する際、本ファイルの旧参照が残ると undefined となり
+   light/dark でページ全体が崩壊するため必ず先行修正する (DA 重大 5)。
+   注: hover 時の色相変化用に旧 --colors-aqua-light を別 token として用意して
+   いたが、Editorial Citrus は accent 単色運用方針のため accent.link を流用 */
 :root {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   font-size: 62.5%;
   line-height: 1.6;
   font-weight: 400;
 
-  color: var(--colors-fg-1);
-  background: var(--colors-bg-0);
+  color: var(--colors-fg-primary);
+  background: var(--colors-bg-canvas);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -18,12 +27,14 @@
 
 a {
   font-weight: 500;
-  color: var(--colors-blue-light);
+  color: var(--colors-accent-link);
   text-decoration: none;
   transition: all 0.2s ease;
 }
 a:hover {
-  color: var(--colors-aqua-light);
+  /* hover 時の派生色は将来 accent.link-hover を導入予定。本 PR では accent.link
+     を流用 (Editorial Citrus は accent 単色運用方針のため filter/opacity で表現)。 */
+  color: var(--colors-accent-link);
 }
 
 body {
@@ -36,7 +47,7 @@ body {
 /* Typography Base Styles */
 h1, h2, h3 {
   font-weight: bold;
-  color: var(--colors-fg-1);
+  color: var(--colors-fg-primary);
   line-height: 1.2; /* snug */
 }
 
@@ -47,7 +58,7 @@ h1 {
 
 p {
   line-height: 1.7; /* body */
-  color: var(--colors-fg-2);
+  color: var(--colors-fg-secondary);
 }
 
 /* List Base Styles */

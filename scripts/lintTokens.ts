@@ -411,6 +411,20 @@ const main = (): void => {
   for (const target of TARGET_PATHS) {
     files.push(...collectTargetFiles(target));
   }
+
+  // 0 files scanned ガード (Issue #413 / DA 致命 2 対応)。
+  // `LINT_TOKENS_SRC_DIR=/nonexistent` のような誤設定や `TARGET_PATHS` の
+  // 全パスが空 / 非存在になっている状態では、走査が成立せず Tripwire
+  // 自体が機能しない。`exit 0` だと CI が誤って通ってしまうため、
+  // 走査ファイル 0 件は構成不備として `exit 2` で fail-fast する
+  // (旧 token 検出による `exit 1` と区別する)。
+  if (files.length === 0) {
+    console.error(
+      "lint:tokens FATAL: no files scanned. TARGET_PATHS or LINT_TOKENS_SRC_DIR may be misconfigured.",
+    );
+    process.exit(2);
+  }
+
   const violations: Violation[] = [];
 
   for (const file of files) {

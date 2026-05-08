@@ -147,6 +147,9 @@ describe("lint:tokens (scripts/lintTokens.ts)", () => {
     });
 
     it(".test.ts ファイルは検査対象外で違反検出されない", () => {
+      // `.test.ts` は EXCLUDED_FILE_SUFFIXES で除外される。
+      // 0 files scanned ガード (DA 致命 2) を回避するため、検出対象外の通常 `.ts` を併置する。
+      writeTmpFile("safe.ts", "const safe = 1;\n");
       writeTmpFile("violation.test.ts", "const v = token('colors.bg.0');\n");
       const result = runWithTmpDir();
       expect(result.status).toBe(0);
@@ -305,11 +308,42 @@ describe("lint:tokens (scripts/lintTokens.ts)", () => {
       expect(result.stderr).toContain("old-bg-numeric");
     });
 
-    it("LINT_TOKENS_SRC_DIR に対象拡張子外の単一ファイルを指定すると 0 件になる", () => {
+    it("LINT_TOKENS_SRC_DIR に対象拡張子外の単一ファイルを指定すると 0 files で exit 2 になる", () => {
+      // .md は走査対象外なので 0 files になる。
+      // 0 files scanned ガード (DA 致命 2 対応) で exit 2 (FATAL) になることを検証する。
       const filePath = join(tmpDir, "single.md");
       writeFileSync(filePath, "bg.0 in markdown\n", "utf8");
       const result = runScript({ LINT_TOKENS_SRC_DIR: filePath });
-      expect(result.status).toBe(0);
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("lint:tokens FATAL: no files scanned");
+    });
+  });
+
+  // ====================================================================
+  // 0 files scanned ガード (DA 致命 2 対応)
+  //
+  // LINT_TOKENS_SRC_DIR が誤設定 (存在しないパス / 空ディレクトリ) の場合に、
+  // exit 0 で素通りせず fail-fast (exit 2) することを検証する。
+  // exit 1 (旧 token 検出) と exit 2 (構成不備) は別ステータスにする。
+  // ====================================================================
+  describe("0 files scanned ガード", () => {
+    it("LINT_TOKENS_SRC_DIR に存在しないパスを指定すると exit 2 になる", () => {
+      const result = runScript({
+        LINT_TOKENS_SRC_DIR: "/nonexistent-lint-tokens-test-path",
+      });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("lint:tokens FATAL: no files scanned");
+    });
+
+    it("LINT_TOKENS_SRC_DIR に空ディレクトリを指定すると exit 2 になる", () => {
+      const emptyDir = mkdtempSync(join(tmpdir(), "lint-tokens-empty-"));
+      try {
+        const result = runScript({ LINT_TOKENS_SRC_DIR: emptyDir });
+        expect(result.status).toBe(2);
+        expect(result.stderr).toContain("lint:tokens FATAL: no files scanned");
+      } finally {
+        rmSync(emptyDir, { recursive: true, force: true });
+      }
     });
   });
 });

@@ -497,6 +497,25 @@ const verifySemanticPairs = (): readonly ContrastResult[] => {
       minRatio: contrastThresholds.largeText,
       category: "ui-large",
     },
+    // Issue #408 (DA 救済 4): fg.onBrand × accent.featured のペア。
+    // 現状 accent.featured は accent.brand と同値だが、Phase 2 で分離した際に
+    // 値が逸脱した瞬間に検出するための Tripwire。同値の間は AA 値も同一になる。
+    //   - light (cream-50 × persimmon-600): 5.74:1 PASS (AA)
+    //   - dark  (ink-900   × persimmon-500): 5.42:1 PASS (AA)
+    {
+      name: "semantic/light: fg.onBrand × accent.featured (Phase 2 分離 Tripwire)",
+      fg: semanticColorTokens.fgOnBrand.light,
+      bg: semanticColorTokens.accentFeatured.light,
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
+    {
+      name: "semantic/dark: fg.onBrand × accent.featured (Phase 2 分離 Tripwire)",
+      fg: semanticColorTokens.fgOnBrand.dark,
+      bg: semanticColorTokens.accentFeatured.dark,
+      minRatio: contrastThresholds.largeText,
+      category: "ui-large",
+    },
   ];
 
   return semanticPairs.map(computeContrast);

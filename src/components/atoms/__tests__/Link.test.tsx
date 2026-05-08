@@ -362,4 +362,65 @@ describe("Link", () => {
       expect(link.style.viewTransitionName).toBe("custom-vt-name");
     });
   });
+
+  // ====================================================================
+  // R-5 (Issue #393) リンク下線挙動の Tripwire
+  //
+  // AC (ii): PostDetail 本文内のインラインリンクは underline を維持し、
+  // Header / Footer ナビは下線なしで一貫させる。
+  //
+  // - default variant : 本文インラインリンク → text-decoration: underline
+  // - navigation      : Header/Footer ナビ → text-decoration: none
+  // - button          : CTA → text-decoration: none
+  // - card            : カード → text-decoration: none
+  //
+  // Panda の class 名は `td_underline` `td_none` 形式で生成される。
+  // ====================================================================
+  describe("R-5 リンク下線挙動 (Issue #393)", () => {
+    it("default variant は textDecoration: underline を持つ", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/article">Inline</Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "Inline" });
+      expect(link.className).toMatch(/td_underline/);
+    });
+
+    it("navigation variant は textDecoration: none を持つ (下線なし)", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/nav" variant="navigation">
+            Nav
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "Nav" });
+      expect(link.className).toMatch(/td_none/);
+    });
+
+    it("button variant は textDecoration: none を持つ (下線なし、CTA)", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/cta" variant="button">
+            CTA
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "CTA" });
+      expect(link.className).toMatch(/td_none/);
+    });
+
+    it("card variant は textDecoration: none を持つ (下線なし、カード全体)", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/card" variant="card">
+            Card
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "Card" });
+      expect(link.className).toMatch(/td_none/);
+    });
+  });
 });

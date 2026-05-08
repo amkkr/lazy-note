@@ -30,14 +30,13 @@
  *   - descent-override = Hiragino descent / 1080 ≒ 11%
  *       → 視覚バランス調整で 22% に拡張 (見出し / 本文のディセンダ余白)
  *   - line-gap-override = 0% (line-height は CSS で別途制御)
- * 数値は Phase2 で実機 CLS を測って再調整予定 (Issue #387 / RFC 03-typography.md)。
+ * 数値は Phase2 で実機 CLS を測って再調整予定 (Issue #387)。
  *
  * - ライセンス本文は public/fonts/Newsreader-LICENSE.txt に同梱。
  *
  * Italic woff2 は本 Issue では同梱しない (フォント合計 KB 削減のため)。
- * 本文 datasources/*.md で Italic 強調が必要なケースが出てきた場合は
- * Phase2 で再導入する。それまでは OS フォールバック (Hiragino Mincho ProN
- * の synthesized italic) で描画される。
+ * 本文で Italic 強調が必要なケースが出てきた場合は Phase2 で再導入する。
+ * それまでは OS フォールバック (Hiragino Mincho ProN の synthesized italic) で描画。
  */
 @font-face {
   font-family: "Newsreader";
@@ -108,6 +107,26 @@ a:hover {
   color: var(--colors-accent-link);
 }
 
+/*
+ * R-5 (Issue #393) prefers-reduced-motion: reduce 時の transition / animation
+ * 無効化。WCAG 2.3.3 / 2.2.2 対応。
+ * - グローバルな transition/animation を `none` 相当に抑制する。
+ * - 個別コンポーネントの :hover transform などは _motionReduce で個別対応。
+ * - fade-in / progress-bar など意味を持つ transition は src/styles/transitions.ts
+ *   側で同条件を適用する。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -166,9 +185,19 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/*
+ * R-5 (Issue #393) で button のグローバル focus を再設計。
+ * - WebKit デフォルトの outline は二重リング (box-shadow) と重畳して形状を
+ *   破壊するため、:focus 時は outline:none に統一する。
+ * - 個別 atom (Button / Link / ThemeToggle) では `src/styles/focusRing.ts`
+ *   の二重リング (box-shadow) で focus-visible を描画する。
+ * - 旧実装の `button:focus-visible { outline: 2px solid ... }` は CSS Cascade
+ *   Layers の規則上 un-layered として any layer よりも優先され、Panda の
+ *   `_focusVisible: { outline: "none" }` を破ってリングが二重描画されていた
+ *   ため、グローバルでは outline 指定を行わない方針とした (R-5 修正)。
+ */
+button:focus {
+  outline: none;
 }
 
 @keyframes spin {

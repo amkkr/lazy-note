@@ -1,5 +1,9 @@
 import { memo, type ReactNode } from "react";
 import { css } from "../../../styled-system/css";
+import {
+  focusRingOnAccentStyles,
+  focusRingStyles,
+} from "../../styles/focusRing";
 
 interface ButtonProps {
   children: ReactNode;
@@ -12,6 +16,9 @@ interface ButtonProps {
 }
 
 // ベーススタイル（全バリアント共通）
+// R-5 (Issue #393) で focus ring を src/styles/focusRing.ts に共通化。
+// outline は none に統一し、box-shadow 二重リングで track 形状を保つ。
+// transition は prefers-reduced-motion: reduce 時に無効化する。
 const baseButtonStyles = css({
   display: "inline-flex",
   alignItems: "center",
@@ -19,6 +26,9 @@ const baseButtonStyles = css({
   borderRadius: "md",
   fontWeight: "medium",
   transition: "all 0.2s ease",
+  _motionReduce: {
+    transition: "none",
+  },
   cursor: "pointer",
   border: "none",
   outline: "none",
@@ -96,6 +106,12 @@ const sizeStyles = {
 
 /**
  * ボタンコンポーネント（CSS定数抽出 + React.memoでメモ化）
+ *
+ * R-5 (Issue #393) で focus-visible 二重リングを variant 別に切替:
+ * - primary: 背景が accent.brand (persimmon) のため `focusRingOnAccentStyles`
+ *   (内側 ink-900/cream-50 + 外側 citrus-500) を使用。
+ * - secondary / ghost: 通常背景上のため `focusRingStyles`
+ *   (内側 bg.canvas + 外側 citrus-500) を使用。
  */
 export const Button = memo(
   ({
@@ -107,12 +123,14 @@ export const Button = memo(
     type = "button",
     className,
   }: ButtonProps) => {
+    const focusRingClass =
+      variant === "primary" ? focusRingOnAccentStyles : focusRingStyles;
     return (
       <button
         type={type}
         onClick={onClick}
         disabled={disabled}
-        className={`${baseButtonStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className || ""}`}
+        className={`${baseButtonStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${focusRingClass} ${className || ""}`}
       >
         {children}
       </button>

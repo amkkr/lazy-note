@@ -1,6 +1,7 @@
 import { Transition } from "@headlessui/react";
 import { css } from "../../../styled-system/css";
 import { useScrollPosition } from "../../hooks/useScrollPosition";
+import { focusRingStyles } from "../../styles/focusRing";
 
 const SHOW_THRESHOLD = 300;
 
@@ -9,6 +10,7 @@ const SHOW_THRESHOLD = 300;
 // - border は bg.elevated でハイライト風の枠線にする (bg.surface 同色だと 1.06:1 で消失するため)
 // - hover 時に bg.elevated に反転させて押下感を演出
 // - 文字色は本文色 fg.primary。bg.surface 上で AAA を担保。
+// R-5 (Issue #393) で transition は prefers-reduced-motion: reduce 時に無効化。
 const buttonStyles = css({
   position: "fixed",
   bottom: "32px",
@@ -28,6 +30,9 @@ const buttonStyles = css({
   boxShadow: "card",
   zIndex: 50,
   transition: "all 0.2s ease",
+  _motionReduce: {
+    transition: "none",
+  },
   "&:hover": {
     background: "bg.elevated",
     transform: "translateY(-2px)",
@@ -62,7 +67,7 @@ export const BackToTop = () => {
     >
       <button
         type="button"
-        className={buttonStyles}
+        className={`${buttonStyles} ${focusRingStyles}`}
         onClick={handleClick}
         aria-label="ページトップへ戻る"
       >

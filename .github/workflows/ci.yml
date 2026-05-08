@@ -31,5 +31,8 @@ jobs:
       - name: Run linter
         run: pnpm lint
 
+      - name: Lint design tokens (R-5 / Issue #393)
+        run: pnpm lint:tokens
+
       - name: Type check
         run: pnpm exec tsc --noEmit

@@ -302,10 +302,14 @@ export const PostDetailPage = ({
                   fontWeight: "bold",
                 },
 
-                // リンク: prose の中で出てくるため明示。
+                // リンク: 本文インラインリンクは常時 underline (R-5 / Issue #393 AC (ii))。
+                // - WCAG 1.4.1 (Use of Color) 補強。色覚多様性配慮で色だけに依存しない。
+                // - Header / Footer / カード等のナビは下線なし (Link variant 側で制御)。
+                // - hover 時は色相を保ったまま下線の太さ感を強調する (text-underline-offset)。
                 "& a": {
                   color: "accent.link",
                   textDecoration: "underline",
+                  textUnderlineOffset: "2px",
                   "&:hover": {
                     color: "accent.link",
                   },

@@ -14,6 +14,7 @@
     "e2e": "playwright test",
     "fmt": "biome check --write --unsafe ./src",
     "lint": "biome lint  ./src",
+    "lint:tokens": "node scripts/lintTokens.ts",
     "type-check": "tsc --noEmit",
     "type-check:test": "tsc --noEmit --project tsconfig.test.json",
     "prepare": "panda codegen",

@@ -149,7 +149,11 @@ export interface SemanticColorTokens {
   readonly bgSurface: SemanticColorPair;
   /** 浮き上がる要素 (モーダル / トースト) */
   readonly bgElevated: SemanticColorPair;
-  /** 本文前景 */
+  /**
+   * 本文前景
+   *
+   * @see fgOnBrand - CTA 文字色 (accent.brand 背景上) は fg.primary ではなく fg.onBrand を使用
+   */
   readonly fgPrimary: SemanticColorPair;
   /** メタ / キャプション */
   readonly fgSecondary: SemanticColorPair;
@@ -166,6 +170,11 @@ export interface SemanticColorTokens {
    *   - 必ず accent.brand 背景上で使うこと。bg.canvas / surface 上では
    *     light の cream-50 が背景に同化するため使用不可。
    *   - hover/focus でブランド背景を維持する場合に文字色も同期させること。
+   *
+   * **誤用パターン**:
+   *   - bg.canvas (light: cream-50) 上で使うと cream-50 × cream-50 = 1.0:1 で完全不可視
+   *   - bg.surface 上では light cream-100 と cream-50 で 1.06:1 で実質不可視
+   *   - accent.featured 上で使う場合は Phase 2 で分離検証してから (現状は accent.brand と同値で OK)
    *
    * **WCAG コントラスト (scripts/calculateContrast.ts cta/* ペアと同期)**:
    *   - light (cream-50 × persimmon-600): 5.74:1 PASS (AA)

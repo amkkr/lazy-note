@@ -1,7 +1,7 @@
-import { FileText } from "lucide-react";
 import { memo } from "react";
 import { css } from "../../../styled-system/css";
 import type { PostSummary } from "../../lib/markdown";
+import { FileText } from "../atoms/icons";
 import { Link } from "../atoms/Link";
 import { Heading2 } from "../atoms/Typography";
 import { EmptyState } from "../common/EmptyState";

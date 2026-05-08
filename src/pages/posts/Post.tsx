@@ -1,6 +1,6 @@
 import { Transition } from "@headlessui/react";
-import { FileQuestion } from "lucide-react";
 import { useParams } from "react-router-dom";
+import { FileQuestion } from "../../components/atoms/icons";
 import { ArticleSkeleton } from "../../components/common/ArticleSkeleton";
 import { EmptyState } from "../../components/common/EmptyState";
 import { ReadingProgressBar } from "../../components/common/ReadingProgressBar";

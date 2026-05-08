@@ -1,18 +1,18 @@
-import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
 import { center } from "../../../styled-system/patterns";
+import type { IconComponent } from "../atoms/icons";
 
 interface EmptyStateProps {
   /**
-   * 装飾用 Lucide アイコンコンポーネント。
+   * 装飾用 inline SVG アイコンコンポーネント。
    *
-   * R-4 (Issue #392) で旧 `string` icon (絵文字) から Lucide icon に変更。
+   * R-4 (Issue #392) で旧 `string` icon (絵文字) から inline SVG icon に変更。
    * 装飾扱いとして `aria-hidden` で SR から隠し、`title` / `description` で
    * 意味を伝える。Calm 思想 (装飾ノイズの徹底削除) に沿って円形 gradient
    * 背景は廃止し、線画アイコンを単独で配置する。
    */
-  icon: LucideIcon;
+  icon: IconComponent;
   title: string;
   description: string;
   action?: {

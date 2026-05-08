@@ -43,4 +43,24 @@ describe("ArticleSkeleton", () => {
     const nav = container.querySelector("nav");
     expect(nav).toBeInTheDocument();
   });
+
+  // Issue #409: R-2b で導入した bg.elevated 反転は light で外側 bg.canvas と
+  // 同色化する制約があったため、border 専用 token (border.subtle) に置換した。
+  // 旧 token への回帰を CI で検出するための Tripwire テスト。
+  it("article の border が border.subtle 専用 token を参照している", () => {
+    const { container } = render(<ArticleSkeleton />);
+
+    const article = container.querySelector("article");
+    expect(article).toBeInTheDocument();
+    // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
+    expect(article?.className).toMatch(/bd-c_border\.subtle/);
+  });
+
+  it("nav の borderBottom が border.subtle 専用 token を参照している", () => {
+    const { container } = render(<ArticleSkeleton />);
+
+    const nav = container.querySelector("nav");
+    expect(nav).toBeInTheDocument();
+    expect(nav?.className).toMatch(/bd-c_border\.subtle/);
+  });
 });

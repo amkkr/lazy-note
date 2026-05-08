@@ -43,7 +43,10 @@ export const PostDetailPage = ({
         className={css({
           background: "bg.surface",
           borderBottom: "1px solid",
-          borderColor: "bg.elevated",
+          // Issue #409: border 専用 token に置換 (R-2b の bg.elevated 反転は
+          // light で外側 bg.canvas と同色化する制約があったため、1.4.11 3:1 を
+          // 確保できる border.subtle に統一)。
+          borderColor: "border.subtle",
           paddingY: "sm-md",
           paddingX: "md",
           display: "flex",
@@ -83,18 +86,15 @@ export const PostDetailPage = ({
           })}
         >
           {/*
-           * article の border について (R-2c / Issue #390 レビュー指摘):
+           * article の border (Issue #409 で border.subtle に置換):
            * - 親 wrapper bg.canvas (light: cream-50) 上に article bg.surface
            *   (light: cream-100) を乗せている。
-           * - border は bg.elevated (light: cream-50) で、light テーマでは
-           *   外側 bg.canvas と border が同色 (1.0:1) となり境界線として視覚的に
-           *   消失する設計上の制約がある。
-           * - ただし article 自体の bg (cream-100) が外側 bg.canvas (cream-50) と
-           *   1.06:1 のコントラストで「板」として視認可能なため、border は
-           *   強調用 (dark テーマでは sumi-600 で明確に視認) として機能する。
-           * - light での完全な border 視認性が必要になった場合は、専用の
-           *   `border.subtle` semantic token を別 PR (R-5 等) で新設する想定。
-           * - VR snapshot で実視認性を別途確認する。
+           * - 旧実装は border に bg.elevated を流用していたが、light では
+           *   bg.canvas (cream-50) と bg.elevated (cream-50) が同値で 1.0:1 の
+           *   完全消失となっていた。
+           * - border.subtle は border 専用色で、light は cream-300、dark は
+           *   sumi-400。1.4.11 (Non-text Contrast) の 3:1 を bg.canvas /
+           *   bg.surface 上で満たす (light: 3.29-3.49:1 / dark: 3.76-7.05:1)。
            */}
           <article
             className={css({
@@ -103,7 +103,7 @@ export const PostDetailPage = ({
               overflow: "hidden",
               boxShadow: "card-hover",
               border: "1px solid",
-              borderColor: "bg.elevated",
+              borderColor: "border.subtle",
             })}
           >
             {/* Article Header (R-4 / Issue #392 でグラデヘッダを廃止し
@@ -265,6 +265,8 @@ export const PostDetailPage = ({
                 },
 
                 // 区切り線 (GFM <hr>): prose と同じ幅で中央寄せ。
+                // Issue #409 で border 専用 token (border.subtle) に置換。
+                // bg.surface 上に置かれるため 3.29:1 (light) / 3.76:1 (dark) で 1.4.11 PASS。
                 "& hr": {
                   maxWidth: "prose",
                   marginRight: "auto",
@@ -273,7 +275,7 @@ export const PostDetailPage = ({
                   marginBottom: "lg",
                   border: "none",
                   borderTop: "1px solid",
-                  borderColor: "bg.elevated",
+                  borderColor: "border.subtle",
                 },
 
                 // テーブル (GFM): max-width: prose で中央寄せしつつ、
@@ -291,9 +293,13 @@ export const PostDetailPage = ({
                   fontSize: "sm-lg",
                   lineHeight: "relaxed",
                 },
+                // Issue #409: th/td の罫線も border.subtle に置換。
+                // td 部分 (bg.surface 上) は 1.4.11 PASS。th 部分は背景 bg.elevated
+                // 上で 3:1 未達となるが、これは th 自身の "面の差" として表現する
+                // 仕様で旧実装 (bg.elevated 同値で 1.0:1) より状態悪化はしない。
                 "& th, & td": {
                   border: "1px solid",
-                  borderColor: "bg.elevated",
+                  borderColor: "border.subtle",
                   padding: "xs sm-md",
                   textAlign: "left",
                 },

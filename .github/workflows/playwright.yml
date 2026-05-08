@@ -29,6 +29,12 @@ jobs:
       - name: Generate Panda CSS
         run: pnpm prepare
 
+      - name: Type-check e2e specs
+        # e2e/* と playwright.config.ts の型を Playwright 実行前に検証する
+        # (Issue #411 / DA 致命 3 対応)。型エラーは spec の挙動エラーより
+        # 先に検出すべきであり、実行コストが軽い (数秒) ので最初の gate に置く。
+        run: pnpm type-check:e2e
+
       - name: Get Playwright version
         id: playwright-version
         run: |

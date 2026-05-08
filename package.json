@@ -17,6 +17,7 @@
     "lint:tokens": "node scripts/lintTokens.ts",
     "type-check": "tsc --noEmit",
     "type-check:test": "tsc --noEmit --project tsconfig.test.json",
+    "type-check:e2e": "tsc --noEmit --project tsconfig.e2e.json",
     "prepare": "panda codegen",
     "new-post": "node scripts/newPost.ts",
     "contrast:check": "node scripts/calculateContrast.ts",

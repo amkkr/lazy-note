@@ -421,6 +421,12 @@ export default defineConfig({
           // accent.brand と同値だが、用途分離のため別 token として独立。
           // light: persimmon-600 (cream-50 上で 5.74:1 PASS / AA)
           // dark : persimmon-500 (sumi-950 上で 5.17:1 PASS / AA)
+          //
+          // 使用ガイドライン (詳細は colorTokens.ts JSDoc 参照):
+          //   - 背景色: bg.canvas / bg.surface (light) 上で AA pass。
+          //     dark の bg.surface (sumi-700) 上は 2.76:1 で AA 不足のため不可。
+          //   - 文字色: 14pt 以下の本文に使用禁止 (AAA 未達)。16px+ / bold / 大見出しのみ。
+          //   - hover/focus の反転は accent.brand と同期させること。
           featured: {
             value: {
               _light: "{colors.persimmon.600}",

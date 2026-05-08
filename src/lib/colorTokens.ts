@@ -152,10 +152,21 @@ export interface SemanticColorTokens {
   /** ブランド色 (CTA) */
   readonly accentBrand: SemanticColorPair;
   /**
-   * Featured バッジ・主要 CTA 用 (R-2a / Issue #388 で追加)
+   * Featured バッジ・主要 CTA で使用するブランド色 (R-2a / Issue #388 で追加)
    *
    * accentBrand と同値だが、用途分離のため別 token として独立させている。
    * Featured タイル (ホーム 1 箇所) や OG 画像背景に使用する想定。
+   *
+   * **使用ガイドライン**:
+   * - 背景色として使用: bg.canvas / bg.surface 上で OK
+   *   - light 5.74:1 (cream-50) / 5.42:1 (cream-100) で AA pass
+   *   - dark 5.17:1 (sumi-950) で AA pass
+   *   - dark の sumi-700 (bg.surface) 上は 2.76:1 で AA 不足のため不可
+   * - 文字色として使用: 14pt 以下の本文には使用禁止 (AA pass / AAA 未達)
+   *   - 16px+ または bold で使用、もしくは大きめの見出し用途のみ可
+   * - hover/focus 時の反転は accentBrand と同期させること
+   *
+   * 関連: accentBrand (現状同値、将来分離予定)
    */
   readonly accentFeatured: SemanticColorPair;
   /** リンク誘導 */

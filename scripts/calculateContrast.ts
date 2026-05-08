@@ -226,6 +226,19 @@ const getContrastPairs = (): readonly ContrastPair[] => {
       minRatio: contrastThresholds.largeText,
       category: "focus",
     },
+    // ---------- BentoCard hover 配色 (Issue #395 / R-2c) ----------
+    // BentoCard hover 時にタイトル色が accent.link (indigo) に切り替わる。
+    // 修正後 (Calm 指針) では hover 背景は bg.surface のままで、bg.elevated には
+    // 切り替わらない。dark テーマの bg.surface (sumi-700) 上で indigo-300 が
+    // UI 大文字 (>= 4.50:1) を満たすかを CI で守る。BentoCard タイトルは
+    // 18px+ または bold 14px+ のため UI 大文字基準で評価する。
+    {
+      name: "bento-hover/dark: indigo-300 × sumi-700 (bg.surface, hover 時タイトル)",
+      fg: oklchPrimitives.indigo["300"],
+      bg: oklchPrimitives.sumi["700"],
+      minRatio: contrastThresholds.largeText,
+      category: "link",
+    },
   ];
 };
 

@@ -31,9 +31,9 @@ export const PostDetailPage = ({
       <nav
         aria-label="ページナビゲーション"
         className={css({
-          background: "bg.1",
+          background: "bg.surface",
           borderBottom: "1px solid",
-          borderColor: "bg.3",
+          borderColor: "bg.elevated",
           paddingY: "sm-md",
           paddingX: "md",
           display: "flex",
@@ -58,7 +58,7 @@ export const PostDetailPage = ({
 
       <div
         className={css({
-          background: "bg.0",
+          background: "bg.canvas",
           minHeight: "100vh",
         })}
       >
@@ -72,14 +72,28 @@ export const PostDetailPage = ({
             },
           })}
         >
+          {/*
+           * article の border について (R-2c / Issue #390 レビュー指摘):
+           * - 親 wrapper bg.canvas (light: cream-50) 上に article bg.surface
+           *   (light: cream-100) を乗せている。
+           * - border は bg.elevated (light: cream-50) で、light テーマでは
+           *   外側 bg.canvas と border が同色 (1.0:1) となり境界線として視覚的に
+           *   消失する設計上の制約がある。
+           * - ただし article 自体の bg (cream-100) が外側 bg.canvas (cream-50) と
+           *   1.06:1 のコントラストで「板」として視認可能なため、border は
+           *   強調用 (dark テーマでは sumi-600 で明確に視認) として機能する。
+           * - light での完全な border 視認性が必要になった場合は、専用の
+           *   `border.subtle` semantic token を別 PR (R-5 等) で新設する想定。
+           * - VR snapshot で実視認性を別途確認する。
+           */}
           <article
             className={css({
-              background: "bg.1",
+              background: "bg.surface",
               borderRadius: "lg",
               overflow: "hidden",
               boxShadow: "card-hover",
               border: "1px solid",
-              borderColor: "bg.3",
+              borderColor: "bg.elevated",
             })}
           >
             {/* Article Header (R-4 / Issue #392 でグラデヘッダを廃止し
@@ -88,7 +102,7 @@ export const PostDetailPage = ({
             <header
               className={css({
                 background: "bg.surface",
-                color: "fg.0",
+                color: "fg.primary",
                 padding: "md",
                 md: {
                   padding: "section",
@@ -109,11 +123,17 @@ export const PostDetailPage = ({
               />
             </header>
 
-            {/* Divider */}
+            {/* Divider
+             *
+             * article 内 (bg.surface = light: cream-100) に置く 1px divider のため、
+             * bg.elevated (light: cream-50 / dark: sumi-600) との 1.06:1 (light) /
+             * 明確 (dark) のコントラストで区切りを表現する。light テーマでは
+             * 1.06:1 と薄いが、本文と header を視覚的に分離する補助線として機能。
+             */}
             <div
               className={css({
                 height: "1px",
-                background: "bg.3",
+                background: "bg.elevated",
               })}
             />
 
@@ -153,7 +173,7 @@ export const PostDetailPage = ({
                   paddingBottom: "section",
                 },
                 fontSize: "base",
-                color: "fg.1",
+                color: "fg.primary",
                 // Editorial Citrus 本文タイポグラフィ (Issue #391)。
                 // - 本文要素 (p / ul / ol / blockquote / dl / figure / table / hr) に
                 //   max-width 57.6rem (= 576px、62.5% 補正後) と margin auto を適用し
@@ -166,7 +186,7 @@ export const PostDetailPage = ({
                 // 見出しは本文と同じ max-width で中央寄せにすることで、
                 // 段落と見出しの左端が揃い Editorial の段組らしさを保つ。
                 "& h1, & h2, & h3": {
-                  color: "fg.0",
+                  color: "fg.primary",
                   fontWeight: "bold",
                   maxWidth: "prose",
                   marginRight: "auto",
@@ -228,7 +248,7 @@ export const PostDetailPage = ({
                 },
                 "& figcaption": {
                   fontSize: "sm",
-                  color: "fg.2",
+                  color: "fg.secondary",
                   textAlign: "center",
                   marginTop: "xs",
                 },
@@ -242,7 +262,7 @@ export const PostDetailPage = ({
                   marginBottom: "lg",
                   border: "none",
                   borderTop: "1px solid",
-                  borderColor: "bg.3",
+                  borderColor: "bg.elevated",
                 },
 
                 // テーブル (GFM): max-width: prose で中央寄せしつつ、
@@ -262,28 +282,31 @@ export const PostDetailPage = ({
                 },
                 "& th, & td": {
                   border: "1px solid",
-                  borderColor: "bg.3",
+                  borderColor: "bg.elevated",
                   padding: "xs sm-md",
                   textAlign: "left",
                 },
                 "& th": {
-                  background: "bg.2",
+                  background: "bg.elevated",
                   fontWeight: "bold",
                 },
 
                 // リンク: prose の中で出てくるため明示。
                 "& a": {
-                  color: "blue.light",
+                  color: "accent.link",
                   textDecoration: "underline",
                   "&:hover": {
-                    color: "aqua.light",
+                    color: "accent.link",
                   },
                 },
 
-                // インラインコード: prose 制約から外す (固定幅を保ち折り返さない)。
+                // インラインコードの文字色は fg.code (Gruvbox 温存) を使用。
+                // 強調色 (旧 orange.light) は本 R-2c で UI 用 token に集約するため、
+                // ここはコードハイライトと整合する fg.code に揃える。
+                // prose 制約から外す (固定幅を保ち折り返さない)。
                 "& code": {
                   background: "bg.codeInline",
-                  color: "orange.light",
+                  color: "fg.code",
                   padding: "2xs xs-sm",
                   borderRadius: "xs",
                   fontSize: "sm-lg",

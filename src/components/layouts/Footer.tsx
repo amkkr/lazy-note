@@ -5,8 +5,8 @@ export const Footer = () => {
   return (
     <footer
       className={css({
-        background: "bg.1",
-        color: "fg.2",
+        background: "bg.surface",
+        color: "fg.secondary",
         padding: "md",
         minHeight: "header",
         display: "flex",
@@ -24,14 +24,14 @@ export const Footer = () => {
           fontSize: "sm",
           fontWeight: "600",
           marginBottom: "xs",
-          color: "fg.2",
+          color: "fg.secondary",
         })}
       >
         <BrandName variant="footer" />
       </div>
       <div
         className={css({
-          color: "fg.4",
+          color: "fg.muted",
           fontSize: "xs",
         })}
       >

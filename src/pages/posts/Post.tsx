@@ -1,5 +1,6 @@
 import { Transition } from "@headlessui/react";
 import { useParams } from "react-router-dom";
+import { FileQuestion } from "../../components/atoms/icons";
 import { ArticleSkeleton } from "../../components/common/ArticleSkeleton";
 import { EmptyState } from "../../components/common/EmptyState";
 import { ReadingProgressBar } from "../../components/common/ReadingProgressBar";
@@ -21,7 +22,7 @@ const Post = () => {
   if (notFound || (!loading && !post)) {
     return (
       <EmptyState
-        icon="😕"
+        icon={FileQuestion}
         title="記事が見つかりません"
         description="お探しの記事は削除されたか、URLが間違っている可能性があります。"
         action={{

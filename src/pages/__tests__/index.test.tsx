@@ -86,7 +86,8 @@ describe("Indexコンポーネント", () => {
     });
 
     it("ヘッダーとフッターにブランド名を表示できる", async () => {
-      expect(screen.getAllByText("✨ Lazy Note")).toHaveLength(2);
+      // R-4 (Issue #392) で Sparkles 装飾は削除済み。
+      expect(screen.getAllByText("Lazy Note")).toHaveLength(2);
     });
 
     it("記事タイトルを見出しとして表示できる", async () => {

@@ -59,9 +59,15 @@ export const EmptyState = ({
         >
           {title}
         </h3>
+        {/*
+         * description は記事一覧の excerpt と同じく本文寄り用途のため、
+         * fg.muted (light: 6.54:1 AA) ではなく fg.secondary (light: 9.59:1 AAA /
+         * dark: 14.84:1 AAA) を採用する。
+         * (R-2c レビュー指摘: 補助情報ではなく読まれる前提のテキストのため。)
+         */}
         <p
           className={css({
-            color: "fg.muted",
+            color: "fg.secondary",
             fontSize: "lg",
             lineHeight: "body",
             mb: action ? "8" : "0",

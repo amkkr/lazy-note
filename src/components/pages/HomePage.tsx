@@ -67,9 +67,12 @@ const articleContentStyles = css({
   },
 });
 
+// 記事一覧の excerpt は本文寄りの用途のため、fg.muted (light: 6.54:1 AA) ではなく
+// fg.secondary (light: 9.59:1 AAA / dark: 14.84:1 AAA) を採用する。
+// (R-2c レビュー指摘: 記事カード上の excerpt は補助情報ではなく読まれる前提のため。)
 const excerptStyles = css({
   fontSize: "sm",
-  color: "fg.muted",
+  color: "fg.secondary",
   lineHeight: "body",
   marginTop: "sm",
 });

@@ -129,7 +129,14 @@ const bentoSizes = ["wide", "default", "default", "tall", "default", "default"] 
  */
 export const HomePage = memo(
   ({ posts, currentPage, totalPages, onPageChange }: HomePageProps) => {
-    // 記事を Featured (1) / Bento (2-7) / Index (8+) に分割
+    // 記事を Featured (1) / Bento (2-7) / Index (8+) に分割。
+    //
+    // 件数別の表示挙動:
+    //   - 0 件: EmptyState のみ (下記 if 分岐)
+    //   - 1 件: Featured のみ。bentoPosts / indexPosts は空なので Bento / Index
+    //           セクション (条件付き render) は描画されない
+    //   - 2〜7 件: Featured + Bento (1〜6 件) のみ。Index は非表示
+    //   - 8 件以上: Featured + Bento (6 件) + Index (8 件目以降) を全て描画
     const featured = posts[0];
     const bentoPosts = posts.slice(1, 7);
     const indexPosts = posts.slice(7);

@@ -169,6 +169,10 @@ const bentoStretchedLinkStyles = css({
 
 export const BentoCard = memo(
   ({ post, size = "default" }: BentoCardProps) => {
+    // size prop が未指定 (= "default") の場合は span スタイルを当てない。
+    // HomePage 側の bentoSizes 配列は 6 要素しか持たないため、idx >= 6 で
+    // bentoSizes[idx] が undefined となるが、デフォルト引数 "default" が
+    // 適用されて default フォールバックする (1x1 セル)。
     const sizeStyles =
       size === "tall"
         ? bentoSizeTallStyles

@@ -212,6 +212,9 @@ export default defineConfig({
         // R-2a (Issue #388) で追加した token:
         //   - accent.featured (persimmon 系、Featured バッジ・CTA 用)
         //   - focus.ring      (citrus-500、visible focus ring 専用、R-5 で利用)
+        //   - bg.code / bg.codeInline / bg.codeBorder / fg.code (Gruvbox 温存)
+        // R-2a (Issue #388) のレビューで削除した token:
+        //   - accent.focus    (focus.ring と同値で混乱を招くため、参照 0 件のうちに削除)
         //
         // WCAG AA 4.5:1 contrast (culori 実測):
         //   - bg.canvas × fg.primary   (light): 17.16:1 PASS (AAA)
@@ -430,12 +433,6 @@ export default defineConfig({
               _dark: "{colors.indigo.300}",
             },
           },
-          focus: {
-            value: {
-              _light: "{colors.citrus.500}",
-              _dark: "{colors.citrus.500}",
-            },
-          },
           // 既存 Gruvbox 系 accent (段階的移行用に温存)
           blue: {
             value: {
@@ -453,11 +450,9 @@ export default defineConfig({
         // ----------------------------------------------------------------
         // focus.ring (R-2a / Issue #388 で新規追加、R-5 で利用)
         //
-        // visible focus ring 専用色。accent.focus との違い:
-        //   - accent.focus: 3 軸分離 (accent / link / focus) の旧 naming。
-        //     citrus-500 を「accent」階層下に置いたが、focus は accent ではないため
-        //     独立 namespace へ昇格させた。
-        //   - focus.ring : R-5 (フォーカス可視性強化) で参照する正規 token。
+        // visible focus ring 専用色。focus は accent ではないため、accent 階層
+        // とは別に独立 namespace を切る。
+        // (旧 accent.focus は同値で混乱を招くため #388 のレビューで削除済み)
         //
         // 値: citrus-500 (light/dark 共通)
         //   - light の cream-50 上では 1.45:1 のため、accent ボタン上などでは

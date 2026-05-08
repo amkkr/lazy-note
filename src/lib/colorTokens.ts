@@ -161,16 +161,10 @@ export interface SemanticColorTokens {
   /** リンク誘導 */
   readonly accentLink: SemanticColorPair;
   /**
-   * focus キーボード可視性 (旧名、後方互換のため残存)
-   *
-   * 新規参照は focusRing を使うこと。R-2c 完了後の最終 PR で削除予定。
-   */
-  readonly accentFocus: SemanticColorPair;
-  /**
    * visible focus ring 専用色 (R-2a / Issue #388 で追加、R-5 で利用)
    *
-   * 値は accentFocus と同じ citrus-500 だが、focus は accent ではないため
-   * 独立 namespace へ昇格させた。
+   * focus は accent ではないため、accent 階層から独立させた専用 token。
+   * (旧 accentFocus は同値で混乱を招くため #388 のレビューで削除済み)
    *
    * **運用ルール (重要)**:
    *   必ず内側に ink-900 (or sumi-950) を伴う二重リングで使うこと。
@@ -236,10 +230,6 @@ export const semanticColorTokens: SemanticColorTokens = {
   accentLink: {
     light: oklchPrimitives.indigo["500"],
     dark: oklchPrimitives.indigo["300"],
-  },
-  accentFocus: {
-    light: oklchPrimitives.citrus["500"],
-    dark: oklchPrimitives.citrus["500"],
   },
   focusRing: {
     light: oklchPrimitives.citrus["500"],

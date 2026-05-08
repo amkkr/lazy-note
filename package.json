@@ -19,7 +19,9 @@
     "prepare": "panda codegen",
     "new-post": "node scripts/newPost.ts",
     "contrast:check": "node scripts/calculateContrast.ts",
-    "contrast:matrix": "node scripts/calculateContrast.ts --csv > docs/contrast-matrix.csv"
+    "contrast:matrix": "node scripts/calculateContrast.ts --csv > docs/contrast-matrix.csv",
+    "fonts:download": "bash scripts/download-fonts.sh",
+    "fonts:verify": "bash scripts/download-fonts.sh --verify"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",

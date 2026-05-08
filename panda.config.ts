@@ -53,6 +53,9 @@ export default defineConfig({
         relaxed: { value: "1.4" },
         loose: { value: "1.6" },
         body: { value: "1.7" },
+        // Editorial Citrus 本文タイポグラフィ (Issue #391)。
+        // Newsreader VF + 日本語明朝混植時に最適な行送り (RFC 03-typography.md)。
+        prose: { value: "1.85" },
       },
     },
     extend: {
@@ -203,6 +206,9 @@ export default defineConfig({
           container: { value: "1200px" },
           content: { value: "900px" },
           article: { value: "800px" },
+          // Editorial Citrus 本文 measure (Issue #391)。
+          // 紙面組版の標準値 36rem (576px) で 1 行の文字数を読みやすい範囲に制限する。
+          prose: { value: "36rem" },
           header: { value: "70px" },
         },
       },

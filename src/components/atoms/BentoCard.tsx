@@ -40,10 +40,12 @@ interface BentoCardProps {
 
 // Bento カード共通スタイル。
 // - bg.surface のフラット背景に薄い枠線 (bg.elevated)
-// - hover で bg.elevated に切り替え + subtle elevation (translateY)
+// - hover で subtle elevation (translateY + shadow) のみ。Calm 思想 (panda.config.ts
+//   L441-447) に従い、background / border-color の動的変化は撤廃して静謐感を保つ。
+// - 内部タイトル (.bento-title) の text-decoration / color 変化は重要なフィードバック
+//   として残す。
 // - height: 100% で grid 内のセル高さに合わせて伸縮
 // - position: relative にして stretched link (::after) のアンカーにする
-// - hover 時にタイトル下線 (内部 .bento-title) を発火させる
 const bentoWrapperBaseStyles = css({
   position: "relative",
   height: "100%",
@@ -54,13 +56,10 @@ const bentoWrapperBaseStyles = css({
   padding: "lg",
   border: "1px solid",
   borderColor: "bg.elevated",
-  transition:
-    "transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease",
+  transition: "transform 0.2s ease, box-shadow 0.2s ease",
   "&:hover": {
-    background: "bg.elevated",
     transform: "translateY(-2px)",
     boxShadow: "card",
-    borderColor: "accent.featured",
   },
   // hover 時に内側のタイトル要素に下線を伝播
   "&:hover .bento-title": {

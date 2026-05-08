@@ -1,6 +1,7 @@
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import React, { useCallback, useEffect, useState } from "react";
 import { css } from "../../../styled-system/css";
+import { focusRingStyles } from "../../styles/focusRing";
 
 interface ImageLightboxProps {
   isOpen: boolean;
@@ -129,7 +130,7 @@ const ImageLightboxInner = ({
           />
           <button
             type="button"
-            className={closeButtonStyle}
+            className={`${closeButtonStyle} ${focusRingStyles}`}
             onClick={onClose}
             aria-label="閉じる"
           >

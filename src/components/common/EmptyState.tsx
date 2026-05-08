@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
 import { center } from "../../../styled-system/patterns";
+import { focusRingOnAccentStyles } from "../../styles/focusRing";
 import type { IconComponent } from "../atoms/icons";
 
 interface EmptyStateProps {
@@ -81,9 +82,13 @@ export const EmptyState = ({
           //   - light (persimmon-600 上): cream.50 で 5.74:1 PASS (AA)
           //   - dark  (persimmon-500 上): ink.900 で 5.42:1 PASS (AA)
           // calculateContrast.ts の `cta/light` `cta/dark` ペアと同期させる。
+          //
+          // R-5 (Issue #393) AC i: accent.brand 背景上の CTA は
+          // `focusRingOnAccentStyles` (内側 ink-900/cream-50 + 外側 citrus-500)
+          // で 2px 以上の visible focus ring を提供する。
           <Link
             to={action.href}
-            className={css({
+            className={`${css({
               display: "inline-flex",
               alignItems: "center",
               gap: "2",
@@ -106,7 +111,7 @@ export const EmptyState = ({
                 transform: "translateY(-2px)",
                 shadow: "xl",
               },
-            })}
+            })} ${focusRingOnAccentStyles}`}
           >
             {action.label}
           </Link>

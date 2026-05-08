@@ -1,58 +1,96 @@
 import { Switch } from "@headlessui/react";
 import { css } from "../../../styled-system/css";
 import { useTheme } from "../../hooks/useTheme";
+import { Moon } from "../atoms/icons/Moon";
+import { Sun } from "../atoms/icons/Sun";
+import { focusRingStyles } from "../../styles/focusRing";
 
 /**
  * テーマ切替トグル。
  *
+ * R-5 (Issue #393) で視覚改善:
+ * - thumb に Sun/Moon アイコン (inline SVG) を表示し、状態を一目で判別可能にする
+ * - タッチターゲットを 56x44px (WCAG 2.5.5 AAA: 44x44px) に拡張
+ *   外枠 Switch を 44px 高にしつつ、視覚 track は内部の 28px span で従来見た目を維持
+ * - focus ring は src/styles/focusRing.ts の二重リングを `outline-offset` 相当
+ *   (box-shadow 2px ギャップ) で描画し、track 形状を破壊しない (R-5 共通仕様)
+ *
  * a11y:
  * - role=switch + aria-checked は Headless UI の Switch が提供
  * - aria-label は現在の状態と次の操作を含めて動的に変更
- * - フォーカスリングは focus.ring (citrus-500) で可視化 (:focus-visible)
  * - キーボード操作 (Space) は Headless UI Switch が WAI-ARIA に従い対応
- * - タッチターゲットは 56x28px。WCAG 2.5.8 (AA: 24x24px) を満たす
- *   (2.5.5 AAA: 44x44px には届かないため、将来的に拡張余地あり)
+ *
+ * Editorial Citrus トークン (R-2b / Issue #389、R-2b 修正で配色を反転):
+ * - Switch (タッチ枠): 透明 (タッチターゲット拡張用、視覚は内部 track で表現)
+ * - track 視覚: bg.surface 背景 + bg.elevated ボーダー (1px solid)
+ *   light: bg.surface (cream-100) × bg.elevated (cream-50) で 1.06:1。
+ *   dark : bg.surface (sumi-700) × bg.elevated (sumi-600) で見切り十分。
+ * - thumb (動く丸): light=ink.900 / dark=cream.50 で track と AA 以上のコントラスト確保
+ *   light: ink-900 (oklch 0.150) × cream-100 (oklch 0.965) で >= 16:1 (AAA)
+ *   dark : cream-50 (oklch 0.985) × sumi-700 (oklch 0.380) で >= 8:1 (AAA)
+ * - thumb 内アイコン: thumb 背景 (ink-900 / cream-50) と反転色で描画。
+ *   - light: thumb=ink.900 → icon stroke=cream.50 (Sun アイコン)
+ *   - dark : thumb=cream.50 → icon stroke=ink.900 (Moon アイコン)
  */
-// Editorial Citrus トークン (R-2b / Issue #389、R-2b 修正で配色を反転)
-// - スイッチ本体: 親 bg.canvas より一段濃い bg.surface を背景に使用 (視認性向上)
-// - ボーダー: bg.elevated でハイライト風の枠線にする
-//   (旧 bg.elevated × bg.surface の組合せは 1.06:1 で消失していたため反転)
-// - フォーカスリング: focus.ring (citrus-500)。R-2a で旧 focus 用 token を削除し
-//   focus.ring に一本化したのに伴い、CSS 変数も var(--colors-focus-ring) に修正。
-//   ※ R-5 で box-shadow inset/outset の二重リング共通化を予定。
-// - サム (動く丸): fg.primary
-const switchStyles = css({
+
+// 外枠 Switch: タッチ領域 56x44px。視覚 track は内部 span に切り出し、
+// padding で実 track を上下中央に置く (44 - 32 = 12px → 上下 6px ずつ)。
+const switchOuterStyles = css({
   position: "relative",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "flex-start",
   width: "56px",
-  height: "28px",
-  padding: "0",
+  height: "44px",
+  padding: "6px 0",
+  border: "none",
+  background: "transparent",
+  cursor: "pointer",
+  outline: "none",
+});
+
+// 視覚 track: 56x32px (R-5 修正で thumb 24x24 + 上下 2px 余白に拡張)。
+const trackStyles = css({
+  position: "relative",
+  display: "inline-flex",
+  alignItems: "center",
+  width: "56px",
+  height: "32px",
   borderRadius: "full",
   border: "2px solid",
   borderColor: "bg.elevated",
-  cursor: "pointer",
-  transition: "all 0.2s ease",
   background: "bg.surface",
-  outline: "none",
-  // キーボードフォーカス時のみ citrus-500 リングを表示
-  _focusVisible: {
-    boxShadow: "0 0 0 2px var(--colors-focus-ring)",
+  transition: "background 0.2s ease",
+  _motionReduce: {
+    transition: "none",
   },
 });
 
+// thumb: 24x24px (旧 20x20 より一回り拡大、icon 16px の視認性を確保)。
+// thumb 自体は icon を内包するため flex 中央寄せにする。
 const thumbStyles = css({
-  display: "inline-block",
-  width: "20px",
-  height: "20px",
+  position: "absolute",
+  top: "50%",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "24px",
+  height: "24px",
   borderRadius: "full",
-  background: "fg.primary",
+  background: { _light: "ink.900", _dark: "cream.50" },
+  // thumb 内アイコンの色 (currentColor 経由で SVG stroke にも適用される)
+  color: { _light: "cream.50", _dark: "ink.900" },
   transition: "transform 0.2s ease",
+  _motionReduce: {
+    transition: "none",
+  },
 });
 
-const thumbTranslateOff = css({ transform: "translateX(2px)" });
-const thumbTranslateOn = css({ transform: "translateX(28px)" });
+// translate 量は track (内側 width 52px = 56 - border 2px*2) と thumb (24px) から算出:
+//   off (dark): 左端余白 2px → translate(2px, -50%)
+//   on  (light): 右端余白 2px に寄せる → 52 - 24 - 2 = 26px → translate(26px, -50%)
+const thumbTranslateOff = css({ transform: "translate(2px, -50%)" });
+const thumbTranslateOn = css({ transform: "translate(26px, -50%)" });
 
 export const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
@@ -65,14 +103,21 @@ export const ThemeToggle = () => {
     <Switch
       checked={isLight}
       onChange={toggleTheme}
-      className={switchStyles}
+      className={`${switchOuterStyles} ${focusRingStyles}`}
       aria-label={ariaLabel}
       title={ariaLabel}
     >
-      <span
-        aria-hidden="true"
-        className={`${thumbStyles} ${isLight ? thumbTranslateOn : thumbTranslateOff}`}
-      />
+      <span aria-hidden="true" className={trackStyles}>
+        <span
+          className={`${thumbStyles} ${isLight ? thumbTranslateOn : thumbTranslateOff}`}
+        >
+          {isLight ? (
+            <Sun size={16} strokeWidth={2} aria-hidden="true" />
+          ) : (
+            <Moon size={16} strokeWidth={2} aria-hidden="true" />
+          )}
+        </span>
+      </span>
     </Switch>
   );
 };

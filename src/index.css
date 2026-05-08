@@ -107,6 +107,26 @@ a:hover {
   color: var(--colors-accent-link);
 }
 
+/*
+ * R-5 (Issue #393) prefers-reduced-motion: reduce 時の transition / animation
+ * 無効化。WCAG 2.3.3 / 2.2.2 対応。
+ * - グローバルな transition/animation を `none` 相当に抑制する。
+ * - 個別コンポーネントの :hover transform などは _motionReduce で個別対応。
+ * - fade-in / progress-bar など意味を持つ transition は src/styles/transitions.ts
+ *   側で同条件を適用する。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -165,9 +185,19 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/*
+ * R-5 (Issue #393) で button のグローバル focus を再設計。
+ * - WebKit デフォルトの outline は二重リング (box-shadow) と重畳して形状を
+ *   破壊するため、:focus 時は outline:none に統一する。
+ * - 個別 atom (Button / Link / ThemeToggle) では `src/styles/focusRing.ts`
+ *   の二重リング (box-shadow) で focus-visible を描画する。
+ * - 旧実装の `button:focus-visible { outline: 2px solid ... }` は CSS Cascade
+ *   Layers の規則上 un-layered として any layer よりも優先され、Panda の
+ *   `_focusVisible: { outline: "none" }` を破ってリングが二重描画されていた
+ *   ため、グローバルでは outline 指定を行わない方針とした (R-5 修正)。
+ */
+button:focus {
+  outline: none;
 }
 
 @keyframes spin {

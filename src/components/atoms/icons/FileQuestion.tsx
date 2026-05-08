@@ -4,9 +4,11 @@ import type { IconProps } from "./types";
  * FileQuestion アイコン (inline SVG)。
  *
  * R-4 (Issue #392) で `lucide-react` 依存を削除するために自前実装。
- * SVG path は Lucide v1.14.0 (ISC License) の `file-question-mark`
- * (旧 `file-question` のエイリアス先) から流用。
- * @see https://github.com/lucide-icons/lucide
+ * SVG path は Lucide (https://lucide.dev、ISC License) の `file-question-mark`
+ * (旧 `file-question` のエイリアス先) を流用。
+ * Lucide はバージョン間で path を更新する場合があるが、本アイコンは
+ * 視認性の都合で 24x24 viewBox の標準形を inline 化している。
+ * @see https://lucide.dev/icons/file-question-mark
  */
 export const FileQuestion = ({
   size = 24,

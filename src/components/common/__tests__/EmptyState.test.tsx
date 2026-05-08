@@ -89,4 +89,44 @@ describe("EmptyState", () => {
     expect(screen.getByText(longProps.title)).toBeInTheDocument();
     expect(screen.getByText(longProps.description)).toBeInTheDocument();
   });
+
+  // ====================================================================
+  // R-5 (Issue #393) focus ring Tripwire
+  //
+  // EmptyState の CTA Link は accent.brand 背景上のキーボード操作可能要素
+  // として AC i 「全インタラクティブ要素で 2px 以上の visible focus ring」を
+  // 満たす必要がある。`focusRingOnAccentStyles` (内側 ink-900/cream-50 +
+  // 外側 citrus-500) が適用されているかを Panda の生成 class 名で検証する。
+  // (Button.test.tsx の R-5 Tripwire と同方針)
+  // ====================================================================
+  describe("R-5 focus ring (Issue #393)", () => {
+    const hasFocusRingClass = (className: string): boolean => {
+      return /focusVisible[:\\][^\s]*bx-sh[^\s]*--colors-focus-ring/.test(
+        className,
+      );
+    };
+
+    it("CTA Link は focus.ring を含む focus-visible box-shadow class を持つ", () => {
+      const action = {
+        label: "記事を作成",
+        href: "/posts/new",
+      };
+      render(<EmptyState {...defaultProps} action={action} />);
+      const actionLink = screen.getByRole("link", { name: "記事を作成" });
+      expect(hasFocusRingClass(actionLink.className)).toBe(true);
+    });
+
+    it("CTA Link は accent 上向け内側リング (ink-900 / cream-50) class を持つ", () => {
+      const action = {
+        label: "記事を作成",
+        href: "/posts/new",
+      };
+      render(<EmptyState {...defaultProps} action={action} />);
+      const actionLink = screen.getByRole("link", { name: "記事を作成" });
+      // accent 上では light: 内側 ink-900 / dark: 内側 cream-50。
+      expect(actionLink.className).toMatch(
+        /focusVisible[:\\][^\s]*(--colors-ink-900|--colors-cream-50)/,
+      );
+    });
+  });
 });

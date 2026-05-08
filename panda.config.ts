@@ -543,8 +543,18 @@ export default defineConfig({
       // 運用に統一した。RFC §"Calm" 参照。
       //
       // 旧 token (gradients.hero / card / accent / primary / cardStripe)
-      // の参照は 0 件 (R-4 PR で grep 確認済み)。再導入する場合は RFC
-      // 改訂と Calm 思想との整合議論を経ること。
+      // の参照は 0 件 (R-4 PR で grep 確認済み)。
+      //
+      // **再導入する場合のルール (重要):**
+      //   1. RFC 02 (color-system) を改訂し、Calm 思想との整合を改めて議論
+      //      すること。装飾ノイズ削除の方針を覆すには明示的な合意が必要。
+      //   2. `gradients.primary` `gradients.hero` `gradients.card`
+      //      `gradients.accent` `gradients.cardStripe` のような旧 token 名の
+      //      **再利用は禁止**。Calm 文脈に整合する新規 token 名で起票し、
+      //      用途を限定すること (例: 紙面的な静かな gradient なら別名で)。
+      //   3. CI gate (calculateContrast.ts) で gradient 上に置かれる文字色の
+      //      AA / AAA を実測すること。フラット bg と異なり中間値の輝度評価が
+      //      必要になる。
       // ----------------------------------------------------------------
     },
   },

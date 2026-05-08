@@ -268,3 +268,45 @@ button:focus {
   color: var(--colors-fg-code);
 }
 
+/*
+ * View Transitions API による Hero morph (Issue #397)。
+ *
+ * SPA 内の Featured / Bento カードのタイトル → 記事詳細の H1 を
+ * `view-transition-name: post-{id}` でペアリングし、ブラウザに morph
+ * (位置・大きさ・角丸の補間) させる。
+ *
+ * - root の transition は subtle に短く (0.4s) して読書フローを邪魔しない。
+ * - cubic-bezier(0.32, 0.72, 0, 1) は Apple HIG 寄りの「素早く出て丁寧に止まる」
+ *   イージング (Editorial 風の落ち着きと morph の機敏さの両立)。
+ * - `::view-transition-group(*)` は root 以外の名前付き group (post-{id} 等) に
+ *   も同じ duration / easing を適用する (Reviewer Major 2 対応)。これがないと
+ *   名前付き group はブラウザ既定 (約 0.25s, ease) で動き、root との timing
+ *   ずれが出る。
+ * - prefers-reduced-motion: reduce が指定されている場合は root および全 group
+ *   (`::view-transition-old(*)` / `::view-transition-new(*)` / `::view-transition-group(*)`)
+ *   の VT アニメーションを完全に無効化 (opacity / transform を即時切替)。
+ *   視覚モーション過敏のユーザを保護する (Issue #397 AC iv / 推奨 7)。これに
+ *   より JS 側の検出と二重で安全に degrade する。
+ * - 未対応ブラウザ (Safari 17 以前等) では本ルール自体が無視され、通常の遷移と
+ *   なるため graceful degrade で機能する (Issue #397 AC v)。
+ *
+ * 注意: post-{id} の名前付与は各 atom 側 (FeaturedCard / BentoCard / IndexRow /
+ * PostDetailPage) のインラインスタイルで行う。本 CSS では root と name 付き
+ * 要素共通のアニメーション挙動のみを定義する。
+ */
+
+::view-transition-group(*),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.4s;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+

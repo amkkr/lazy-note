@@ -57,6 +57,12 @@ export default defineConfig({
     },
     extend: {
       tokens: {
+        // ====================================================================
+        // 本文フォントスタックは Panda token としては未登録 (Issue #387)。
+        // R-1 では :root { font-family } を src/index.css に直接書く方針で、
+        // R-2 / R-3 (見出し階層 + textStyles 整備) のタイミングで
+        // theme.tokens.fonts.serif を追加する予定。
+        // ====================================================================
         colors: {
           // ====================================================================
           // Editorial Citrus OKLCH primitives (Issue #358)

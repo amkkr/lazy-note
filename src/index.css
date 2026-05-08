@@ -188,19 +188,17 @@ button:disabled {
 
 /*
  * R-5 (Issue #393) で button のグローバル focus を再設計。
- * - WebKit デフォルトの 4px outline は二重リング上で重複し、形状を破壊する
- *   (Editorial Citrus の Calm 思想に反する)。
- * - 個別 atom (Button / Link / ThemeToggle) では box-shadow による
- *   二重リングを `src/styles/focusRing.ts` から適用する。
- * - グローバルではフォールバックとして outline/offset の最低限のみ用意し、
- *   focus-visible のみで描画する (マウスクリック時の視覚ノイズを回避)。
+ * - WebKit デフォルトの outline は二重リング (box-shadow) と重畳して形状を
+ *   破壊するため、:focus 時は outline:none に統一する。
+ * - 個別 atom (Button / Link / ThemeToggle) では `src/styles/focusRing.ts`
+ *   の二重リング (box-shadow) で focus-visible を描画する。
+ * - 旧実装の `button:focus-visible { outline: 2px solid ... }` は CSS Cascade
+ *   Layers の規則上 un-layered として any layer よりも優先され、Panda の
+ *   `_focusVisible: { outline: "none" }` を破ってリングが二重描画されていた
+ *   ため、グローバルでは outline 指定を行わない方針とした (R-5 修正)。
  */
 button:focus {
   outline: none;
-}
-button:focus-visible {
-  outline: 2px solid var(--colors-focus-ring);
-  outline-offset: 2px;
 }
 
 @keyframes spin {

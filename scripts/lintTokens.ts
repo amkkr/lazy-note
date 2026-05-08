@@ -24,6 +24,10 @@
  * - サブディレクトリ走査は再帰的に実装する (glob ライブラリ不要)。
  * - パターンは Plain RegExp で書き、Panda の式リテラル展開や CSS 変数の
  *   双方を統一的に検出する。
+ * - 行コメント (`//`) と複数行コメント (`/* ... *\/`) 内は走査対象から
+ *   除外する (Issue #413)。コメント中の旧 token 言及 (旧→新マッピング表)
+ *   による false positive を防ぐ。文字列リテラル中の `//` `/*` は
+ *   コメント開始と見做さない。
  *
  * 拡張メモ:
  * - 追加の旧 token を検知したい場合は `LINT_PATTERNS` に正規表現を追加するだけで良い。
@@ -170,10 +174,137 @@ const collectTargetFiles = (dir: string): string[] => {
 };
 
 /**
+ * 1 行から行コメント (`//`) と複数行コメント (`/* ... *\/`) を除去する
+ * 簡易ストリッパー (Issue #413)。
+ *
+ * - state machine で「コメントブロック内かどうか」を保持する必要があるため
+ *   呼び出し側でブロック状態を渡してもらい、新しい状態と検査用文字列を返す。
+ * - 文字列リテラル (`"..."` / `'...'` / `` `...` ``) 内の `//` や `/*` は
+ *   コメント開始と見做さず、そのまま検査対象に残す (旧 token を文字列リテラル
+ *   として記述したケースも検知したいため)。
+ * - column 位置を維持するため、コメント領域は同じ長さの空白で置換する。
+ *
+ * 戻り値:
+ *   - sanitized: 検査対象として残す部分 (コメント領域は空白に置換済み)。
+ *   - inBlockComment: 行末で複数行コメントが継続中かどうか。
+ */
+interface CommentStripState {
+  readonly inBlockComment: boolean;
+}
+
+interface CommentStripResult {
+  readonly sanitized: string;
+  readonly inBlockComment: boolean;
+}
+
+const stripComments = (
+  line: string,
+  state: CommentStripState,
+): CommentStripResult => {
+  let inBlockComment = state.inBlockComment;
+  let inSingle = false;
+  let inDouble = false;
+  let inBacktick = false;
+  const out: string[] = [];
+
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    const next = i + 1 < line.length ? line[i + 1] : "";
+
+    if (inBlockComment) {
+      if (ch === "*" && next === "/") {
+        inBlockComment = false;
+        out.push(" ", " ");
+        i += 1;
+        continue;
+      }
+      out.push(" ");
+      continue;
+    }
+
+    if (inSingle) {
+      out.push(ch);
+      if (ch === "\\" && next !== "") {
+        out.push(next);
+        i += 1;
+        continue;
+      }
+      if (ch === "'") {
+        inSingle = false;
+      }
+      continue;
+    }
+
+    if (inDouble) {
+      out.push(ch);
+      if (ch === "\\" && next !== "") {
+        out.push(next);
+        i += 1;
+        continue;
+      }
+      if (ch === '"') {
+        inDouble = false;
+      }
+      continue;
+    }
+
+    if (inBacktick) {
+      out.push(ch);
+      if (ch === "\\" && next !== "") {
+        out.push(next);
+        i += 1;
+        continue;
+      }
+      if (ch === "`") {
+        inBacktick = false;
+      }
+      continue;
+    }
+
+    // 文字列開始
+    if (ch === "'") {
+      inSingle = true;
+      out.push(ch);
+      continue;
+    }
+    if (ch === '"') {
+      inDouble = true;
+      out.push(ch);
+      continue;
+    }
+    if (ch === "`") {
+      inBacktick = true;
+      out.push(ch);
+      continue;
+    }
+
+    // コメント開始
+    if (ch === "/" && next === "/") {
+      // 行末まで全て空白扱い
+      for (let j = i; j < line.length; j += 1) {
+        out.push(" ");
+      }
+      return { sanitized: out.join(""), inBlockComment: false };
+    }
+    if (ch === "/" && next === "*") {
+      inBlockComment = true;
+      out.push(" ", " ");
+      i += 1;
+      continue;
+    }
+
+    out.push(ch);
+  }
+
+  return { sanitized: out.join(""), inBlockComment };
+};
+
+/**
  * 1 ファイル分の検査。
  *
  * - 行単位で検出位置 (line / column) を出すと CI ログでジャンプしやすい。
  * - 大文字小文字は区別する (token 名は確定的にケースが決まっている)。
+ * - 行コメント / ブロックコメント内は検査対象から除外する (Issue #413)。
  */
 const scanFile = (
   filePath: string,
@@ -183,16 +314,21 @@ const scanFile = (
   const lines = content.split(/\r?\n/);
   const violations: Violation[] = [];
 
+  let stripState: CommentStripState = { inBlockComment: false };
+
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const line = lines[lineIndex];
     if (line === undefined) {
       continue;
     }
 
+    const { sanitized, inBlockComment } = stripComments(line, stripState);
+    stripState = { inBlockComment };
+
     for (const { name, description, pattern } of patterns) {
       // RegExp の lastIndex を使い回すため毎回新規インスタンスにする。
       const regex = new RegExp(pattern.source, pattern.flags);
-      let match: RegExpExecArray | null = regex.exec(line);
+      let match: RegExpExecArray | null = regex.exec(sanitized);
       while (match !== null) {
         violations.push({
           file: filePath,
@@ -200,13 +336,14 @@ const scanFile = (
           column: match.index + 1,
           patternName: name,
           description,
+          // 元のコメント込みの行を見せたほうが文脈が分かるので元行を表示する。
           snippet: line.trim(),
         });
         // 無限ループ回避: 0 幅マッチには進める。
         if (match.index === regex.lastIndex) {
           regex.lastIndex += 1;
         }
-        match = regex.exec(line);
+        match = regex.exec(sanitized);
       }
     }
   }

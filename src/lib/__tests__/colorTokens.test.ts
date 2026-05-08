@@ -268,6 +268,14 @@ describe("R-2a (Issue #388) で追加した semantic token", () => {
     expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
   });
 
+  it("accentFeatured と accentBrand は現状同値 (将来分離予定の Tripwire)", () => {
+    // Featured と Brand は将来的に分離する設計だが、R-2a 時点では同値。
+    // 値が乖離した時点でこのテストが落ちて、意図的な変更かレビューで確認できる。
+    expect(semanticColorTokens.accentFeatured).toEqual(
+      semanticColorTokens.accentBrand,
+    );
+  });
+
   it("focusRing は light/dark とも citrus-500 を指している", () => {
     // 単一背景上の AA は light では非対応 (cream-50 上で 1.45:1)。
     // 二重リング (外 ink-900 + 内 citrus-500) で運用する想定。

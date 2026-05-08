@@ -34,7 +34,7 @@ import { focusRingStyles } from "../../styles/focusRing";
  */
 
 // 外枠 Switch: タッチ領域 56x44px。視覚 track は内部 span に切り出し、
-// padding で実 track を上下中央に置く (44 - 28 = 16px → 上下 8px ずつ)。
+// padding で実 track を上下中央に置く (44 - 32 = 12px → 上下 6px ずつ)。
 const switchOuterStyles = css({
   position: "relative",
   display: "inline-flex",
@@ -42,20 +42,20 @@ const switchOuterStyles = css({
   justifyContent: "flex-start",
   width: "56px",
   height: "44px",
-  padding: "8px 0",
+  padding: "6px 0",
   border: "none",
   background: "transparent",
   cursor: "pointer",
   outline: "none",
 });
 
-// 視覚 track: 旧 56x28px のスタイルを維持。
+// 視覚 track: 56x32px (R-5 修正で thumb 24x24 + 上下 2px 余白に拡張)。
 const trackStyles = css({
   position: "relative",
   display: "inline-flex",
   alignItems: "center",
   width: "56px",
-  height: "28px",
+  height: "32px",
   borderRadius: "full",
   border: "2px solid",
   borderColor: "bg.elevated",
@@ -66,7 +66,7 @@ const trackStyles = css({
   },
 });
 
-// thumb: 24x24px (旧 20x20 より一回り拡大、icon 16px 視認性を確保)。
+// thumb: 24x24px (旧 20x20 より一回り拡大、icon 16px の視認性を確保)。
 // thumb 自体は icon を内包するため flex 中央寄せにする。
 const thumbStyles = css({
   position: "absolute",
@@ -74,8 +74,8 @@ const thumbStyles = css({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  width: "20px",
-  height: "20px",
+  width: "24px",
+  height: "24px",
   borderRadius: "full",
   background: { _light: "ink.900", _dark: "cream.50" },
   // thumb 内アイコンの色 (currentColor 経由で SVG stroke にも適用される)
@@ -86,11 +86,11 @@ const thumbStyles = css({
   },
 });
 
-// translate 量はリストの track (内側 width 52px) と thumb (20px) から算出:
-//   off (dark): 左端余白 2px ですみ → translateX(2px)
-//   on  (light): 右端余白 2px に寄せる → 52 - 20 - 2 = 30px → translateX(30px)
+// translate 量は track (内側 width 52px = 56 - border 2px*2) と thumb (24px) から算出:
+//   off (dark): 左端余白 2px → translate(2px, -50%)
+//   on  (light): 右端余白 2px に寄せる → 52 - 24 - 2 = 26px → translate(26px, -50%)
 const thumbTranslateOff = css({ transform: "translate(2px, -50%)" });
-const thumbTranslateOn = css({ transform: "translate(30px, -50%)" });
+const thumbTranslateOn = css({ transform: "translate(26px, -50%)" });
 
 export const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
@@ -112,9 +112,9 @@ export const ThemeToggle = () => {
           className={`${thumbStyles} ${isLight ? thumbTranslateOn : thumbTranslateOff}`}
         >
           {isLight ? (
-            <Sun size={14} strokeWidth={2} aria-hidden="true" />
+            <Sun size={16} strokeWidth={2} aria-hidden="true" />
           ) : (
-            <Moon size={14} strokeWidth={2} aria-hidden="true" />
+            <Moon size={16} strokeWidth={2} aria-hidden="true" />
           )}
         </span>
       </span>

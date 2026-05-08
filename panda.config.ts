@@ -57,20 +57,12 @@ export default defineConfig({
     },
     extend: {
       tokens: {
-        fonts: {
-          // ====================================================================
-          // Editorial Citrus 本文フォントスタック (Issue #387)
-          //
-          // 一次指定: Newsreader VF (OFL 1.1, self-host)。@font-face は
-          // src/index.css に定義し、woff2 は public/fonts/ に配置。
-          // 和文は OS 既定の明朝 (Hiragino Mincho ProN / Yu Mincho) にフォールバック。
-          // unicode-range により和文グリフは OS 明朝に流れ、英文のみ Newsreader が当たる。
-          // ====================================================================
-          serif: {
-            value:
-              "\"Newsreader\", \"Noto Serif JP\", \"Hiragino Mincho ProN\", \"Yu Mincho\", \"YuMincho\", serif",
-          },
-        },
+        // ====================================================================
+        // 本文フォントスタックは Panda token としては未登録 (Issue #387)。
+        // R-1 では :root { font-family } を src/index.css に直接書く方針で、
+        // R-2 / R-3 (見出し階層 + textStyles 整備) のタイミングで
+        // theme.tokens.fonts.serif を追加する予定。
+        // ====================================================================
         colors: {
           // ====================================================================
           // Editorial Citrus OKLCH primitives (Issue #358)

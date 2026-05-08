@@ -3,6 +3,17 @@ name: Lighthouse CI
 on:
   pull_request:
     branches: [master]
+    paths:
+      - "src/**"
+      - "datasources/**"
+      - "public/**"
+      - "vite.config.ts"
+      - "panda.config.ts"
+      - "index.html"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".lighthouserc.json"
+      - ".github/workflows/lighthouse.yml"
 
 jobs:
   lighthouse:
@@ -29,22 +40,43 @@ jobs:
       - name: Build production bundle
         run: pnpm build
 
+      - name: Verify preload base path resolution
+        run: |
+          # production build で `/lazy-note/` プレフィックスが正しく書き換わっているかを早期検知。
+          # vite.config.ts の base 設定 (`/lazy-note/`) が破損するとプリロードが効かず Performance が劣化する。
+          grep -q '/lazy-note/fonts/Newsreader-VF-Latin.woff2' dist/index.html || (echo "Preload base path mismatch" && exit 1)
+
       - name: Resolve latest post id
         id: latest-post
         run: |
           # datasources/ 配下の最新記事 (yyyymmddhhmmss.md) を取得し、
           # `.lighthouserc.json` の {{LATEST_POST_ID}} を実 ID に置換する。
-          latest=$(ls datasources/ | grep -E '^[0-9]+\.md$' | sort -r | head -n 1 | sed 's/\.md$//')
+          # 記事が 0 件の場合は Home のみを計測対象にフォールバックする。
+          latest=$(find datasources -maxdepth 1 -type f -name '[0-9]*.md' -printf '%f\n' | sort -r | head -n 1 | sed 's/\.md$//')
           if [ -z "$latest" ]; then
-            echo "No post found in datasources/" >&2
-            exit 1
+            echo "No post found in datasources/, falling back to Home only"
+            jq '.ci.collect.url = ["http://127.0.0.1:4173/lazy-note/"]' .lighthouserc.json > .lighthouserc.tmp.json
+            mv .lighthouserc.tmp.json .lighthouserc.json
+          else
+            echo "id=$latest" >> "$GITHUB_OUTPUT"
+            sed -i "s/{{LATEST_POST_ID}}/$latest/g" .lighthouserc.json
+            echo "Resolved latest post id: $latest"
           fi
-          echo "id=$latest" >> "$GITHUB_OUTPUT"
-          sed -i "s/{{LATEST_POST_ID}}/$latest/g" .lighthouserc.json
-          echo "Resolved latest post id: $latest"
           cat .lighthouserc.json
 
+      - name: Start preview server
+        # vite preview を 127.0.0.1 にバインドして起動し、treosh action の子プロセスから
+        # PATH 解決失敗 / IPv6 解決失敗 / ANSI escape による ready pattern 不一致を回避する。
+        run: pnpm exec vite preview --host 127.0.0.1 --port 4173 &
+
+      - name: Wait for preview server
+        run: npx --yes wait-on http://127.0.0.1:4173/lazy-note/ -t 60000
+
       - name: Run Lighthouse CI
+        # NOTE: temporaryPublicStorage により LHCI レポートは Google Cloud Storage に
+        # 一時公開される。draft 記事の URL/メタ情報が含まれる可能性に留意。
+        # CI レポートへのアクセス容易性を優先し当面は維持する (将来 false に変更し
+        # uploadArtifacts のみで運用する選択肢あり)。
         uses: treosh/lighthouse-ci-action@v12
         with:
           configPath: ./.lighthouserc.json

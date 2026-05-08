@@ -2,6 +2,7 @@ import { parse, wcagContrast } from "culori";
 import { describe, expect, it } from "vitest";
 import {
   contrastThresholds,
+  gruvboxCodeColors,
   oklchPrimitives,
   semanticColorTokens,
 } from "../colorTokens.ts";
@@ -237,6 +238,136 @@ describe("semantic トークン (light/dark の本文ペア)", () => {
 
   it("dark bgCanvas が sumi-950 (primitives) を指している", () => {
     expect(semanticColorTokens.bgCanvas.dark).toBe(oklchPrimitives.sumi["950"]);
+  });
+});
+
+describe("R-2a (Issue #388) で追加した semantic token", () => {
+  it("accentFeatured は light で persimmon-600 を指している", () => {
+    expect(semanticColorTokens.accentFeatured.light).toBe(
+      oklchPrimitives.persimmon["600"],
+    );
+  });
+
+  it("accentFeatured は dark で persimmon-500 を指している", () => {
+    expect(semanticColorTokens.accentFeatured.dark).toBe(
+      oklchPrimitives.persimmon["500"],
+    );
+  });
+
+  it("accentFeatured × bg.canvas (light) が WCAG AA 4.5:1 以上である", () => {
+    const r = ratio(
+      semanticColorTokens.accentFeatured.light,
+      semanticColorTokens.bgCanvas.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("accentFeatured × bg.canvas (dark) が WCAG AA 4.5:1 以上である", () => {
+    const r = ratio(
+      semanticColorTokens.accentFeatured.dark,
+      semanticColorTokens.bgCanvas.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("accentFeatured と accentBrand は現状同値 (将来分離予定の Tripwire)", () => {
+    // Featured と Brand は将来的に分離する設計だが、R-2a 時点では同値。
+    // 値が乖離した時点でこのテストが落ちて、意図的な変更かレビューで確認できる。
+    expect(semanticColorTokens.accentFeatured).toEqual(
+      semanticColorTokens.accentBrand,
+    );
+  });
+
+  it("focusRing は light/dark とも citrus-500 を指している", () => {
+    // 単一背景上の AA は light では非対応 (cream-50 上で 1.45:1)。
+    // 二重リング (外 ink-900 + 内 citrus-500) で運用する想定。
+    expect(semanticColorTokens.focusRing.light).toBe(
+      oklchPrimitives.citrus["500"],
+    );
+    expect(semanticColorTokens.focusRing.dark).toBe(
+      oklchPrimitives.citrus["500"],
+    );
+  });
+
+  it("focusRing × sumi-950 (dark 通常背景) が AA 4.5:1 以上である", () => {
+    const r = ratio(
+      semanticColorTokens.focusRing.dark,
+      semanticColorTokens.bgCanvas.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("focusRing × ink-900 (二重リング内側) が AA 4.5:1 以上である", () => {
+    // 二重リング: 外側 ink-900 + 内側 citrus-500 (focusRing)。
+    // 内側は外側と AA 4.5:1 以上のコントラストでリングそのものを認知できる必要がある。
+    const r = ratio(semanticColorTokens.focusRing.light, oklchPrimitives.ink["900"]);
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("focusRing は light テーマで bgCanvas に単独適用すると AA を満たさない (二重リング運用前提)", () => {
+    // citrus-500 (focusRing) を light テーマの cream-50 (bgCanvas) 上に直接置くと
+    // 1.45:1 となり 1.4.11 (UI 装飾 3:1) すら満たさない。
+    // R-5 (フォーカス可視性強化) では必ず内側に ink-900 を伴う二重リング (boxShadow
+    // inset/outset の二重指定) で運用すること。本テストは開発者が単独運用に
+    // 走らないようにする Tripwire (negative test)。
+    const r = ratio(
+      semanticColorTokens.focusRing.light,
+      semanticColorTokens.bgCanvas.light,
+    );
+    expect(r).toBeLessThan(contrastThresholds.largeText);
+  });
+});
+
+describe("コードブロック token (Gruvbox 温存の Tripwire)", () => {
+  // Editorial Citrus 移行後もコードブロックは Gruvbox を温存する方針 (RFC 02 §既存 Gruvbox)。
+  // 値が誤って OKLCH 系に置き換わると Shiki/Prism のハイライトと衝突するため、
+  // リテラル値が Gruvbox 標準色と一致することを CI で固定する。
+  it("bgCode (light) が Gruvbox light bg0 (#fbf1c7) を指している", () => {
+    expect(semanticColorTokens.bgCode.light).toBe(gruvboxCodeColors.light.bg0);
+    expect(semanticColorTokens.bgCode.light).toBe("#fbf1c7");
+  });
+
+  it("bgCode (dark) が Gruvbox dark bg0 (#282828) を指している", () => {
+    expect(semanticColorTokens.bgCode.dark).toBe(gruvboxCodeColors.dark.bg0);
+    expect(semanticColorTokens.bgCode.dark).toBe("#282828");
+  });
+
+  it("bgCodeInline (light) が Gruvbox light bg2 (#d5c4a1) を指している", () => {
+    expect(semanticColorTokens.bgCodeInline.light).toBe(
+      gruvboxCodeColors.light.bg2,
+    );
+    expect(semanticColorTokens.bgCodeInline.light).toBe("#d5c4a1");
+  });
+
+  it("bgCodeInline (dark) が Gruvbox dark bg2 (#504945) を指している", () => {
+    expect(semanticColorTokens.bgCodeInline.dark).toBe(
+      gruvboxCodeColors.dark.bg2,
+    );
+    expect(semanticColorTokens.bgCodeInline.dark).toBe("#504945");
+  });
+
+  it("bgCodeBorder (light) が Gruvbox light bg3 (#bdae93) を指している", () => {
+    expect(semanticColorTokens.bgCodeBorder.light).toBe(
+      gruvboxCodeColors.light.bg3,
+    );
+    expect(semanticColorTokens.bgCodeBorder.light).toBe("#bdae93");
+  });
+
+  it("bgCodeBorder (dark) が Gruvbox dark bg3 (#665c54) を指している", () => {
+    expect(semanticColorTokens.bgCodeBorder.dark).toBe(
+      gruvboxCodeColors.dark.bg3,
+    );
+    expect(semanticColorTokens.bgCodeBorder.dark).toBe("#665c54");
+  });
+
+  it("fgCode (light) が Gruvbox light fg1 (#3c3836) を指している", () => {
+    expect(semanticColorTokens.fgCode.light).toBe(gruvboxCodeColors.light.fg1);
+    expect(semanticColorTokens.fgCode.light).toBe("#3c3836");
+  });
+
+  it("fgCode (dark) が Gruvbox dark fg1 (#ebdbb2) を指している", () => {
+    expect(semanticColorTokens.fgCode.dark).toBe(gruvboxCodeColors.dark.fg1);
+    expect(semanticColorTokens.fgCode.dark).toBe("#ebdbb2");
   });
 });
 

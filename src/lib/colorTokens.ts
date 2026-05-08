@@ -103,6 +103,29 @@ export const oklchPrimitives: OklchPrimitives = {
 } as const;
 
 /**
+ * Gruvbox 値のうちコードブロック専用 token で参照する subset。
+ *
+ * Editorial Citrus 移行後もコードブロック (Shiki/Prism) は Gruvbox を温存する
+ * 方針のため (02-color-system.md §"既存 Gruvbox の取り扱い")、bg/fg の OKLCH
+ * 移行とは独立にこのリテラル値を維持する。panda.config.ts の `gruvbox.*.bg0` 等と
+ * 一致させること。
+ */
+export const gruvboxCodeColors = {
+  light: {
+    bg0: "#fbf1c7",
+    bg2: "#d5c4a1",
+    bg3: "#bdae93",
+    fg1: "#3c3836",
+  },
+  dark: {
+    bg0: "#282828",
+    bg2: "#504945",
+    bg3: "#665c54",
+    fg1: "#ebdbb2",
+  },
+} as const;
+
+/**
  * セマンティックトークン (light / dark の 2 値マッピング)。
  *
  * トークン階層は意図的に 1 段に留めている (過剰多層化を回避)。
@@ -126,12 +149,60 @@ export interface SemanticColorTokens {
   readonly fgSecondary: SemanticColorPair;
   /** 注釈・補助 */
   readonly fgMuted: SemanticColorPair;
-  /** ブランド色 (CTA / Featured) */
+  /** ブランド色 (CTA) */
   readonly accentBrand: SemanticColorPair;
+  /**
+   * Featured バッジ・主要 CTA で使用するブランド色 (R-2a / Issue #388 で追加)
+   *
+   * accentBrand と同値だが、用途分離のため別 token として独立させている。
+   * Featured タイル (ホーム 1 箇所) や OG 画像背景に使用する想定。
+   *
+   * **使用ガイドライン**:
+   * - 背景色として使用: bg.canvas / bg.surface 上で OK
+   *   - light 5.74:1 (cream-50) / 5.42:1 (cream-100) で AA pass
+   *   - dark 5.17:1 (sumi-950) で AA pass
+   *   - dark の sumi-700 (bg.surface) 上は 2.76:1 で AA 不足のため不可
+   * - 文字色として使用: 14pt 以下の本文には使用禁止 (AA pass / AAA 未達)
+   *   - 16px+ または bold で使用、もしくは大きめの見出し用途のみ可
+   * - hover/focus 時の反転は accentBrand と同期させること
+   *
+   * 関連: accentBrand (現状同値、将来分離予定)
+   */
+  readonly accentFeatured: SemanticColorPair;
   /** リンク誘導 */
   readonly accentLink: SemanticColorPair;
-  /** focus キーボード可視性 */
-  readonly accentFocus: SemanticColorPair;
+  /**
+   * visible focus ring 専用色 (R-2a / Issue #388 で追加、R-5 で利用)
+   *
+   * focus は accent ではないため、accent 階層から独立させた専用 token。
+   * (旧 accentFocus は同値で混乱を招くため #388 のレビューで削除済み)
+   *
+   * **運用ルール (重要)**:
+   *   必ず内側に ink-900 (or sumi-950) を伴う二重リングで使うこと。
+   *   light テーマ単独使用は cream-50 上で 1.45:1 となり AA 不足。
+   *   R-5 で boxShadow inset/outset の二重指定を共通化する予定。
+   *   - dark sumi-950 上: 12.43:1 (AAA) → 単独でも可
+   *   - light cream-50 上: 1.45:1 (FAIL) → 二重リング必須
+   */
+  readonly focusRing: SemanticColorPair;
+  /**
+   * コードブロック背景 (`<pre>`)。Editorial Citrus でも Gruvbox を温存する。
+   * 02-color-system.md §"既存 Gruvbox の取り扱い"。
+   */
+  readonly bgCode: SemanticColorPair;
+  /**
+   * インラインコード背景 (`<code>`)。Gruvbox bg2。
+   */
+  readonly bgCodeInline: SemanticColorPair;
+  /**
+   * コピーボタン枠など、コードブロック付随 UI のボーダー色。Gruvbox bg3。
+   */
+  readonly bgCodeBorder: SemanticColorPair;
+  /**
+   * コード本文の既定文字色。シンタックスハイライト未適用箇所のフォールバック。
+   * Gruvbox fg1。
+   */
+  readonly fgCode: SemanticColorPair;
 }
 
 export const semanticColorTokens: SemanticColorTokens = {
@@ -163,13 +234,33 @@ export const semanticColorTokens: SemanticColorTokens = {
     light: oklchPrimitives.persimmon["600"],
     dark: oklchPrimitives.persimmon["500"],
   },
+  accentFeatured: {
+    light: oklchPrimitives.persimmon["600"],
+    dark: oklchPrimitives.persimmon["500"],
+  },
   accentLink: {
     light: oklchPrimitives.indigo["500"],
     dark: oklchPrimitives.indigo["300"],
   },
-  accentFocus: {
+  focusRing: {
     light: oklchPrimitives.citrus["500"],
     dark: oklchPrimitives.citrus["500"],
+  },
+  bgCode: {
+    light: gruvboxCodeColors.light.bg0,
+    dark: gruvboxCodeColors.dark.bg0,
+  },
+  bgCodeInline: {
+    light: gruvboxCodeColors.light.bg2,
+    dark: gruvboxCodeColors.dark.bg2,
+  },
+  bgCodeBorder: {
+    light: gruvboxCodeColors.light.bg3,
+    dark: gruvboxCodeColors.dark.bg3,
+  },
+  fgCode: {
+    light: gruvboxCodeColors.light.fg1,
+    dark: gruvboxCodeColors.dark.fg1,
   },
 } as const;
 

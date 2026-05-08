@@ -204,10 +204,30 @@ export default defineConfig({
     semanticTokens: {
       colors: {
         // ====================================================================
-        // Editorial Citrus セマンティックトークン (Issue #358)
+        // Editorial Citrus セマンティックトークン (Issue #358 / #388 R-2a)
         //
         // 階層は 1 段に留めている (過剰多層化を回避)。
         // 02-color-system.md §"Panda CSS 統合 (概要)" 参照。
+        //
+        // R-2a (Issue #388) で追加した token:
+        //   - accent.featured (persimmon 系、Featured バッジ・CTA 用)
+        //   - focus.ring      (citrus-500、visible focus ring 専用、R-5 で利用)
+        //
+        // WCAG AA 4.5:1 contrast (culori 実測):
+        //   - bg.canvas × fg.primary   (light): 17.16:1 PASS (AAA)
+        //   - bg.canvas × fg.primary   (dark):  16.98:1 PASS (AAA)
+        //   - bg.canvas × fg.secondary (light):  9.59:1 PASS (AAA)
+        //   - bg.canvas × fg.secondary (dark):  14.84:1 PASS (AAA)
+        //   - bg.canvas × fg.muted     (light):  9.59:1 PASS (AAA)
+        //   - bg.canvas × fg.muted     (dark):  14.84:1 PASS (AAA)
+        //   - bg.surface × fg.primary  (light): 16.19:1 PASS (AAA)
+        //   - bg.canvas × accent.link  (light):  7.82:1 PASS (AAA)
+        //   - bg.canvas × accent.link  (dark):   8.79:1 PASS (AAA)
+        //   - bg.canvas × accent.featured (light, persimmon-600): 5.74:1 PASS (AA)
+        //   - bg.canvas × accent.featured (dark, persimmon-500):  5.17:1 PASS (AA)
+        //   - focus.ring × bg.canvas (dark, citrus × sumi-950): 12.43:1 PASS (AAA)
+        //   - focus.ring 二重リング (citrus-500 × ink-900 内側): 13.03:1 PASS (AAA)
+        //   - focus.ring 二重リング外側 (ink-900 × persimmon-600): 3.28:1 PASS (UI 装飾 3:1)
         // ====================================================================
         bg: {
           canvas: {
@@ -228,35 +248,48 @@ export default defineConfig({
               _dark: "{colors.sumi.600}",
             },
           },
-          // 既存 Gruvbox エイリアス (段階的移行用に温存)
+          // ----------------------------------------------------------------
+          // 旧 Gruvbox エイリアス (R-2a で OKLCH 近似色へ切替済み)
+          //
+          // R-2c 完了後の最終 PR で削除予定。R-2b / R-2c で個別 layer から
+          // 新 token (bg.canvas / bg.surface / bg.elevated) への参照置換が
+          // 完了したらここを丸ごと消す。
+          //
+          // 旧名 -> 新マッピング (Issue #388 仕様):
+          //   bg.0 -> bg.canvas    の OKLCH 近似色
+          //   bg.1 -> bg.surface
+          //   bg.2 -> bg.elevated
+          //   bg.3 -> bg.surface (やや沈み込み、互換用)
+          //   bg.4 -> bg.elevated (互換用)
+          // ----------------------------------------------------------------
           0: {
             value: {
-              _dark: "{colors.gruvbox.dark.bg0}",
-              _light: "{colors.gruvbox.light.bg0}",
+              _light: "{colors.cream.50}",
+              _dark: "{colors.sumi.950}",
             },
           },
           1: {
             value: {
-              _dark: "{colors.gruvbox.dark.bg1}",
-              _light: "{colors.gruvbox.light.bg1}",
+              _light: "{colors.cream.100}",
+              _dark: "{colors.sumi.700}",
             },
           },
           2: {
             value: {
-              _dark: "{colors.gruvbox.dark.bg2}",
-              _light: "{colors.gruvbox.light.bg2}",
+              _light: "{colors.cream.50}",
+              _dark: "{colors.sumi.600}",
             },
           },
           3: {
             value: {
-              _dark: "{colors.gruvbox.dark.bg3}",
-              _light: "{colors.gruvbox.light.bg3}",
+              _light: "{colors.cream.100}",
+              _dark: "{colors.sumi.700}",
             },
           },
           4: {
             value: {
-              _dark: "{colors.gruvbox.dark.bg4}",
-              _light: "{colors.gruvbox.light.bg4}",
+              _light: "{colors.cream.50}",
+              _dark: "{colors.sumi.600}",
             },
           },
         },
@@ -279,35 +312,48 @@ export default defineConfig({
               _dark: "{colors.bone.100}",
             },
           },
-          // 既存 Gruvbox エイリアス (段階的移行用に温存)
+          // ----------------------------------------------------------------
+          // 旧 Gruvbox エイリアス (R-2a で OKLCH 近似色へ切替済み)
+          //
+          // R-2c 完了後の最終 PR で削除予定。R-2b / R-2c で個別 layer から
+          // 新 token (fg.primary / fg.secondary / fg.muted) への参照置換が
+          // 完了したらここを丸ごと消す。
+          //
+          // 旧名 -> 新マッピング (Issue #388 仕様):
+          //   fg.0 -> fg.primary
+          //   fg.1 -> fg.primary
+          //   fg.2 -> fg.secondary
+          //   fg.3 -> fg.muted
+          //   fg.4 -> fg.muted
+          // ----------------------------------------------------------------
           0: {
             value: {
-              _dark: "{colors.gruvbox.dark.fg0}",
-              _light: "{colors.gruvbox.light.fg0}",
+              _light: "{colors.ink.primary-on-cream}",
+              _dark: "{colors.bone.50}",
             },
           },
           1: {
             value: {
-              _dark: "{colors.gruvbox.dark.fg1}",
-              _light: "{colors.gruvbox.light.fg1}",
+              _light: "{colors.ink.primary-on-cream}",
+              _dark: "{colors.bone.50}",
             },
           },
           2: {
             value: {
-              _dark: "{colors.gruvbox.dark.fg2}",
-              _light: "{colors.gruvbox.light.fg2}",
+              _light: "{colors.ink.secondary-on-cream}",
+              _dark: "{colors.bone.100}",
             },
           },
           3: {
             value: {
-              _dark: "{colors.gruvbox.dark.fg3}",
-              _light: "{colors.gruvbox.light.fg3}",
+              _light: "{colors.sumi.600}",
+              _dark: "{colors.bone.100}",
             },
           },
           4: {
             value: {
-              _dark: "{colors.gruvbox.dark.fg4}",
-              _light: "{colors.gruvbox.light.fg4}",
+              _light: "{colors.sumi.600}",
+              _dark: "{colors.bone.100}",
             },
           },
         },
@@ -315,6 +361,16 @@ export default defineConfig({
           // accent / link / focus を 3 軸分離。混線を避けるため、
           // CTA は brand、リンクは link、キーボード可視性は focus を使い分ける。
           brand: {
+            value: {
+              _light: "{colors.persimmon.600}",
+              _dark: "{colors.persimmon.500}",
+            },
+          },
+          // R-2a (Issue #388) で追加。Featured バッジ・主要 CTA で使用。
+          // accent.brand と同値だが、用途分離のため別 token として独立。
+          // light: persimmon-600 (cream-50 上で 5.74:1 PASS / AA)
+          // dark : persimmon-500 (sumi-950 上で 5.17:1 PASS / AA)
+          featured: {
             value: {
               _light: "{colors.persimmon.600}",
               _dark: "{colors.persimmon.500}",
@@ -343,6 +399,29 @@ export default defineConfig({
             value: {
               _dark: "{colors.aqua.light}",
               _light: "{colors.aqua.dark}",
+            },
+          },
+        },
+        // ----------------------------------------------------------------
+        // focus.ring (R-2a / Issue #388 で新規追加、R-5 で利用)
+        //
+        // visible focus ring 専用色。accent.focus との違い:
+        //   - accent.focus: 3 軸分離 (accent / link / focus) の旧 naming。
+        //     citrus-500 を「accent」階層下に置いたが、focus は accent ではないため
+        //     独立 namespace へ昇格させた。
+        //   - focus.ring : R-5 (フォーカス可視性強化) で参照する正規 token。
+        //
+        // 値: citrus-500 (light/dark 共通)
+        //   - light の cream-50 上では 1.45:1 のため、accent ボタン上などでは
+        //     二重リング (外 ink-900 + 内 citrus-500、内側 13.03:1 AAA) を採用。
+        //   - dark の sumi-950 上では 12.43:1 PASS (AAA)。
+        //   - 単純な背景上 (light) で AA を確保する場合は外側 ink-900 を併用する想定。
+        // ----------------------------------------------------------------
+        focus: {
+          ring: {
+            value: {
+              _light: "{colors.citrus.500}",
+              _dark: "{colors.citrus.500}",
             },
           },
         },

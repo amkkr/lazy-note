@@ -126,12 +126,30 @@ export interface SemanticColorTokens {
   readonly fgSecondary: SemanticColorPair;
   /** 注釈・補助 */
   readonly fgMuted: SemanticColorPair;
-  /** ブランド色 (CTA / Featured) */
+  /** ブランド色 (CTA) */
   readonly accentBrand: SemanticColorPair;
+  /**
+   * Featured バッジ・主要 CTA 用 (R-2a / Issue #388 で追加)
+   *
+   * accentBrand と同値だが、用途分離のため別 token として独立させている。
+   * Featured タイル (ホーム 1 箇所) や OG 画像背景に使用する想定。
+   */
+  readonly accentFeatured: SemanticColorPair;
   /** リンク誘導 */
   readonly accentLink: SemanticColorPair;
-  /** focus キーボード可視性 */
+  /**
+   * focus キーボード可視性 (旧名、後方互換のため残存)
+   *
+   * 新規参照は focusRing を使うこと。R-2c 完了後の最終 PR で削除予定。
+   */
   readonly accentFocus: SemanticColorPair;
+  /**
+   * visible focus ring 専用色 (R-2a / Issue #388 で追加、R-5 で利用)
+   *
+   * 値は accentFocus と同じ citrus-500 だが、focus は accent ではないため
+   * 独立 namespace へ昇格させた。
+   */
+  readonly focusRing: SemanticColorPair;
 }
 
 export const semanticColorTokens: SemanticColorTokens = {
@@ -163,11 +181,19 @@ export const semanticColorTokens: SemanticColorTokens = {
     light: oklchPrimitives.persimmon["600"],
     dark: oklchPrimitives.persimmon["500"],
   },
+  accentFeatured: {
+    light: oklchPrimitives.persimmon["600"],
+    dark: oklchPrimitives.persimmon["500"],
+  },
   accentLink: {
     light: oklchPrimitives.indigo["500"],
     dark: oklchPrimitives.indigo["300"],
   },
   accentFocus: {
+    light: oklchPrimitives.citrus["500"],
+    dark: oklchPrimitives.citrus["500"],
+  },
+  focusRing: {
     light: oklchPrimitives.citrus["500"],
     dark: oklchPrimitives.citrus["500"],
   },

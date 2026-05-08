@@ -238,6 +238,62 @@ describe("semantic トークン (light/dark の本文ペア)", () => {
   });
 });
 
+describe("R-2a (Issue #388) で追加した semantic token", () => {
+  it("accentFeatured は light で persimmon-600 を指している", () => {
+    expect(semanticColorTokens.accentFeatured.light).toBe(
+      oklchPrimitives.persimmon["600"],
+    );
+  });
+
+  it("accentFeatured は dark で persimmon-500 を指している", () => {
+    expect(semanticColorTokens.accentFeatured.dark).toBe(
+      oklchPrimitives.persimmon["500"],
+    );
+  });
+
+  it("accentFeatured × bg.canvas (light) が WCAG AA 4.5:1 以上である", () => {
+    const r = ratio(
+      semanticColorTokens.accentFeatured.light,
+      semanticColorTokens.bgCanvas.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("accentFeatured × bg.canvas (dark) が WCAG AA 4.5:1 以上である", () => {
+    const r = ratio(
+      semanticColorTokens.accentFeatured.dark,
+      semanticColorTokens.bgCanvas.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("focusRing は light/dark とも citrus-500 を指している", () => {
+    // 単一背景上の AA は light では非対応 (cream-50 上で 1.45:1)。
+    // 二重リング (外 ink-900 + 内 citrus-500) で運用する想定。
+    expect(semanticColorTokens.focusRing.light).toBe(
+      oklchPrimitives.citrus["500"],
+    );
+    expect(semanticColorTokens.focusRing.dark).toBe(
+      oklchPrimitives.citrus["500"],
+    );
+  });
+
+  it("focusRing × sumi-950 (dark 通常背景) が AA 4.5:1 以上である", () => {
+    const r = ratio(
+      semanticColorTokens.focusRing.dark,
+      semanticColorTokens.bgCanvas.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("focusRing × ink-900 (二重リング内側) が AA 4.5:1 以上である", () => {
+    // 二重リング: 外側 ink-900 + 内側 citrus-500 (focusRing)。
+    // 内側は外側と AA 4.5:1 以上のコントラストでリングそのものを認知できる必要がある。
+    const r = ratio(semanticColorTokens.focusRing.light, oklchPrimitives.ink["900"]);
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+});
+
 describe("マージン僅少警告ライン", () => {
   it("本文ペアが 1.05 倍マージン (>= 7.56:1) を確保している", () => {
     // 7.20 * 1.05 = 7.56 を全本文ペアが超えていることを確認 (運用目標)

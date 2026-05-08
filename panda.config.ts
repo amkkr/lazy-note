@@ -207,8 +207,14 @@ export default defineConfig({
           content: { value: "900px" },
           article: { value: "800px" },
           // Editorial Citrus 本文 measure (Issue #391)。
-          // 紙面組版の標準値 36rem (576px) で 1 行の文字数を読みやすい範囲に制限する。
-          prose: { value: "36rem" },
+          // 紙面組版の標準値 36rem (= 576px) を採用し、1 行の文字数を
+          // 読みやすい範囲 (全角 36-40 字程度) に制限する。
+          //
+          // 注意: src/index.css の :root { font-size: 62.5% } により
+          // 本プロジェクトの 1rem = 10px となるため、CSS 標準 (1rem = 16px) 前提の
+          // RFC 04-layout.md §"本文 36rem" を 576px として実装する場合は
+          // 57.6rem を指定する必要がある。値の正本は 576px (= 57.6rem)。
+          prose: { value: "57.6rem" },
           header: { value: "70px" },
         },
       },

@@ -6,7 +6,7 @@ interface MetaInfoProps {
   createdAt?: string;
   author?: string;
   readingTimeMinutes?: number;
-  variant?: "card" | "header";
+  variant?: "card" | "header" | "featured" | "bento";
 }
 
 // スタイルをコンポーネント外に定数として定義
@@ -22,6 +22,28 @@ const containerStyles = css({
   },
 });
 
+// featured 用は中央寄せではなく左寄せの行 (タイトルの上に控えめに乗る用途)
+const containerFeaturedStyles = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-start",
+  flexWrap: "wrap",
+  gap: "md",
+  fontSize: "xs",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+});
+
+// bento 用は小さめの行間で左寄せ
+const containerBentoStyles = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-start",
+  flexWrap: "wrap",
+  gap: "sm-md",
+  fontSize: "xs",
+});
+
 const itemBaseStyles = css({
   display: "flex",
   alignItems: "center",
@@ -29,9 +51,20 @@ const itemBaseStyles = css({
   fontSize: "sm",
 });
 
+// featured / bento variant のアイテムは少し小さめ・gap も狭め
+const itemCompactStyles = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "xs",
+  fontSize: "xs",
+});
+
 // Editorial Citrus トークン (R-2b / Issue #389)
 // - card variant: 補助情報のため fg.muted を使用
 // - header variant: 見出し相当のため fg.primary を使用
+// - featured variant: Featured 大見出しの上に置く控えめなオーバーラインのため
+//   fg.secondary を使い、上部に静かに配置する (Issue #395)。
+// - bento variant: Bento カード内の補助情報。fg.secondary で本文寄り扱い。
 const itemCardStyles = css({
   color: "fg.muted",
 });
@@ -44,8 +77,56 @@ const itemHeaderStyles = css({
   borderRadius: "xl",
 });
 
+const itemFeaturedStyles = css({
+  color: "fg.secondary",
+});
+
+const itemBentoStyles = css({
+  color: "fg.secondary",
+});
+
 // アイコンの表示サイズ。本文 sm (14px) のラインハイトに合わせて 14px。
 const ICON_SIZE = 14;
+// Featured / Bento はコンパクト表示のためアイコンサイズを縮小
+const ICON_SIZE_COMPACT = 12;
+
+// variant ごとのスタイル / アイコンサイズの lookup table。
+// 三項演算子の連鎖で複雑度が上がるのを避けるため、辞書として一括定義する。
+type Variant = NonNullable<MetaInfoProps["variant"]>;
+
+interface VariantStyleSet {
+  readonly container: string;
+  readonly item: string;
+  readonly itemBase: string;
+  readonly iconSize: number;
+}
+
+const variantStyleSets: Record<Variant, VariantStyleSet> = {
+  card: {
+    container: containerStyles,
+    item: itemCardStyles,
+    itemBase: itemBaseStyles,
+    iconSize: ICON_SIZE,
+  },
+  header: {
+    container: containerStyles,
+    item: itemHeaderStyles,
+    itemBase: itemBaseStyles,
+    iconSize: ICON_SIZE,
+  },
+  featured: {
+    container: containerFeaturedStyles,
+    item: itemFeaturedStyles,
+    itemBase: itemCompactStyles,
+    iconSize: ICON_SIZE_COMPACT,
+  },
+  bento: {
+    container: containerBentoStyles,
+    item: itemBentoStyles,
+    itemBase: itemCompactStyles,
+    iconSize: ICON_SIZE_COMPACT,
+  },
+};
 
 /**
  * メタ情報コンポーネント（CSS定数抽出 + React.memoでメモ化）
@@ -53,6 +134,10 @@ const ICON_SIZE = 14;
  * R-4 (Issue #392) で日付・著者・読了時間の絵文字装飾を inline SVG の
  * Calendar / PenLine / Clock に置換。アイコン自体は装飾扱いとして
  * `aria-hidden` で SR から隠し、隣接テキストで意味を伝える。
+ *
+ * Issue #395 (Editorial Bento) で featured / bento variant を追加。
+ * - featured: Featured ヒーロー上の控えめなオーバーライン (uppercase + tracking)
+ * - bento: Bento カード内の補助情報行
  */
 export const MetaInfo = memo(
   ({
@@ -61,22 +146,22 @@ export const MetaInfo = memo(
     readingTimeMinutes,
     variant = "card",
   }: MetaInfoProps) => {
-    const itemVariantStyles =
-      variant === "header" ? itemHeaderStyles : itemCardStyles;
+    const styles = variantStyleSets[variant];
+    const itemClassName = `${styles.itemBase} ${styles.item}`;
 
     return (
-      <div className={containerStyles}>
-        <div className={`${itemBaseStyles} ${itemVariantStyles}`}>
-          <Calendar aria-hidden="true" size={ICON_SIZE} />
+      <div className={styles.container}>
+        <div className={itemClassName}>
+          <Calendar aria-hidden="true" size={styles.iconSize} />
           <span>{createdAt || "日付未設定"}</span>
         </div>
-        <div className={`${itemBaseStyles} ${itemVariantStyles}`}>
-          <PenLine aria-hidden="true" size={ICON_SIZE} />
+        <div className={itemClassName}>
+          <PenLine aria-hidden="true" size={styles.iconSize} />
           <span>{author || "匿名"}</span>
         </div>
         {readingTimeMinutes !== undefined && (
-          <div className={`${itemBaseStyles} ${itemVariantStyles}`}>
-            <Clock aria-hidden="true" size={ICON_SIZE} />
+          <div className={itemClassName}>
+            <Clock aria-hidden="true" size={styles.iconSize} />
             <span>{readingTimeMinutes}分で読了</span>
           </div>
         )}

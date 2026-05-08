@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Link } from "../Link";
 
 describe("Link", () => {
@@ -256,6 +256,110 @@ describe("Link", () => {
       // hover 時の class 名は &:hover キーで個別生成される。
       // Panda の生成名は [&:hover]:c_accent.link 形式となる。
       expect(link.className).toMatch(/c_accent\.link/);
+    });
+  });
+
+  // ====================================================================
+  // View Transitions (Issue #397)
+  //
+  // viewTransition prop が true の場合、クリック時に preventDefault され、
+  // `document.startViewTransition` (利用可能な場合) でラップされた navigate
+  // が実行される。jsdom 既定では VT 未対応のため graceful degrade で navigate
+  // が即時実行される。
+  // ====================================================================
+  describe("View Transitions", () => {
+    // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+    let originalStartVT: any;
+
+    beforeEach(() => {
+      // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+      originalStartVT = (document as any).startViewTransition;
+    });
+
+    afterEach(() => {
+      if (originalStartVT === undefined) {
+        // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+        delete (document as any).startViewTransition;
+      } else {
+        // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+        (document as any).startViewTransition = originalStartVT;
+      }
+    });
+
+    it("viewTransition=true でクリックすると startViewTransition 経由で navigate される", () => {
+      const startVTSpy = vi.fn((cb: () => void) => {
+        cb();
+      });
+      // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+      (document as any).startViewTransition = startVTSpy;
+
+      render(
+        <MemoryRouter>
+          <Link to="/posts/foo" viewTransition>
+            VT Link
+          </Link>
+        </MemoryRouter>,
+      );
+
+      const link = screen.getByRole("link", { name: "VT Link" });
+      fireEvent.click(link);
+
+      // startViewTransition が呼ばれていれば、preventDefault → vtNavigate のパスが
+      // 機能している証拠となる。
+      expect(startVTSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("viewTransition=false ではクリック時に startViewTransition を呼ばない", () => {
+      const startVTSpy = vi.fn();
+      // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+      (document as any).startViewTransition = startVTSpy;
+
+      render(
+        <MemoryRouter>
+          <Link to="/posts/bar">No VT Link</Link>
+        </MemoryRouter>,
+      );
+
+      const link = screen.getByRole("link", { name: "No VT Link" });
+      fireEvent.click(link);
+
+      expect(startVTSpy).not.toHaveBeenCalled();
+    });
+
+    it("修飾キー併用クリック (Cmd) では preventDefault せずブラウザ既定挙動に委ねる", () => {
+      const startVTSpy = vi.fn();
+      // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
+      (document as any).startViewTransition = startVTSpy;
+
+      render(
+        <MemoryRouter>
+          <Link to="/posts/baz" viewTransition>
+            Cmd Click
+          </Link>
+        </MemoryRouter>,
+      );
+
+      const link = screen.getByRole("link", { name: "Cmd Click" });
+      fireEvent.click(link, { metaKey: true });
+
+      // 新規タブを開く意図なので VT は発火させない
+      expect(startVTSpy).not.toHaveBeenCalled();
+    });
+
+    it("style prop を inline style として伝播する", () => {
+      render(
+        <MemoryRouter>
+          <Link
+            to="/styled"
+            style={{ viewTransitionName: "custom-vt-name" }}
+          >
+            Styled
+          </Link>
+        </MemoryRouter>,
+      );
+
+      const link = screen.getByRole("link", { name: "Styled" });
+      expect(link.style.viewTransitionName).toBe("custom-vt-name");
     });
   });
 

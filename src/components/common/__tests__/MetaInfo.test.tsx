@@ -85,4 +85,60 @@ describe("MetaInfo", () => {
       screen.getByText("非常に長い名前を持つ著者の名前です"),
     ).toBeInTheDocument();
   });
+
+  // ===================================================================
+  // Issue #395 (Editorial Bento) で追加した variant のテスト
+  // ===================================================================
+  it("featuredバリアントが適用できる", () => {
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024-01-01"
+        author="山田太郎"
+        readingTimeMinutes={5}
+        variant="featured"
+      />,
+    );
+
+    // featured バリアントは uppercase + tracking でオーバーラインとして機能
+    // (text-transform: uppercase の class が付与される)
+    const metaInfo = container.firstChild as HTMLElement;
+    expect(metaInfo.className).toMatch(/textTransform_uppercase|tt_uppercase/);
+    expect(screen.getByText("2024-01-01")).toBeInTheDocument();
+    expect(screen.getByText("山田太郎")).toBeInTheDocument();
+    expect(screen.getByText("5分で読了")).toBeInTheDocument();
+  });
+
+  it("bentoバリアントが適用できる", () => {
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024-01-01"
+        author="山田太郎"
+        readingTimeMinutes={3}
+        variant="bento"
+      />,
+    );
+
+    // bento バリアントは小フォント (xs) で fg.secondary
+    const metaInfo = container.firstChild as HTMLElement;
+    expect(metaInfo).toBeInTheDocument();
+    expect(screen.getByText("2024-01-01")).toBeInTheDocument();
+    expect(screen.getByText("山田太郎")).toBeInTheDocument();
+    expect(screen.getByText("3分で読了")).toBeInTheDocument();
+  });
+
+  it("featured / bento variant でアイコンサイズが 12px に縮小される", () => {
+    const { container: featuredContainer } = render(
+      <MetaInfo createdAt="2024-01-01" author="山田太郎" variant="featured" />,
+    );
+    const { container: bentoContainer } = render(
+      <MetaInfo createdAt="2024-01-01" author="山田太郎" variant="bento" />,
+    );
+
+    // 装飾アイコン (svg) が width="12" を持つ
+    const featuredSvgs =
+      featuredContainer.querySelectorAll('svg[width="12"]');
+    expect(featuredSvgs.length).toBeGreaterThanOrEqual(2);
+    const bentoSvgs = bentoContainer.querySelectorAll('svg[width="12"]');
+    expect(bentoSvgs.length).toBeGreaterThanOrEqual(2);
+  });
 });

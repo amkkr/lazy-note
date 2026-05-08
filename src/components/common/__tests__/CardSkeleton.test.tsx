@@ -42,4 +42,20 @@ describe("CardSkeleton", () => {
     const container = screen.getByLabelText("記事を読み込み中");
     expect(container).toBeInTheDocument();
   });
+
+  // Issue #419: 親 cardStyles の bg.surface 上に置く 1px divider について、
+  // 旧 token (bg.elevated) は light 環境で外側との差が 1.06:1 で視覚消失していた。
+  // border 専用 token (border.subtle) に置換した後、Tripwire テストで CI 検出する。
+  it("cardHeader の borderBottom が border.subtle 専用 token を参照している", () => {
+    render(<CardSkeleton count={1} />);
+
+    const skeletonContainer = screen.getByLabelText("記事を読み込み中");
+    const listContainer = skeletonContainer.firstElementChild;
+    const card = listContainer?.firstElementChild;
+    expect(card).toBeInTheDocument();
+    const cardHeader = card?.firstElementChild;
+    expect(cardHeader).toBeInTheDocument();
+    // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
+    expect(cardHeader?.className).toMatch(/bd-c_border\.subtle/);
+  });
 });

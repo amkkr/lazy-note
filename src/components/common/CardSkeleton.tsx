@@ -29,13 +29,19 @@ const cardStyles = css({
   boxShadow: "card",
 });
 
-// borderColor は親 cardStyles の bg.surface と同色で消失するため
-// bg.elevated (ハイライト風) に変更 (R-2b 修正)。
+// 親 cardStyles の bg.surface (light: cream-100 / dark: sumi-700) 上に置く
+// 1px divider。Issue #409 で導入した border 専用 token (border.subtle) に
+// 置換 (Issue #419)。
+// - 旧実装は bg.elevated を使用していたが、light の bg.elevated (cream-100) は
+//   bg.surface (cream-50) との差が 1.06:1 で視覚消失していた。
+// - border.subtle は WCAG 1.4.11 (Non-text Contrast) の 3:1 を満たす:
+//   light: cream-300 × cream-100 (bg.surface) = 3.29:1
+//   dark : sumi-400  × sumi-700  (bg.surface) = 3.76:1
 const cardHeaderStyles = css({
   padding: "sm-md",
   paddingBottom: "md",
   borderBottom: "1px solid",
-  borderColor: "bg.elevated",
+  borderColor: "border.subtle",
   display: "flex",
   alignItems: "center",
   gap: "sm",

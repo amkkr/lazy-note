@@ -123,6 +123,28 @@ describe("lint:tokens (scripts/lintTokens.ts)", () => {
       expect(result.stderr).toContain("old-gruvbox-token");
     });
 
+    it('{ _light: "cream.50", _dark: "ink.900" } の primitive ペアを検出する (Issue #408)', () => {
+      writeTmpFile(
+        "violation.tsx",
+        'const c = css({ color: { _light: "cream.50", _dark: "ink.900" } });\n',
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("primitive-pair-cream-ink-fg-on-brand");
+    });
+
+    it('{ _dark: "ink.900", _light: "cream.50" } の primitive ペア (key 順違い) を検出する (Issue #408)', () => {
+      writeTmpFile(
+        "violation.tsx",
+        'const c = css({ color: { _dark: "ink.900", _light: "cream.50" } });\n',
+      );
+      const result = runWithTmpDir();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(
+        "primitive-pair-cream-ink-fg-on-brand-reversed",
+      );
+    });
+
     it(".test.ts ファイルは検査対象外で違反検出されない", () => {
       writeTmpFile(
         "violation.test.ts",

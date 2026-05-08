@@ -53,8 +53,19 @@ const TARGET_EXTENSIONS = new Set([".ts", ".tsx", ".css"]);
  * - 自テストの中で「文字列としてパターンを書いている」可能性があるため `.test.ts(x)` は除外する。
  *   ただし `__tests__` 配下の通常テストは内部実装ではなく動作検証なので、
  *   旧 token をハードコードする可能性は低い。実害が出たら個別に除外を増やす。
+ * - `src/components/common/ThemeToggle.tsx` は thumb 背景上の icon 色という
+ *   別コンテキストで `{_light: "cream.50", _dark: "ink.900"}` の primitive ペアを
+ *   意図的に使用しているため除外する (Issue #408 スコープ外)。
+ * - `src/lib/colorTokens.ts` は semantic token 定義の単一ソースであり、
+ *   JSDoc で「過去の直書きパターン」を文字列として説明する箇所がある。
+ *   実装上は `oklchPrimitives.*` を介して値を組み立てるため除外して問題ない。
  */
-const EXCLUDED_FILE_SUFFIXES = [".test.ts", ".test.tsx"];
+const EXCLUDED_FILE_SUFFIXES = [
+  ".test.ts",
+  ".test.tsx",
+  "src/components/common/ThemeToggle.tsx",
+  "src/lib/colorTokens.ts",
+];
 
 /**
  * lint パターン定義。
@@ -107,6 +118,19 @@ const LINT_PATTERNS: readonly LintPattern[] = [
     description: "旧 colors.gruvbox.* token の参照 (R-2c で削除済み)",
     // token('colors.gruvbox.bg-0') 形式。kebab-case や数字を含む値も拾う。
     pattern: /token\(['"]colors\.gruvbox\.[a-z0-9-]+['"]\)/g,
+  },
+  {
+    name: "primitive-pair-cream-ink-fg-on-brand",
+    description:
+      '`{ _light: "cream.50", _dark: "ink.900" }` の primitive ペアは `color: "fg.onBrand"` semantic token に置換可能。直書きは fg.onBrand への移行漏れの可能性 (Issue #408)',
+    // _light: "cream.50", _dark: "ink.900" の順で並ぶ primitive ペア。
+    pattern: /\{\s*_light:\s*['"]cream\.50['"]\s*,\s*_dark:\s*['"]ink\.900['"]\s*\}/g,
+  },
+  {
+    name: "primitive-pair-cream-ink-fg-on-brand-reversed",
+    description:
+      '同上 (key 順違い): `{ _dark: "ink.900", _light: "cream.50" }` も `color: "fg.onBrand"` に置換可能 (Issue #408)',
+    pattern: /\{\s*_dark:\s*['"]ink\.900['"]\s*,\s*_light:\s*['"]cream\.50['"]\s*\}/g,
   },
 ] as const;
 

@@ -24,8 +24,11 @@ const articleStyles = css({
   borderColor: "bg.3",
 });
 
+// R-4 (Issue #392) で gradients.primary をフラットな bg.surface に置換。
+// Calm 思想 (装飾ノイズの徹底削除) に沿ってグラデヘッダを廃止し、
+// 紙面的な editorial 表現に揃える。
 const headerStyles = css({
-  background: "gradients.primary",
+  background: "bg.surface",
   padding: "md",
   md: {
     padding: "section",

@@ -82,10 +82,12 @@ export const PostDetailPage = ({
               borderColor: "bg.3",
             })}
           >
-            {/* Article Header with Gradient */}
+            {/* Article Header (R-4 / Issue #392 でグラデヘッダを廃止し
+                bg.surface のフラット背景に統一。Calm 思想 - 装飾ノイズの
+                徹底削除 - と editorial 思想に沿った変更。) */}
             <header
               className={css({
-                background: "gradients.primary",
+                background: "bg.surface",
                 color: "fg.0",
                 padding: "md",
                 md: {

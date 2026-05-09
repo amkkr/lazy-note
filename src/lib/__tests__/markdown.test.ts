@@ -831,19 +831,26 @@ const x = "hello";
        * 委ねる前提。
        * TODO(#426): もし制御文字除去を実装する場合、このテストは
        * 削除済みの結果を期待する形に修正する。
+       *
+       * U+0000 (NULL バイト) を直書きするとエディタやリンタで表示が破綻し、
+       * バイナリ汚染と誤認されるリスクがあるため、U+202E と同じ理由で
+       * `\u0000` エスケープ表記に統一する。
        */
-      const input = "a b";
+      const input = "a\u0000b";
 
-      expect(escapeHtmlAttr(input)).toBe("a b");
+      expect(escapeHtmlAttr(input)).toBe("a\u0000b");
     });
 
     it("escapeHtmlAttrはU+001Fを含む入力を同一文字列で返す", () => {
       /**
        * 設計意図: 上記と同じく制御文字は素通りする設計。
+       *
+       * U+001F も U+0000 と同様に直書きするとエディタ表示が破綻するため、
+       * U+202E と同じ理由で `\u001F` エスケープ表記に統一する。
        */
-      const input = "ab";
+      const input = "a\u001Fb";
 
-      expect(escapeHtmlAttr(input)).toBe("ab");
+      expect(escapeHtmlAttr(input)).toBe("a\u001Fb");
     });
 
     it("escapeHtmlAttrはU+202E (右から左オーバーライド) を含む入力を同一文字列で返す", () => {

@@ -847,6 +847,66 @@ describe("parseMetaSection", () => {
       expect(caught?.code).toBe("INVALID_DATETIME");
     });
   });
+
+  /**
+   * Issue #428 概要 #5 で挙げられた「Unicode 正規化: NFD vs NFC で同一 key の
+   * 重複判定」をカバーするテスト群。
+   *
+   * 設計意図: meta.ts は文字列 bytewise 比較のため、Unicode 正規化 (NFC/NFD)
+   * は行わない。視覚的に同一の key でも内部表現が異なれば別キーとして扱われ、
+   * KNOWN_KEYS にマッチしない側は UNKNOWN_KEY として throw される。
+   *
+   * TODO(#428): 厳密な仕様準拠 (Unicode 正規化を行う) を採用するなら、
+   * このテストは反転して同一キー扱い (DUPLICATE_KEY) を期待する形になる。
+   */
+  describe("Issue #428: Unicode 正規化", () => {
+    it("U+00E9 (NFC) と U+0065 + U+0301 (NFD) を別キーとして扱う", () => {
+      // NFC: é (1 文字), NFD: é (e + combining acute, 2 文字)
+      const nfcKey = "é";
+      const nfdKey = "é";
+      // NFC と NFD が異なる文字列であることを前提として確認する
+      expect(nfcKey).not.toBe(nfdKey);
+
+      const markdown = buildMarkdown(
+        ["## メタ", `- ${nfcKey}: foo`, `- ${nfdKey}: bar`].join("\n"),
+      );
+
+      let caught: MetaParseError | null = null;
+      try {
+        parseMetaSection(markdown, "20250101120000.md");
+      } catch (error) {
+        caught = error as MetaParseError;
+      }
+
+      // 同一キーとして DUPLICATE_KEY 化されず、最初の行で UNKNOWN_KEY が出る
+      // ことで「NFC と NFD は別キー」であることを確認する
+      expect(caught).toBeInstanceOf(MetaParseError);
+      expect(caught?.code).toBe("UNKNOWN_KEY");
+      expect(caught?.file).toBe("20250101120000.md");
+    });
+
+    it("非ASCII キーは KNOWN_KEYS に含まれないため UNKNOWN_KEY として throw する", () => {
+      // 全角 s (U+FF53) + tatus は視覚的には status に近いが、
+      // 内部表現が異なるため KNOWN_KEYS にマッチしない
+      const lookalikeKey = "ｓtatus";
+      expect(lookalikeKey).not.toBe("status");
+
+      const markdown = buildMarkdown(
+        ["## メタ", `- ${lookalikeKey}: published`].join("\n"),
+      );
+
+      let caught: MetaParseError | null = null;
+      try {
+        parseMetaSection(markdown, "20250101120000.md");
+      } catch (error) {
+        caught = error as MetaParseError;
+      }
+
+      expect(caught).toBeInstanceOf(MetaParseError);
+      expect(caught?.code).toBe("UNKNOWN_KEY");
+      expect(caught?.file).toBe("20250101120000.md");
+    });
+  });
 });
 
 describe("既存記事の互換性確認 (T1 拡張)", () => {

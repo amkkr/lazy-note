@@ -415,7 +415,7 @@ describe("parseMetaSection", () => {
      * isIso8601 内で年月から実際の月末日を計算し一致しなければ false を
      * 返す実装に変更し、本テストの expect を `INVALID_DATETIME` に反転する。
      */
-    it("非閏年の 2025-02-29T12:00:00+09:00 は現状 published_at として受理される (TODO #428: 仕様準拠化検討)", () => {
+    it("非閏年の 2025-02-29T12:00:00+09:00 は Date.parse 委譲のため published_at として受理される (TODO #428: 仕様準拠化検討)", () => {
       const markdown = buildMarkdown(
         [
           "## メタ",
@@ -466,7 +466,7 @@ describe("parseMetaSection", () => {
     /**
      * 設計上の意図: 正規表現 `\.\d+` は桁数を制限せず、isIso8601 は形式チェック
      * 後の実在性判定を `Date.parse` に委譲する。V8 の Date.parse は 6 桁以上の
-     * 小数秒も valid 扱いにするため、ISO 8601 仕様上は逸脱した値も現状受理される。
+     * 小数秒も valid 扱いにするため、ISO 8601 仕様上は逸脱した値も実装上は受理される。
      * フロント側で受理されてもユーザー観測上の不正は起こりづらく、Markdown 編集
      * 時のビルド時 lint で防御するという責務分界に基づく。
      *
@@ -490,14 +490,14 @@ describe("parseMetaSection", () => {
 
     /**
      * 設計上の意図: V8 の Date.parse は時間部 24:00:00 を「翌日 0 時」として
-     * valid 扱いするため、現状の parser は 24 時を弾けない。文字列は元のまま
+     * valid 扱いするため、parser は 24 時を弾けない。文字列は元のまま
      * 保持されるため、フロント表示は "24:00" のままで観測上の不正は無く、
      * 実在性の厳格判定は CI lint の責務とする分界に基づく。
      *
      * 将来の反転方針 / TODO(#428): isIso8601 内で時刻範囲を 00-23 にチェック
      * する実装を追加し、本テストの expect を `INVALID_DATETIME` に反転する。
      */
-    it("時間部 24:00:00 の 2025-01-01T24:00:00+09:00 は現状 published_at として受理される (TODO #428: 仕様準拠化検討)", () => {
+    it("時間部 24:00:00 の 2025-01-01T24:00:00+09:00 は Date.parse 委譲のため published_at として受理される (TODO #428: 仕様準拠化検討)", () => {
       const markdown = buildMarkdown(
         [
           "## メタ",
@@ -707,7 +707,7 @@ describe("parseMetaSection", () => {
       expect(typeof caught?.line).toBe("number");
     });
 
-    it("CRLF (\\r\\n) 改行のメタセクションが正しくパースされる", () => {
+    it("CRLF (\\r\\n) 改行のメタセクションから status / publishedAt / tags が抽出される", () => {
       const lines = [
         "# テストタイトル",
         "",
@@ -732,7 +732,7 @@ describe("parseMetaSection", () => {
       expect(result?.tags).toEqual(["typescript"]);
     });
 
-    it("CR (\\r) 改行のメタセクションが正しくパースされる", () => {
+    it("CR (\\r) 改行のメタセクションから status / publishedAt / tags が抽出される", () => {
       const lines = [
         "# テストタイトル",
         "",

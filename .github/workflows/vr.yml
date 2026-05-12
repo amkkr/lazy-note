@@ -1,0 +1,97 @@
+name: vr
+
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: "Update VR baseline snapshots (true で --update-snapshots を付与)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "24"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.4
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Panda CSS
+        # a11y.yml と同様、`pnpm prepare` (codegen) だけでは styles.css が
+        # 生成されないため `pnpm exec panda` で styles.css も生成する。
+        run: |
+          pnpm prepare
+          pnpm exec panda
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: |
+          version=$(pnpm list @playwright/test --depth=0 --json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);console.log(j[0].devDependencies['@playwright/test'].version)})")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install chromium
+
+      - name: Install Playwright OS dependencies
+        run: pnpm exec playwright install-deps chromium
+        timeout-minutes: 5
+        continue-on-error: true
+
+      - name: Run Playwright VR tests (compare)
+        if: github.event_name == 'pull_request'
+        run: pnpm exec playwright test --project=visual-desktop
+
+      - name: Run Playwright VR tests (update snapshots)
+        if: github.event_name == 'workflow_dispatch' && inputs.update_snapshots == 'true'
+        run: pnpm exec playwright test --project=visual-desktop --update-snapshots
+
+      - name: Run Playwright VR tests (compare on dispatch)
+        if: github.event_name == 'workflow_dispatch' && inputs.update_snapshots != 'true'
+        run: pnpm exec playwright test --project=visual-desktop
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-vr
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload VR snapshots (workflow_dispatch のみ)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: vr-snapshots
+          # Playwright は spec ファイルと同階層に `<spec>-snapshots/` を生成する。
+          # 例: `e2e/visual/main-pages.spec.ts-snapshots/home-visual-desktop-linux.png`
+          path: e2e/visual/**/*-snapshots/**
+          retention-days: 14
+          if-no-files-found: warn

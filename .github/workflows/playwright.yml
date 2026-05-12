@@ -52,7 +52,9 @@ jobs:
         continue-on-error: true
 
       - name: Run Playwright tests
-        run: pnpm exec playwright test
+        # Visual Regression (`visual-desktop` project) は別 workflow (vr.yml) で実行する。
+        # 既存 playwright.yml は smoke + a11y のみ実行するため project を明示する。
+        run: pnpm exec playwright test --project=mobile --project=tablet --project=desktop
 
       - name: Upload Playwright report
         if: always()

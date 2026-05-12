@@ -36,7 +36,7 @@ const cardStyles = css({
 //   bg.surface (cream-50) との差が 1.06:1 で視覚消失していた。
 // - border.subtle は WCAG 1.4.11 (Non-text Contrast) の 3:1 を満たす:
 //   light: cream-300 × cream-100 (bg.surface) = 3.29:1
-//   dark : sumi-400  × sumi-700  (bg.surface) = 3.76:1
+//   dark : sumi-450  × sumi-700  (bg.surface) = 3.29:1 (Issue #423 で sumi-400 から変更)
 const cardHeaderStyles = css({
   padding: "sm-md",
   paddingBottom: "md",

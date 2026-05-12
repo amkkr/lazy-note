@@ -42,10 +42,19 @@ export interface OklchPrimitives {
   };
   readonly sumi: {
     /**
-     * Issue #409 で追加。border.subtle (dark) の値に使用。
-     * WCAG 1.4.11 (Non-text Contrast) を bg.canvas / bg.surface 上で満たす。
+     * Issue #409 で追加 (旧 border.subtle dark 値)。
+     * 現在は使用されていないが、テストペア記述や CSV 比較用に primitive
+     * 階層では温存する。
      */
     readonly "400": string;
+    /**
+     * Issue #423 で追加。border.subtle (dark) の新値。
+     * L=0.665 で WCAG 1.4.11 (Non-text Contrast) 3:1 を bg.canvas /
+     * bg.surface / bg.muted 上で満たしつつ、light の cream-300 と
+     * bg.surface 上のコントラスト比 (3.29:1) が完全一致するため、Calm
+     * 思想 (装飾ノイズ削除) と light/dark の視覚的対称性を両立する。
+     */
+    readonly "450": string;
     readonly "500": string;
     readonly "600": string;
     /** Issue #409 で追加。bg.muted (dark) の値に使用。sumi-950 と sumi-700 の中間。 */
@@ -98,11 +107,20 @@ export const oklchPrimitives: OklchPrimitives = {
     "900": "oklch(0.150 0.020 85)",
   },
   sumi: {
-    // Issue #409 で追加 (border.subtle dark)。L=0.700 で
+    // Issue #409 で追加 (旧 border.subtle dark)。L=0.700 で
     //   bg.canvas (sumi-950) 上 7.05:1 / bg.surface (sumi-700) 上 3.76:1。
-    //   bg.elevated (sumi-600) 上は 2.57:1 で 3:1 未達のため、bg.elevated 上の
-    //   border 用途には使わない方針 (border.subtle JSDoc 参照)。
+    //   Issue #423 で Calm 思想 (装飾ノイズ削除) との整合性が指摘され、
+    //   border.subtle (dark) は sumi-450 (L=0.665) に置き換えた。
+    //   primitive 階層では将来の比較用に温存する (削除しない)。
     "400": "oklch(0.700 0.012 220)",
+    // Issue #423 で追加 (border.subtle dark の新値)。L=0.665 で
+    //   bg.canvas (sumi-950) 上 6.18:1 / bg.surface (sumi-700) 上 3.29:1。
+    //   light の cream-300 × bg.surface (3.29:1) と完全に一致し、light/dark で
+    //   視覚的対称性が取れる値。Editorial Citrus の Calm 思想 (装飾ノイズの
+    //   徹底削除) と整合する弱 divider。
+    //   bg.muted (sumi-650) 上 4.94:1 / bg.elevated (sumi-600) 上 2.25:1。
+    //   bg.elevated 上は 3:1 未達のため border 用途では使わない方針 (Tripwire)。
+    "450": "oklch(0.665 0.012 220)",
     // L=0.620 (RFC 02 の初期値 0.560 から AAA 実測で調整、sumi-950 上で 5.15:1)
     "500": "oklch(0.620 0 0)",
     "600": "oklch(0.470 0 0)",
@@ -253,28 +271,37 @@ export interface SemanticColorTokens {
    */
   readonly focusRing: SemanticColorPair;
   /**
-   * 控えめな border 専用色 (Issue #409 で追加)。
+   * 控えめな border 専用色 (Issue #409 で追加、Issue #423 で dark 値を再調整)。
    *
    * R-2b/R-2c で旧 5 段階を圧縮した結果、border に bg.elevated を流用すると
    * 外側 bg.canvas と同色になり視覚消失していた (light の article border が
    * 1.0:1 で完全消失する問題)。borderSubtle は border 専用色で、WCAG 1.4.11
-   * (Non-text Contrast) の 3:1 を bg.canvas / bg.surface / bg.muted 上で満たす。
+   * (Non-text Contrast) の 3:1 を bg.canvas / bg.surface / bg.muted 上で
+   * **辛うじて満たす視覚的弱 divider**。本文や fg として転用厳禁。
    *
    * **値**:
    * - light: cream-300 (oklch(0.620 0.020 85))
    *   - bg.canvas (cream-50) 上 3.49:1 PASS (1.4.11)
    *   - bg.surface (cream-100) 上 3.29:1 PASS (1.4.11)
-   * - dark : sumi-400 (oklch(0.700 0.012 220))
-   *   - bg.canvas (sumi-950) 上 7.05:1 PASS (1.4.11)
-   *   - bg.surface (sumi-700) 上 3.76:1 PASS (1.4.11)
+   * - dark : sumi-450 (oklch(0.665 0.012 220)) — Issue #423 で sumi-400 から変更
+   *   - bg.canvas (sumi-950) 上 6.18:1 PASS (1.4.11)
+   *   - bg.surface (sumi-700) 上 3.29:1 PASS (1.4.11、light と完全に対称)
+   *   - bg.muted (sumi-650) 上 4.94:1 PASS (1.4.11)
+   *
+   * **Issue #423 の意図**: 旧 sumi-400 (L=0.700) は dark canvas 上 7.05:1 で
+   * 本文と同等の主張強度となり、Editorial Citrus の Calm 思想 (装飾ノイズの
+   * 徹底削除) と相反していた。新値 sumi-450 (L=0.665) は light cream-300 と
+   * bg.surface 上で同じ 3.29:1 となるよう調整し、light/dark の視覚的対称性を
+   * 確保する。
    *
    * **適用ガイドライン**:
    * - article カード (bg.surface) 周りや内部 hr / table / divider など、
    *   視覚的区切り線を弱く出したい用途で使用する。
-   * - bg.elevated (dark: sumi-600) 上では 2.57:1 で 3:1 未達。bg.elevated
+   * - bg.elevated (dark: sumi-600) 上では 2.25:1 で 3:1 未達。bg.elevated
    *   表面の border が必要な場合は引き続き bg.elevated 反転利用 (Button
    *   secondary / BackToTop など、Issue #409 では置換対象外) を継続する。
-   * - text color として転用しないこと (border 専用 token)。
+   * - **text color として転用厳禁** (border 専用 token)。本文として使うと
+   *   AAA 7.20:1 を満たさず、可読性が大幅に低下する。
    */
   readonly borderSubtle: SemanticColorPair;
   /**
@@ -344,7 +371,10 @@ export const semanticColorTokens: SemanticColorTokens = {
   },
   borderSubtle: {
     light: oklchPrimitives.cream["300"],
-    dark: oklchPrimitives.sumi["400"],
+    // Issue #423: dark を sumi-400 (L=0.700, 7.05:1) → sumi-450 (L=0.665,
+    // 6.18:1) に変更。Calm 思想と整合する弱 divider を実現しつつ、
+    // light cream-300 × bg.surface (3.29:1) と完全な視覚的対称性を確保。
+    dark: oklchPrimitives.sumi["450"],
   },
   bgCode: {
     light: codeBlockColors.light.bg0,

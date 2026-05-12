@@ -51,6 +51,7 @@ describe("oklchPrimitives", () => {
       oklchPrimitives.ink.secondaryOnCream,
       oklchPrimitives.ink["900"],
       oklchPrimitives.sumi["400"],
+      oklchPrimitives.sumi["450"],
       oklchPrimitives.sumi["500"],
       oklchPrimitives.sumi["600"],
       oklchPrimitives.sumi["650"],
@@ -339,9 +340,13 @@ describe("Issue #409: bg.muted / border.subtle 階層 token", () => {
     );
   });
 
-  it("borderSubtle は dark で sumi-400 (border 専用色) を指している", () => {
+  it("borderSubtle は dark で sumi-450 (Calm 思想整合の border 専用色) を指している", () => {
+    // Issue #423: 旧 sumi-400 (L=0.700, 7.05:1) は本文と同等の主張強度のため
+    // Calm 思想と相反していた。sumi-450 (L=0.665, 6.18:1) に変更して弱 divider
+    // を実現しつつ、light cream-300 と bg.surface 上で同じ 3.29:1 となるよう
+    // 視覚的対称性を確保した。
     expect(semanticColorTokens.borderSubtle.dark).toBe(
-      oklchPrimitives.sumi["400"],
+      oklchPrimitives.sumi["450"],
     );
   });
 

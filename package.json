@@ -11,6 +11,7 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:a11y": "playwright test e2e/a11y",
+    "test:visual": "playwright test --project=visual-desktop",
     "e2e": "playwright test",
     "fmt": "biome check --write --unsafe ./src",
     "lint": "biome lint  ./src",

@@ -73,7 +73,7 @@ const itemCardStyles = css({
 
 const itemHeaderStyles = css({
   color: "fg.primary",
-  background: "rgba(251, 241, 199, 0.15)",
+  background: "bg.muted",
   paddingY: "sm",
   paddingX: "md",
   borderRadius: "xl",

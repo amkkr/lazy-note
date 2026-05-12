@@ -35,6 +35,11 @@ export const findAdjacentPosts = (
 
 /**
  * 前後の記事を取得するカスタムフック
+ *
+ * useEffect 内で非同期に記事サマリーをロードするため、currentId 切替や
+ * unmount 時に古いリクエストの解決が新しい state を上書きする race condition、
+ * および unmount 後の setState を防止するための cancellation flag を併用する。
+ *
  * @param currentId 現在表示中の記事ID
  */
 export const useAdjacentPosts = (
@@ -47,25 +52,40 @@ export const useAdjacentPosts = (
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadAdjacentPosts = async () => {
-      if (!currentId) {
-        setLoading(false);
-        return;
-      }
+    let cancelled = false;
 
-      try {
-        setLoading(true);
-        const summaries = await getAllPostSummaries();
-        setAdjacentPosts(findAdjacentPosts(summaries, currentId));
-      } catch (error) {
-        console.error("Failed to load adjacent posts:", error);
-        setAdjacentPosts({ olderPost: null, newerPost: null });
-      } finally {
-        setLoading(false);
+    const loadAdjacentPosts = async (): Promise<AdjacentPosts> => {
+      if (!currentId) {
+        return { olderPost: null, newerPost: null };
       }
+      const summaries = await getAllPostSummaries();
+      return findAdjacentPosts(summaries, currentId);
     };
 
-    loadAdjacentPosts();
+    setLoading(true);
+    loadAdjacentPosts()
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+        setAdjacentPosts(result);
+      })
+      .catch((error) => {
+        console.error("Failed to load adjacent posts:", error);
+        if (cancelled) {
+          return;
+        }
+        setAdjacentPosts({ olderPost: null, newerPost: null });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentId]);
 
   return { ...adjacentPosts, loading };

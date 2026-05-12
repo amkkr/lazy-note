@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as markdownModule from "../../lib/markdown";
 import { findAdjacentPosts, useAdjacentPosts } from "../useAdjacentPosts";
@@ -147,5 +147,43 @@ describe("useAdjacentPosts", () => {
     });
 
     expect(mockGetAllPostSummaries).toHaveBeenCalledTimes(2);
+  });
+
+  it("currentId切替時に古いリクエストの結果は新しいstateに反映されない", async () => {
+    // 1回目のリクエストは手動でresolveできる遅延Promise
+    let resolveFirst: ((value: typeof mockSummaries) => void) | undefined;
+    const firstPromise = new Promise<typeof mockSummaries>((resolve) => {
+      resolveFirst = resolve;
+    });
+
+    // 2回目のリクエストは即座にresolve
+    mockGetAllPostSummaries
+      .mockImplementationOnce(() => firstPromise)
+      .mockResolvedValueOnce(mockSummaries);
+
+    const { result, rerender } = renderHook(
+      ({ currentId }: { currentId: string }) => useAdjacentPosts(currentId),
+      { initialProps: { currentId: "20240102100000" } },
+    );
+
+    // currentIdを切り替えると2回目のリクエストが発火する
+    rerender({ currentId: "20240101100000" });
+
+    // 2回目のリクエストが完了するまで待つ（末尾の記事のためolderPostはnull、newerPostは2番目）
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.olderPost).toBeNull();
+    expect(result.current.newerPost).toEqual(mockSummaries[1]);
+
+    // 後から1回目のリクエストをresolveしても、新しいstateを上書きしない
+    await act(async () => {
+      resolveFirst?.(mockSummaries);
+      await firstPromise;
+    });
+
+    expect(result.current.olderPost).toBeNull();
+    expect(result.current.newerPost).toEqual(mockSummaries[1]);
   });
 });

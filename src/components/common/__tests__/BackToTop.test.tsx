@@ -56,4 +56,33 @@ describe("BackToTop", () => {
       behavior: "smooth",
     });
   });
+
+  // ====================================================================
+  // Editorial Citrus token Tripwire (Issue #421)
+  //
+  // bg.elevated 反転 border は light で 1.06:1 となり視覚消失していた。
+  // border 専用 token (border.subtle) に置換し、hover bg は bg.elevated
+  // (dark で border.subtle と 2.25:1 = 3:1 未達) を避けて bg.muted に変更する。
+  // ====================================================================
+  describe("Editorial Citrus token 参照 (Tripwire)", () => {
+    it("border.subtle 専用 token の border class を持つ", () => {
+      vi.mocked(useScrollPosition).mockReturnValue(500);
+
+      render(<BackToTop />);
+
+      const button = screen.getByRole("button", { name: "ページトップへ戻る" });
+      expect(button.className).toMatch(
+        /bd-c_border\.subtle|borderColor.*border\.subtle/,
+      );
+    });
+
+    it("hover 背景に bg.muted の class を持つ", () => {
+      vi.mocked(useScrollPosition).mockReturnValue(500);
+
+      render(<BackToTop />);
+
+      const button = screen.getByRole("button", { name: "ページトップへ戻る" });
+      expect(button.className).toMatch(/bg_bg\.muted/);
+    });
+  });
 });

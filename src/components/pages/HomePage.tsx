@@ -197,7 +197,10 @@ export const HomePage = memo(
               <h3 id="index-section-heading" className={indexHeadingStyles}>
                 Index
               </h3>
-              <ul className={indexListStyles}>
+              <ul
+                className={indexListStyles}
+                data-token-border="border.subtle"
+              >
                 {indexPosts.map((post, idx) => (
                   // 全体連番 (Featured 1 件 + Bento 6 件 = 7 件オフセット)。
                   // POSTS_PER_PAGE = 16 で 1 ページ完結を前提としているため、

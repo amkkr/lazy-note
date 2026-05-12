@@ -70,89 +70,39 @@ describe("Button", () => {
   });
 
   it("デフォルトでprimaryスタイルになる", () => {
-    const { container: primaryContainer } = render(
-      <Button>Primary Button</Button>,
-    );
-    const { container: secondaryContainer } = render(
-      <Button variant="secondary">Secondary Button</Button>,
-    );
-
-    const primaryClass = primaryContainer.querySelector("button")?.className;
-    const secondaryClass =
-      secondaryContainer.querySelector("button")?.className;
-    expect(primaryClass).not.toBe("");
-    expect(primaryClass).not.toBe(secondaryClass);
+    render(<Button>Primary Button</Button>);
+    const button = screen.getByRole("button", { name: "Primary Button" });
+    expect(button).toHaveAttribute("data-variant", "primary");
   });
 
   it("secondaryスタイルに変更できる", () => {
-    const { container: secondaryContainer } = render(
-      <Button variant="secondary">Secondary Button</Button>,
-    );
-    const { container: ghostContainer } = render(
-      <Button variant="ghost">Ghost Button</Button>,
-    );
-
-    const secondaryClass =
-      secondaryContainer.querySelector("button")?.className;
-    const ghostClass = ghostContainer.querySelector("button")?.className;
-    expect(secondaryClass).not.toBe("");
-    expect(secondaryClass).not.toBe(ghostClass);
+    render(<Button variant="secondary">Secondary Button</Button>);
+    const button = screen.getByRole("button", { name: "Secondary Button" });
+    expect(button).toHaveAttribute("data-variant", "secondary");
   });
 
   it("ghostスタイルに変更できる", () => {
-    const { container: ghostContainer } = render(
-      <Button variant="ghost">Ghost Button</Button>,
-    );
-    const { container: primaryContainer } = render(
-      <Button>Primary Button</Button>,
-    );
-
-    const ghostClass = ghostContainer.querySelector("button")?.className;
-    const primaryClass = primaryContainer.querySelector("button")?.className;
-    expect(ghostClass).not.toBe("");
-    expect(ghostClass).not.toBe(primaryClass);
+    render(<Button variant="ghost">Ghost Button</Button>);
+    const button = screen.getByRole("button", { name: "Ghost Button" });
+    expect(button).toHaveAttribute("data-variant", "ghost");
   });
 
   it("デフォルトでmediumサイズになる", () => {
-    const { container: mediumContainer } = render(
-      <Button>Medium Button</Button>,
-    );
-    const { container: smallContainer } = render(
-      <Button size="small">Small Button</Button>,
-    );
-
-    const mediumClass = mediumContainer.querySelector("button")?.className;
-    const smallClass = smallContainer.querySelector("button")?.className;
-    expect(mediumClass).not.toBe("");
-    expect(mediumClass).not.toBe(smallClass);
+    render(<Button>Medium Button</Button>);
+    const button = screen.getByRole("button", { name: "Medium Button" });
+    expect(button).toHaveAttribute("data-size", "medium");
   });
 
   it("smallサイズに変更できる", () => {
-    const { container: smallContainer } = render(
-      <Button size="small">Small Button</Button>,
-    );
-    const { container: largeContainer } = render(
-      <Button size="large">Large Button</Button>,
-    );
-
-    const smallClass = smallContainer.querySelector("button")?.className;
-    const largeClass = largeContainer.querySelector("button")?.className;
-    expect(smallClass).not.toBe("");
-    expect(smallClass).not.toBe(largeClass);
+    render(<Button size="small">Small Button</Button>);
+    const button = screen.getByRole("button", { name: "Small Button" });
+    expect(button).toHaveAttribute("data-size", "small");
   });
 
   it("largeサイズに変更できる", () => {
-    const { container: largeContainer } = render(
-      <Button size="large">Large Button</Button>,
-    );
-    const { container: mediumContainer } = render(
-      <Button>Medium Button</Button>,
-    );
-
-    const largeClass = largeContainer.querySelector("button")?.className;
-    const mediumClass = mediumContainer.querySelector("button")?.className;
-    expect(largeClass).not.toBe("");
-    expect(largeClass).not.toBe(mediumClass);
+    render(<Button size="large">Large Button</Button>);
+    const button = screen.getByRole("button", { name: "Large Button" });
+    expect(button).toHaveAttribute("data-size", "large");
   });
 
   it("複数の子要素を受け入れる", () => {
@@ -168,140 +118,86 @@ describe("Button", () => {
   });
 
   // ====================================================================
-  // Editorial Citrus token Tripwire テスト (R-2b / Issue #389)
+  // Editorial Citrus token Tripwire テスト (R-2b / Issue #389、Issue #422 で刷新)
   //
-  // Panda CSS が生成する class 名 (例: "bg_accent.brand") を検証することで、
-  // 後続 R-2c での旧 token 削除や semantic token 切替で誤って色が外れた場合に
-  // CI で検出できるようにする。
+  // Issue #422 (DA レビュー): jsdom は CSSOM の var() 解決を実装しないため
+  // `getComputedStyle` ベースの検証は物理的に動作不能。className 文字列
+  // (`/bg_accent\.brand/`) は Panda の `hash: true` オプションを将来有効化
+  // した場合に全滅する脆弱性を持つ。
   //
-  // class 名のフォーマット: <css-prop-prefix>_<token-path>
-  //   - background → "bg_..." (例: bg_accent.brand)
-  //   - color      → "c_..."  (例: c_accent.link)
-  // 詳細は styled-system/styles.css を参照。
+  // 対応: コンポーネント側で `data-token-bg` / `data-token-border` 等の
+  // 意味属性を吐き、テストは `toHaveAttribute` で検証する (Option A: Panda
+  // recipe + data 属性方式)。hash 化耐性 + 意味性を両立する。
   // ====================================================================
   describe("Editorial Citrus token 参照 (Tripwire)", () => {
-    it("primary variant は accent.brand の background class を持つ", () => {
+    it("primary variant は accent.brand を background token として宣言する", () => {
       render(<Button variant="primary">Primary</Button>);
       const button = screen.getByRole("button", { name: "Primary" });
-      expect(button.className).toMatch(/bg_accent\.brand/);
+      expect(button).toHaveAttribute("data-token-bg", "accent.brand");
     });
 
-    it("secondary variant は bg.surface の background class を持つ", () => {
+    it("secondary variant は bg.surface を background token として宣言する", () => {
       render(<Button variant="secondary">Secondary</Button>);
       const button = screen.getByRole("button", { name: "Secondary" });
       // R-2b 修正: bg.elevated × border bg.surface の同色問題を回避するため、
       // bg を bg.surface に反転している。
-      expect(button.className).toMatch(/bg_bg\.surface/);
+      expect(button).toHaveAttribute("data-token-bg", "bg.surface");
     });
 
     // Issue #421: bg.elevated 反転 border は light で 1.06:1 となり視覚消失
     // していた。border 専用 token (border.subtle) に置換した後、Tripwire
     // テストで CI 検出する。
-    it("secondary variant は border.subtle 専用 token の border class を持つ", () => {
+    it("secondary variant は border.subtle 専用 token を border として宣言する", () => {
       render(<Button variant="secondary">Secondary</Button>);
       const button = screen.getByRole("button", { name: "Secondary" });
-      expect(button.className).toMatch(
-        /bd-c_border\.subtle|borderColor.*border\.subtle/,
-      );
+      expect(button).toHaveAttribute("data-token-border", "border.subtle");
     });
 
     // Issue #421: hover 背景を bg.elevated から bg.muted に変更。
     // dark で bg.elevated × border.subtle = 2.25:1 となり 3:1 未達のため、
     // hover bg を bg.muted (sumi-650) に切り替えて 4.94:1 を確保する。
-    it("secondary variant は hover で bg.muted の background class を持つ", () => {
+    it("secondary variant は hover 時の background token として bg.muted を宣言する", () => {
       render(<Button variant="secondary">Secondary</Button>);
       const button = screen.getByRole("button", { name: "Secondary" });
-      expect(button.className).toMatch(/bg_bg\.muted/);
+      expect(button).toHaveAttribute("data-token-hover-bg", "bg.muted");
     });
 
-    it("ghost variant は accent.link の color class を持つ", () => {
+    it("ghost variant は accent.link を color token として宣言する", () => {
       render(<Button variant="ghost">Ghost</Button>);
       const button = screen.getByRole("button", { name: "Ghost" });
-      expect(button.className).toMatch(/c_accent\.link/);
+      expect(button).toHaveAttribute("data-token-color", "accent.link");
     });
   });
 
   // ====================================================================
-  // R-5 (Issue #393) focus ring 共通化 Tripwire
+  // R-5 (Issue #393) focus ring Tripwire (Issue #422 で刷新)
   //
-  // src/styles/focusRing.ts の二重リング (box-shadow + var(--colors-focus-ring))
-  // が variant 別に正しく適用されているか検証する。
-  // Panda CSS は `_focusVisible` + `boxShadow` の組み合わせを `focusVisible:bx-sh_*`
-  // という prefix の class 名に変換する。focus.ring CSS 変数 (--colors-focus-ring) を
-  // 値に含む class が必ず生成されるため、その存在を直接検証する。
+  // 旧版は className に `var(--colors-focus-ring)` を含む `bx-sh_*` class
+  // が付いていることを正規表現で検証していたが、Panda の hash 化で破綻する
+  // ため `data-focus-ring` 属性 (default | on-accent) で検証する形に変更。
   //
   // 検証対象:
-  // - primary  : focusRingOnAccentStyles (light: ink-900 内側 / citrus 外側、
-  //              dark: cream-50 内側 / citrus 外側)
-  // - secondary: focusRingStyles (light: citrus 内側 / ink-900 外側、
-  //              dark: citrus 内側 / cream-50 外側)
-  // - ghost    : focusRingStyles
-  //
-  // Panda の class 名の詳細は `styled-system/styles.css` を参照。
-  // (例: `.focusVisible\:light\:bx-sh_0_0_0_2px_var\(--colors-ink-900\)...`)
+  // - primary  : `data-focus-ring="on-accent"` (focusRingOnAccentStyles 適用)
+  // - secondary: `data-focus-ring="default"` (focusRingStyles 適用)
+  // - ghost    : `data-focus-ring="default"`
   // ====================================================================
   describe("R-5 focus ring (Issue #393)", () => {
-    /**
-     * focus.ring CSS 変数を box-shadow 値として含む focus-visible class が
-     * 1 個以上付与されていることを判定する。
-     */
-    const hasFocusRingClass = (className: string): boolean => {
-      // Panda 生成 class は `focusVisible:bx-sh_...var(--colors-focus-ring)...`
-      // の形式 (light/dark 条件付きの場合は `focusVisible:light:bx-sh_...` 等)。
-      return /focusVisible[:\\][^\s]*bx-sh[^\s]*--colors-focus-ring/.test(
-        className,
-      );
-    };
-
-    it("primary variant は focus.ring を含む focus-visible box-shadow class を持つ", () => {
+    it("primary variant は accent 上向け二重リング (on-accent) を宣言する", () => {
       render(<Button variant="primary">Primary</Button>);
       const button = screen.getByRole("button", { name: "Primary" });
-      expect(hasFocusRingClass(button.className)).toBe(true);
+      expect(button).toHaveAttribute("data-focus-ring", "on-accent");
     });
 
-    it("primary variant は accent 上向け内側リング (ink-900 / cream-50) class を持つ", () => {
-      render(<Button variant="primary">Primary</Button>);
-      const button = screen.getByRole("button", { name: "Primary" });
-      // accent 上では light: 内側 ink-900 / dark: 内側 cream-50。
-      // 条件分岐の片方でも生成されている事を確認する。
-      expect(button.className).toMatch(
-        /focusVisible[:\\][^\s]*(--colors-ink-900|--colors-cream-50)/,
-      );
-    });
-
-    it("secondary variant は focus.ring を含む focus-visible box-shadow class を持つ", () => {
+    it("secondary variant は通常背景向け二重リング (default) を宣言する", () => {
       render(<Button variant="secondary">Secondary</Button>);
       const button = screen.getByRole("button", { name: "Secondary" });
-      expect(hasFocusRingClass(button.className)).toBe(true);
+      expect(button).toHaveAttribute("data-focus-ring", "default");
     });
 
-    it("secondary variant は通常背景向け外側リング (ink-900 / cream-50) class を持つ", () => {
-      render(<Button variant="secondary">Secondary</Button>);
-      const button = screen.getByRole("button", { name: "Secondary" });
-      // 通常背景では light: 外側 ink-900 / dark: 外側 cream-50 が含まれる。
-      expect(button.className).toMatch(
-        /focusVisible[:\\][^\s]*(--colors-ink-900|--colors-cream-50)/,
-      );
-    });
-
-    it("ghost variant も focus.ring を含む focus-visible box-shadow class を持つ", () => {
+    it("ghost variant も通常背景向け二重リング (default) を宣言する", () => {
       render(<Button variant="ghost">Ghost</Button>);
       const button = screen.getByRole("button", { name: "Ghost" });
-      expect(hasFocusRingClass(button.className)).toBe(true);
-    });
-
-    it("button:focus-visible でグローバル outline が乗らない (R-5 修正)", () => {
-      // index.css L198-204 の `button:focus-visible { outline: 2px solid ... }`
-      // は un-layered で Panda の `_focusVisible: { outline: "none" }` を
-      // 破って二重リングと outline が重畳していた。本テストは
-      // index.css 側で focus-visible outline を再導入した場合に検出するため、
-      // src/index.css に旧パターンが含まれないことを担保する。
-      // (実体としての DOM レベル検証は jsdom の computedStyle 限界で困難。
-      //  本テストは追跡指標として「focus-visible 関連の class が
-      //  variant ごとに付与され続けている」ことを担保する。)
-      render(<Button variant="primary">Primary</Button>);
-      const button = screen.getByRole("button", { name: "Primary" });
-      expect(hasFocusRingClass(button.className)).toBe(true);
+      expect(button).toHaveAttribute("data-focus-ring", "default");
     });
   });
 });

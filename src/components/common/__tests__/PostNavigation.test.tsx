@@ -73,11 +73,11 @@ describe("PostNavigation", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  // Issue #419: PostDetailPage の bg.canvas 上に置かれる前後ナビ区切り線について、
-  // 旧 token (bg.surface) は light 環境で外側 bg.canvas との差が 1.06:1 で
-  // 視覚消失していた。border 専用 token (border.subtle) に置換した後、
-  // Tripwire テストで CI 検出する。
-  it("nav の borderTop が border.subtle 専用 token を参照している", () => {
+  // Issue #419 / Issue #422: PostDetailPage の bg.canvas 上に置かれる前後ナビ
+  // 区切り線について、旧 token (bg.surface) は light 環境で外側 bg.canvas との
+  // 差が 1.06:1 で視覚消失していた。border 専用 token (border.subtle) を参照
+  // していることを `data-token-border` 意味属性で検証する (hash 化耐性)。
+  it("nav は border.subtle 専用 token を border として宣言する", () => {
     const olderPost = createMockPost("20240101100000", "古い記事タイトル");
     const newerPost = createMockPost("20240103100000", "新しい記事タイトル");
 
@@ -88,7 +88,6 @@ describe("PostNavigation", () => {
 
     const nav = container.querySelector("nav");
     expect(nav).toBeInTheDocument();
-    // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
-    expect(nav?.className).toMatch(/bd-c_border\.subtle/);
+    expect(nav).toHaveAttribute("data-token-border", "border.subtle");
   });
 });

@@ -107,7 +107,10 @@ export const CardSkeleton = memo(({ count = 4 }: CardSkeletonProps) => {
       <div className={listStyles}>
         {skeletonItems.map((key) => (
           <div key={key} className={cardStyles}>
-            <div className={cardHeaderStyles}>
+            <div
+              className={cardHeaderStyles}
+              data-token-border="border.subtle"
+            >
               <div className={`${skeletonBase} ${metaLineStyles}`} />
             </div>
             <div className={cardContentStyles}>

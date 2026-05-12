@@ -107,7 +107,7 @@ export const TableOfContents: React.FC<TableOfContentsProps> = React.memo(
 
     return (
       <Disclosure defaultOpen>
-        <div className={containerStyle}>
+        <div className={containerStyle} data-token-border="border.subtle">
           <DisclosureButton className={buttonStyle}>目次</DisclosureButton>
           <DisclosurePanel className={panelStyle}>
             <ul className={listStyle}>

@@ -140,4 +140,47 @@ describe("usePost", () => {
 
     expect(mockGetPost).toHaveBeenCalledWith("20240102120000");
   });
+
+  it("timestamp切替時に古いリクエストの結果は新しいstateに反映されない", async () => {
+    // 2つ目のモック記事
+    const secondPost = {
+      ...mockPost,
+      id: "20240102120000",
+      title: "2つ目の記事",
+    };
+
+    // 1回目のリクエストは手動でresolveできる遅延Promise
+    let resolveFirst: ((value: typeof mockPost) => void) | undefined;
+    const firstPromise = new Promise<typeof mockPost>((resolve) => {
+      resolveFirst = resolve;
+    });
+
+    // 2回目のリクエストは即座にresolve
+    mockGetPost
+      .mockImplementationOnce(() => firstPromise)
+      .mockResolvedValueOnce(secondPost);
+
+    const { result, rerender } = renderHook(
+      ({ timestamp }: { timestamp: string }) => usePost(timestamp),
+      { initialProps: { timestamp: "20240101100000" } },
+    );
+
+    // timestampを切り替えると2回目のリクエストが発火する
+    rerender({ timestamp: "20240102120000" });
+
+    // 2回目のリクエストが完了するまで待つ
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.post).toEqual(secondPost);
+
+    // 後から1回目のリクエストをresolveしても、新しいstateを上書きしない
+    await act(async () => {
+      resolveFirst?.(mockPost);
+      await firstPromise;
+    });
+
+    expect(result.current.post).toEqual(secondPost);
+  });
 });

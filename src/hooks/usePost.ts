@@ -10,6 +10,11 @@ interface UsePostReturn {
 
 /**
  * 記事詳細を取得するカスタムフック
+ *
+ * useEffect 内で非同期に記事をロードするため、timestamp 切替や unmount 時に
+ * 古いリクエストの解決が新しい state を上書きする race condition、および
+ * unmount 後の setState を防止するための cancellation flag を併用する。
+ *
  * @param timestamp 記事のタイムスタンプID
  * @returns 記事詳細、ローディング状態、エラー状態、記事が見つからない状態
  */
@@ -20,36 +25,52 @@ export const usePost = (timestamp: string | undefined): UsePostReturn => {
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    const loadPost = async () => {
-      if (!timestamp) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
+    let cancelled = false;
 
-      try {
-        setLoading(true);
-        setError(null);
-        setNotFound(false);
+    if (!timestamp) {
+      setPost(null);
+      setError(null);
+      setNotFound(true);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-        const postData = await getPost(timestamp);
+    setLoading(true);
+    setError(null);
+    setNotFound(false);
+
+    getPost(timestamp)
+      .then((postData) => {
+        if (cancelled) {
+          return;
+        }
         if (postData) {
           setPost(postData);
         } else {
           setNotFound(true);
         }
-      } catch (err) {
+      })
+      .catch((err) => {
         console.error("Failed to load post:", err);
+        if (cancelled) {
+          return;
+        }
         setError(
           err instanceof Error ? err.message : "記事の読み込みに失敗しました",
         );
         setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
-    };
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
 
-    loadPost();
+    return () => {
+      cancelled = true;
+    };
   }, [timestamp]);
 
   return { post, loading, error, notFound };

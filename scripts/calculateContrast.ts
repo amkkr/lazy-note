@@ -251,23 +251,25 @@ const getContrastPairs = (): readonly ContrastPair[] => {
       minRatio: 3.0,
       category: "decorative",
     },
+    // Issue #423: dark border.subtle を sumi-400 → sumi-450 に変更
+    // (Calm 思想と整合する弱 divider、light cream-300 との視覚対称性)。
     {
-      name: "border.subtle/dark: sumi-400 × sumi-950 (bg.canvas)",
-      fg: oklchPrimitives.sumi["400"],
+      name: "border.subtle/dark: sumi-450 × sumi-950 (bg.canvas)",
+      fg: oklchPrimitives.sumi["450"],
       bg: oklchPrimitives.sumi["950"],
       minRatio: 3.0,
       category: "decorative",
     },
     {
-      name: "border.subtle/dark: sumi-400 × sumi-700 (bg.surface)",
-      fg: oklchPrimitives.sumi["400"],
+      name: "border.subtle/dark: sumi-450 × sumi-700 (bg.surface)",
+      fg: oklchPrimitives.sumi["450"],
       bg: oklchPrimitives.sumi["700"],
       minRatio: 3.0,
       category: "decorative",
     },
     {
-      name: "border.subtle/dark: sumi-400 × sumi-650 (bg.muted)",
-      fg: oklchPrimitives.sumi["400"],
+      name: "border.subtle/dark: sumi-450 × sumi-650 (bg.muted)",
+      fg: oklchPrimitives.sumi["450"],
       bg: oklchPrimitives.sumi["650"],
       minRatio: 3.0,
       category: "decorative",
@@ -434,8 +436,10 @@ const collectMatrixColors = (): {
     { label: "ink-900", value: oklchPrimitives.ink["900"], role: "fg" },
     { label: "bone-50", value: oklchPrimitives.bone["50"], role: "fg" },
     { label: "bone-100", value: oklchPrimitives.bone["100"], role: "fg" },
-    // Issue #409 で追加 (border.subtle dark)
+    // Issue #409 で追加 (旧 border.subtle dark、Issue #423 で sumi-450 に置換)
     { label: "sumi-400", value: oklchPrimitives.sumi["400"], role: "fg" },
+    // Issue #423 で追加 (border.subtle dark の新値、Calm 思想と整合)
+    { label: "sumi-450", value: oklchPrimitives.sumi["450"], role: "fg" },
     { label: "sumi-500", value: oklchPrimitives.sumi["500"], role: "fg" },
     { label: "sumi-600", value: oklchPrimitives.sumi["600"], role: "fg" },
     { label: "sumi-700", value: oklchPrimitives.sumi["700"], role: "fg" },

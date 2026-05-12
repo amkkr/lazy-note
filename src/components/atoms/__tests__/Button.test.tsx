@@ -194,10 +194,24 @@ describe("Button", () => {
       expect(button.className).toMatch(/bg_bg\.surface/);
     });
 
-    it("secondary variant は bg.elevated の border class を持つ", () => {
+    // Issue #421: bg.elevated 反転 border は light で 1.06:1 となり視覚消失
+    // していた。border 専用 token (border.subtle) に置換した後、Tripwire
+    // テストで CI 検出する。
+    it("secondary variant は border.subtle 専用 token の border class を持つ", () => {
       render(<Button variant="secondary">Secondary</Button>);
       const button = screen.getByRole("button", { name: "Secondary" });
-      expect(button.className).toMatch(/bd-c_bg\.elevated|borderColor.*bg\.elevated/);
+      expect(button.className).toMatch(
+        /bd-c_border\.subtle|borderColor.*border\.subtle/,
+      );
+    });
+
+    // Issue #421: hover 背景を bg.elevated から bg.muted に変更。
+    // dark で bg.elevated × border.subtle = 2.25:1 となり 3:1 未達のため、
+    // hover bg を bg.muted (sumi-650) に切り替えて 4.94:1 を確保する。
+    it("secondary variant は hover で bg.muted の background class を持つ", () => {
+      render(<Button variant="secondary">Secondary</Button>);
+      const button = screen.getByRole("button", { name: "Secondary" });
+      expect(button.className).toMatch(/bg_bg\.muted/);
     });
 
     it("ghost variant は accent.link の color class を持つ", () => {

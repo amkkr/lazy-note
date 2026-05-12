@@ -62,17 +62,29 @@ const variantStyles = {
       filter: "brightness(0.92)",
     },
   }),
-  // R-2b 修正: border bg.surface × bg bg.elevated は 1.06:1 で枠線が視覚消失していたため、
-  // bg を bg.surface (一段濃い色) / border を bg.elevated (ハイライト色) に反転。
-  // light: bg.surface (cream-100) × fg.primary = 16.19:1 AAA を維持。
-  // dark : bg.surface (sumi-700) × fg.primary (bone-50) = 7.93:1 AAA を維持。
+  // Issue #421 修正: R-2b の bg.elevated 反転 border は light で
+  //   bg.surface (cream-100) × bg.elevated (cream-50) = 1.06:1 となり
+  //   視覚消失していた。border 専用 token (border.subtle) に置換することで、
+  //   1.4.11 (Non-text Contrast) 3:1 を確保する。
+  //   - light: bg.surface (cream-100) × border.subtle (cream-300) = 3.29:1 PASS
+  //   - dark : bg.surface (sumi-700) × border.subtle (sumi-450) = 3.29:1 PASS
+  // また hover 背景は bg.elevated のままだと dark で
+  //   bg.elevated (sumi-600) × border.subtle (sumi-450) = 2.25:1 となり 3:1 未達。
+  // 対応として hover 背景を bg.muted に変更:
+  //   - light: bg.muted (cream-75) × border.subtle (cream-300) = 3.39:1 PASS
+  //   - dark : bg.muted (sumi-650) × border.subtle (sumi-450) = 4.94:1 PASS
+  // 本文コントラスト (AAA 7.20:1) も維持される:
+  //   - light: bg.surface × fg.primary = 16.19:1 / bg.muted × fg.primary = 16.67:1
+  //   - dark : bg.surface × fg.primary = 7.93:1 / bg.muted × fg.primary = 13.59:1
+  // 視覚効果: hover が「明るくフラッシュ」→「わずかに沈み込み」となり、
+  // Editorial Citrus の Calm 思想と整合する。
   secondary: css({
     background: "bg.surface",
     color: "fg.primary",
     border: "1px solid",
-    borderColor: "bg.elevated",
+    borderColor: "border.subtle",
     "&:hover:not(:disabled)": {
-      background: "bg.elevated",
+      background: "bg.muted",
       transform: "translateY(-1px)",
     },
   }),

@@ -67,6 +67,23 @@ describe("ReadingProgressBar", () => {
   });
 
   // ====================================================================
+  // Issue #454: useReadingProgress 側で scrollY を下限クランプするため、
+  // ReadingProgressBar には 0..100 の値のみが渡る前提。
+  // Safari overscroll で scrollY が負値になった場合でも、useReadingProgress
+  // が 0 を返すため aria-valuetext は "0%" となり、aria-valid-attr-value
+  // (aria-valuemin=0 に対する範囲外) 違反は発生しない。
+  // ====================================================================
+  it("useReadingProgress が 0 を返すと aria-valuetext は '0%' になる", () => {
+    vi.mocked(useReadingProgress).mockReturnValue(0);
+
+    render(<ReadingProgressBar />);
+
+    const bar = screen.getByRole("progressbar");
+    expect(bar).toHaveAttribute("aria-valuenow", "0");
+    expect(bar).toHaveAttribute("aria-valuetext", "0%");
+  });
+
+  // ====================================================================
   // Editorial Citrus token Tripwire テスト (R-2b / Issue #389)
   //
   // RFC 02 §"Persimmon の使用範囲" は accent.brand を

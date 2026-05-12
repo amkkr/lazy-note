@@ -175,4 +175,25 @@ describe("ThemeToggle", () => {
       expect(toggle.className).toMatch(/h_44px/);
     });
   });
+
+  // ====================================================================
+  // Editorial Citrus token Tripwire (Issue #421)
+  //
+  // track の bg.elevated 反転 border は light で 1.06:1 となり視覚消失して
+  // いた。border 専用 token (border.subtle) に置換する。ThemeToggle は
+  // hover 状態を持たない (クリックで即状態遷移) ため、border 単純置換のみ。
+  // ====================================================================
+  describe("Editorial Citrus token 参照 (Tripwire) - Issue #421", () => {
+    it("track が border.subtle 専用 token の border class を持つ", () => {
+      render(<ThemeToggle />);
+
+      const toggle = screen.getByRole("switch");
+      // track 視覚層は toggle 内部の span。innerHTML を介して class を確認する。
+      const track = toggle.querySelector("span[aria-hidden='true']");
+      expect(track).not.toBeNull();
+      expect(track?.className).toMatch(
+        /bd-c_border\.subtle|borderColor.*border\.subtle/,
+      );
+    });
+  });
 });

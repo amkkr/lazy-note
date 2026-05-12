@@ -33,13 +33,8 @@ const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
  *
  * - color-contrast: gruvbox の #83a598 / #7c6f64 系が AA (4.5:1) を満たさない
  *   → Editorial Citrus OKLCH トークン導入 (Issue #0a / G2) で解消
- * - aria-progressbar-name: ReadingProgressBar の aria 名称欠落
- *   → Issue #4a で名称付与
  */
-const KNOWN_VIOLATION_IDS = new Set<string>([
-  "color-contrast",
-  "aria-progressbar-name",
-]);
+const KNOWN_VIOLATION_IDS = new Set<string>(["color-contrast"]);
 
 for (const target of TARGETS) {
   test(`${target.name} (${target.path}) に WCAG 2.1 AA 違反がない`, async ({

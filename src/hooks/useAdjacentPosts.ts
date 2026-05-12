@@ -10,8 +10,6 @@ interface UseAdjacentPostsReturn extends AdjacentPosts {
   loading: boolean;
 }
 
-let summariesCache: PostSummary[] | null = null;
-
 /**
  * 記事リストから指定IDの前後の記事を取得する
  * 配列はID降順（新しい順）のため、index+1が古い記事、index-1が新しい記事
@@ -57,10 +55,8 @@ export const useAdjacentPosts = (
 
       try {
         setLoading(true);
-        if (!summariesCache) {
-          summariesCache = await getAllPostSummaries();
-        }
-        setAdjacentPosts(findAdjacentPosts(summariesCache, currentId));
+        const summaries = await getAllPostSummaries();
+        setAdjacentPosts(findAdjacentPosts(summaries, currentId));
       } catch (error) {
         console.error("Failed to load adjacent posts:", error);
         setAdjacentPosts({ olderPost: null, newerPost: null });

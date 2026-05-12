@@ -90,7 +90,7 @@ jobs:
                 3,
               );
               await core.summary.addRaw(
-                `total=${data.total} / new=${data.newCount} / known allow-listed ids: ${data.knownIds.join(", ")}\n`,
+                `total=${data.total}\n`,
                 true,
               );
               const rows = [
@@ -99,7 +99,6 @@ jobs:
                   { data: "impact", header: true },
                   { data: "tags", header: true },
                   { data: "nodes", header: true },
-                  { data: "known?", header: true },
                   { data: "help", header: true },
                 ],
                 ...data.violations.map((v) => [
@@ -107,7 +106,6 @@ jobs:
                   v.impact ?? "",
                   (v.tags ?? []).join(","),
                   String(v.nodeCount),
-                  v.isKnown ? "yes" : "**NEW**",
                   `[doc](${v.helpUrl})`,
                 ]),
               ];

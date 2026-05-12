@@ -141,7 +141,7 @@ export const PostDetailPage = ({
              * light テーマでは bg.surface (cream-100) と bg.elevated (cream-50)
              * の差が 1.06:1 と薄く、視覚的にほぼ消失していた。
              * border.subtle (border 専用色) で borderTop を引くことで、
-             * bg.surface 上に 3.29:1 (light) / 3.76:1 (dark) のコントラストを
+             * bg.surface 上に 3.29:1 (light) / 3.29:1 (dark) のコントラストを
              * 確保し WCAG 1.4.11 (3:1) を満たす static divider にする。
              * 関連: article 全体の border / nav の borderBottom と同一 token。
              */}

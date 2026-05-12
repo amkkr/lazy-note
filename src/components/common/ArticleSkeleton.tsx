@@ -19,7 +19,7 @@ const innerStyles = css({
 // に置換 (Issue #409)。R-2b では bg.elevated 反転で凌いでいたが、light テーマでは
 // 外側 bg.canvas (cream-50) と同色になり 1.0:1 で再消失する設計上の限界があった。
 // border.subtle は border 専用色で、WCAG 1.4.11 の 3:1 を bg.canvas / bg.surface
-// 上で満たす (light: 3.29-3.49:1 / dark: 3.76-7.05:1)。
+// 上で満たす (light: 3.29-3.49:1 / dark: 3.29-6.18:1)。
 const articleStyles = css({
   background: "bg.surface",
   borderRadius: "lg",

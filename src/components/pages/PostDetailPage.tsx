@@ -270,7 +270,7 @@ export const PostDetailPage = ({
 
                 // 区切り線 (GFM <hr>): prose と同じ幅で中央寄せ。
                 // Issue #409 で border 専用 token (border.subtle) に置換。
-                // bg.surface 上に置かれるため 3.29:1 (light) / 3.76:1 (dark) で 1.4.11 PASS。
+                // bg.surface 上に置かれるため 3.29:1 (light) / 3.29:1 (dark) で 1.4.11 PASS。
                 "& hr": {
                   maxWidth: "prose",
                   marginRight: "auto",

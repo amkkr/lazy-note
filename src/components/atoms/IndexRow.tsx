@@ -34,11 +34,21 @@ interface IndexRowProps {
  * - bg.canvas × fg.secondary: 9.59:1 AAA / 14.84:1 AAA
  * - bg.canvas × accent.featured: 5.74:1 AA / 5.17:1 AA
  *
+ * borderBottom の WCAG 1.4.11 (Non-text Contrast / Issue #445):
+ * 旧 token (bg.elevated) は light 環境で外側 bg.canvas との差が 1.06:1 と
+ * なり区切り線が視覚消失していた。border 専用 token (border.subtle) に
+ * 置換して、bg.canvas / bg.surface 上で 1.4.11 の 3:1 を満たす。
+ *   - light: cream-300 × bg.canvas 3.49:1 / × bg.surface 3.29:1 PASS
+ *   - dark : sumi-450  × bg.canvas 6.18:1 / × bg.surface 3.29:1 PASS
+ * 最終行は親 ul 構造上、上下罫線が不要なため `&:last-child` で
+ * borderBottom: none を維持する (削除厳禁)。
+ *
  * UI 用絵文字は使用しない (R-4 / Issue #395 (vi))。区切りは Em ダッシュと
  * dotted border のみで構成する。
  */
 
-// 行ラッパー。border-bottom で行間を視覚的に区切る。
+// 行ラッパー。borderBottom (border.subtle) で行間を視覚的に区切る。
+// (Issue #445: 旧 bg.elevated は light で 1.06:1 視覚消失していたため置換。)
 // hover/focus で背景色を bg.surface に切り替えて行を強調。
 // position: relative で stretched link (::after) のアンカーを兼ねる。
 const indexRowStyles = css({
@@ -49,7 +59,7 @@ const indexRowStyles = css({
   paddingY: "sm-md",
   paddingX: "sm",
   borderBottom: "1px solid",
-  borderColor: "bg.elevated",
+  borderColor: "border.subtle",
   flexWrap: "wrap",
   transition: "background 0.2s ease",
   "&:hover": {

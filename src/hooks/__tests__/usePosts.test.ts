@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as markdownModule from "../../lib/markdown";
 import { usePosts } from "../usePosts";
@@ -100,5 +100,43 @@ describe("usePosts", () => {
     );
 
     consoleSpy.mockRestore();
+  });
+
+  it("unmount後に解決したリクエストでReactの警告を発生させない", async () => {
+    // unmount 後の setState で React が出す警告を検知する
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    // 手動で resolve できる遅延 Promise
+    let resolveLoad: ((value: typeof mockPosts) => void) | undefined;
+    const loadPromise = new Promise<typeof mockPosts>((resolve) => {
+      resolveLoad = resolve;
+    });
+    mockGetAllPostSummaries.mockReturnValueOnce(loadPromise);
+
+    const { unmount } = renderHook(() => usePosts());
+
+    // 解決前にアンマウント
+    unmount();
+
+    // アンマウント後に Promise を解決
+    await act(async () => {
+      resolveLoad?.(mockPosts);
+      await loadPromise;
+    });
+
+    // unmount 後の setState に対する React 警告が出ていないこと
+    const reactStateWarnings = consoleErrorSpy.mock.calls.filter((call) => {
+      const message = String(call[0] ?? "");
+      return (
+        message.includes("unmounted") ||
+        message.includes("memory leak") ||
+        message.includes("Can't perform a React state update")
+      );
+    });
+    expect(reactStateWarnings).toHaveLength(0);
+
+    consoleErrorSpy.mockRestore();
   });
 });

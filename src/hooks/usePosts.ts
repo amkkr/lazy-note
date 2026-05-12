@@ -30,6 +30,11 @@ interface UsePostsReturn {
 /**
  * 記事一覧を取得するカスタムフック（ページング機能付き）
  * 高速化のためメタデータのみを取得（本文は含まない）
+ *
+ * useEffect の deps は空配列のため再 fetch は走らず race condition は発生しないが、
+ * unmount 後に Promise が解決した際の setState を防止するため cancellation flag を
+ * 併用する。
+ *
  * @returns 記事一覧、ローディング状態、エラー状態、ページング情報
  */
 export const usePosts = (): UsePostsReturn => {
@@ -39,23 +44,36 @@ export const usePosts = (): UsePostsReturn => {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const loadPosts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const posts = await getAllPostSummaries();
+    let cancelled = false;
+
+    setLoading(true);
+    setError(null);
+
+    getAllPostSummaries()
+      .then((posts) => {
+        if (cancelled) {
+          return;
+        }
         setAllPosts(posts);
-      } catch (err) {
+      })
+      .catch((err) => {
         console.error("Failed to load posts:", err);
+        if (cancelled) {
+          return;
+        }
         setError(
           err instanceof Error ? err.message : "記事の読み込みに失敗しました",
         );
-      } finally {
-        setLoading(false);
-      }
-    };
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
 
-    loadPosts();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const totalPosts = allPosts.length;

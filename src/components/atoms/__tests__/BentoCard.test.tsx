@@ -145,4 +145,20 @@ describe("BentoCard", () => {
       expect(heading.style.viewTransitionName).toBe("post-bento-vt");
     });
   });
+
+  // Issue #445: 旧 token (bg.elevated) は light 環境で外側 bg.canvas との
+  // 差が 1.06:1 となり border が視覚消失していた。border 専用 token
+  // (border.subtle) に置換した後、Tripwire テストで CI 検出する。
+  it("article の borderColor が border.subtle 専用 token を参照している", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <BentoCard post={buildPost()} />
+      </MemoryRouter>,
+    );
+
+    const article = container.querySelector("article");
+    expect(article).toBeInTheDocument();
+    // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
+    expect(article?.className).toMatch(/bd-c_border\.subtle/);
+  });
 });

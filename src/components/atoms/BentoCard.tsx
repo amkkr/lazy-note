@@ -25,7 +25,7 @@ interface BentoCardProps {
  * "tall" / "wide" / "default" を切り替える。
  *
  * 設計方針:
- * - bg.surface フラット背景 + hover で bg.elevated + subtle shadow
+ * - bg.surface フラット背景 + hover で subtle elevation (translateY + shadow)
  * - タイトルは fg.primary、メタは variant="bento" で fg.secondary
  * - excerpt は line-clamp 3 行で密度を揃える
  * - hover 時にタイトルが accent.link で下線 (subtle underline)
@@ -37,10 +37,18 @@ interface BentoCardProps {
  * - bg.surface (light cream-100) × fg.primary: 16.19:1 AAA
  * - bg.surface (dark sumi-700)   × fg.primary (bone-50): 7.93:1 AAA
  * - bg.surface × fg.secondary (light/dark): 本文寄りでも AAA pass
+ *
+ * border の WCAG 1.4.11 (Non-text Contrast / Issue #445):
+ * 旧 token (bg.elevated) は light 環境で外側 bg.canvas との差が 1.06:1 と
+ * なり border が視覚消失していた。border 専用 token (border.subtle) に置換
+ * して、bg.canvas / bg.surface 上で 1.4.11 の 3:1 を満たす。
+ *   - light: cream-300 × bg.surface 3.29:1 / × bg.canvas 3.49:1 PASS
+ *   - dark : sumi-450  × bg.surface 3.29:1 / × bg.canvas 6.18:1 PASS
  */
 
 // Bento カード共通スタイル。
-// - bg.surface のフラット背景に薄い枠線 (bg.elevated)
+// - bg.surface のフラット背景に border.subtle 専用 token の薄い枠線
+//   (Issue #445: 旧 bg.elevated は light で 1.06:1 視覚消失していた)。
 // - hover で subtle elevation (translateY + shadow) のみ。Calm 思想 (panda.config.ts
 //   L441-447) に従い、background / border-color の動的変化は撤廃して静謐感を保つ。
 // - 内部タイトル (.bento-title) の text-decoration / color 変化は重要なフィードバック
@@ -56,7 +64,7 @@ const bentoWrapperBaseStyles = css({
   borderRadius: "lg",
   padding: "lg",
   border: "1px solid",
-  borderColor: "bg.elevated",
+  borderColor: "border.subtle",
   transition: "transform 0.2s ease, box-shadow 0.2s ease",
   "&:hover": {
     transform: "translateY(-2px)",

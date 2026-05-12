@@ -101,7 +101,7 @@ const bentoGridStyles = css({
 //   は外側 bg.canvas (cream-50) との差が 1.06:1 で視覚消失していた。
 // - border.subtle は WCAG 1.4.11 (Non-text Contrast) の 3:1 を満たす:
 //   light: cream-300 × cream-50 (bg.canvas) = 3.49:1
-//   dark : sumi-400  × sumi-950 (bg.canvas) = 7.05:1
+//   dark : sumi-450  × sumi-950 (bg.canvas) = 6.18:1 (Issue #423 で sumi-400 から変更、Calm 思想と整合)
 const indexListStyles = css({
   listStyle: "none",
   margin: 0,

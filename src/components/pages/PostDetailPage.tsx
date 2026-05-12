@@ -93,8 +93,9 @@ export const PostDetailPage = ({
            *   bg.canvas (cream-50) と bg.elevated (cream-50) が同値で 1.0:1 の
            *   完全消失となっていた。
            * - border.subtle は border 専用色で、light は cream-300、dark は
-           *   sumi-400。1.4.11 (Non-text Contrast) の 3:1 を bg.canvas /
-           *   bg.surface 上で満たす (light: 3.29-3.49:1 / dark: 3.76-7.05:1)。
+           *   sumi-450 (Issue #423 で sumi-400 から変更)。1.4.11 (Non-text
+           *   Contrast) の 3:1 を bg.canvas / bg.surface 上で満たす
+           *   (light: 3.29-3.49:1 / dark: 3.29-6.18:1)。
            */}
           <article
             className={css({

@@ -297,9 +297,14 @@ export interface SemanticColorTokens {
    * **適用ガイドライン**:
    * - article カード (bg.surface) 周りや内部 hr / table / divider など、
    *   視覚的区切り線を弱く出したい用途で使用する。
-   * - bg.elevated (dark: sumi-600) 上では 2.25:1 で 3:1 未達。bg.elevated
-   *   表面の border が必要な場合は引き続き bg.elevated 反転利用 (Button
-   *   secondary / BackToTop など、Issue #409 では置換対象外) を継続する。
+   * - Issue #421 で「bg.elevated 反転利用は light で 1.06:1 となり視覚消失する」
+   *   方針が確定したため、Button secondary / BackToTop / ImageLightbox /
+   *   ThemeToggle の border も全て border.subtle に置換済み。bg.elevated を
+   *   border 色として転用することは原則禁止する。
+   * - bg.elevated (dark: sumi-600) 上では border.subtle × bg.elevated =
+   *   2.25:1 で 3:1 未達。bg.elevated 表面に border が乗る hover 状態などは
+   *   hover 背景を bg.muted (dark: sumi-650) に切替えること
+   *   (border.subtle × bg.muted = light 3.39:1 / dark 4.94:1 で PASS)。
    * - **text color として転用厳禁** (border 専用 token)。本文として使うと
    *   AAA 7.20:1 を満たさず、可読性が大幅に低下する。
    */

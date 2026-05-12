@@ -443,9 +443,14 @@ export default defineConfig({
         // 適用ガイドライン:
         //   - article カード (bg.surface) 周りや内部 hr / table / divider など
         //     視覚的区切り線を弱く出したい用途で使用。
-        //   - bg.elevated (dark: sumi-600) 上では 2.25:1 で 3:1 未達。bg.elevated
-        //     表面の border が必要な場合は引き続き bg.elevated を反転利用する
-        //     (Button secondary 等。Issue #409 では置換対象外)。
+        //   - Issue #421 で「bg.elevated 反転利用は light で 1.06:1 となり
+        //     視覚消失する」方針が確定したため、Button secondary / BackToTop /
+        //     ImageLightbox / ThemeToggle の border も全て border.subtle に
+        //     置換済み。bg.elevated を border 色として転用することは原則禁止する。
+        //   - bg.elevated (dark: sumi-600) 上では border.subtle × bg.elevated =
+        //     2.25:1 で 3:1 未達。bg.elevated 表面に border が乗る hover 状態
+        //     などは hover 背景を bg.muted (dark: sumi-650) に切替えること
+        //     (border.subtle × bg.muted = light 3.39:1 / dark 4.94:1 で PASS)。
         //   - text color として転用厳禁 (border 専用 token)。
         //
         // 関連: bg.muted (light: cream-75 / dark: sumi-650) と組合せて、注釈

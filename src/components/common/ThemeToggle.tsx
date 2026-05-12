@@ -20,11 +20,14 @@ import { focusRingStyles } from "../../styles/focusRing";
  * - aria-label は現在の状態と次の操作を含めて動的に変更
  * - キーボード操作 (Space) は Headless UI Switch が WAI-ARIA に従い対応
  *
- * Editorial Citrus トークン (R-2b / Issue #389、R-2b 修正で配色を反転):
+ * Editorial Citrus トークン (R-2b / Issue #389、Issue #421 で border を改訂):
  * - Switch (タッチ枠): 透明 (タッチターゲット拡張用、視覚は内部 track で表現)
- * - track 視覚: bg.surface 背景 + bg.elevated ボーダー (1px solid)
- *   light: bg.surface (cream-100) × bg.elevated (cream-50) で 1.06:1。
- *   dark : bg.surface (sumi-700) × bg.elevated (sumi-600) で見切り十分。
+ * - track 視覚: bg.surface 背景 + border.subtle ボーダー (2px solid)
+ *   旧 bg.elevated 反転は light で bg.surface × bg.elevated = 1.06:1 となり視覚消失
+ *   - light: bg.surface (cream-100) × border.subtle (cream-300) = 3.29:1 PASS
+ *   - dark : bg.surface (sumi-700) × border.subtle (sumi-450) = 3.29:1 PASS
+ *   ThemeToggle はクリックで即状態遷移するため hover 状態は存在せず、border の
+ *   単純置換のみ。(他 3 コンポーネントの「hover bg を bg.muted」適用は不要)
  * - thumb (動く丸): light=ink.900 / dark=cream.50 で track と AA 以上のコントラスト確保
  *   light: ink-900 (oklch 0.150) × cream-100 (oklch 0.965) で >= 16:1 (AAA)
  *   dark : cream-50 (oklch 0.985) × sumi-700 (oklch 0.380) で >= 8:1 (AAA)
@@ -50,6 +53,8 @@ const switchOuterStyles = css({
 });
 
 // 視覚 track: 56x32px (R-5 修正で thumb 24x24 + 上下 2px 余白に拡張)。
+// Issue #421: borderColor を bg.elevated → border.subtle に置換。
+// (bg.elevated 反転は light で 1.06:1 で視覚消失していた)
 const trackStyles = css({
   position: "relative",
   display: "inline-flex",
@@ -58,7 +63,7 @@ const trackStyles = css({
   height: "32px",
   borderRadius: "full",
   border: "2px solid",
-  borderColor: "bg.elevated",
+  borderColor: "border.subtle",
   background: "bg.surface",
   transition: "background 0.2s ease",
   _motionReduce: {

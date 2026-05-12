@@ -41,11 +41,20 @@ const imageStyle = css({
   borderRadius: "md",
 });
 
-// Editorial Citrus トークンに置換 (R-2b / Issue #389、R-2b 修正で border 色を修正)
+// Editorial Citrus トークン (R-2b / Issue #389、Issue #421 で border/hover を改訂)
 // - 暗い backdrop 上の浮き上がる閉じるボタン: bg.surface を背景に
-//   (bg.elevated と bg.surface の同色 border 問題を回避し、視認性も向上)
-// - border は bg.elevated でハイライト風の枠線
-// - hover で bg.elevated に反転
+// - border 専用 token (border.subtle) で 1.4.11 (3:1) を確保
+//   旧 bg.elevated 反転は light で bg.surface × bg.elevated = 1.06:1 となり視覚消失していた
+//   - light: bg.surface (cream-100) × border.subtle (cream-300) = 3.29:1 PASS
+//   - dark : bg.surface (sumi-700) × border.subtle (sumi-450) = 3.29:1 PASS
+// - hover 背景は bg.elevated だと dark で bg.elevated × border.subtle = 2.25:1 (3:1 未達)
+//   となるため bg.muted に変更し、light/dark とも 3:1 以上を維持:
+//   - light: bg.muted (cream-75) × border.subtle = 3.39:1 PASS
+//   - dark : bg.muted (sumi-650) × border.subtle = 4.94:1 PASS
+//   視覚効果は「明るくフラッシュ」→「わずかに沈み込み」へ。
+// 注意: light の backdrop は overlay 暗色のため、light でも事実上暗背景上に
+// 閉じるボタンが浮かぶ。border.subtle (cream-300) が overlay 上で視認可能か
+// は手動確認推奨だが、ボタン本体 bg.surface との 3.29:1 で枠線が縁取れる。
 const closeButtonStyle = css({
   position: "absolute",
   top: "sm",
@@ -53,7 +62,7 @@ const closeButtonStyle = css({
   background: "bg.surface",
   color: "fg.primary",
   border: "1px solid",
-  borderColor: "bg.elevated",
+  borderColor: "border.subtle",
   borderRadius: "full",
   width: "xl",
   height: "xl",
@@ -64,7 +73,7 @@ const closeButtonStyle = css({
   fontSize: "base",
   lineHeight: 1,
   _hover: {
-    background: "bg.elevated",
+    background: "bg.muted",
   },
 });
 

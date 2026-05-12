@@ -110,4 +110,44 @@ describe("ImageLightbox", () => {
       "×",
     );
   });
+
+  // ====================================================================
+  // Editorial Citrus token Tripwire (Issue #421)
+  //
+  // 閉じるボタンの bg.elevated 反転 border は light で 1.06:1 となり視覚消失
+  // していた。border 専用 token (border.subtle) に置換し、hover bg は
+  // bg.elevated (dark で border.subtle と 2.25:1 = 3:1 未達) を避けて
+  // bg.muted に変更する。
+  // ====================================================================
+  describe("Editorial Citrus token 参照 (Tripwire)", () => {
+    it("閉じるボタンが border.subtle 専用 token の border class を持つ", () => {
+      render(
+        <ImageLightbox
+          isOpen={true}
+          imageSrc="https://example.com/photo.jpg"
+          imageAlt=""
+          onClose={vi.fn()}
+        />,
+      );
+
+      const button = screen.getByRole("button", { name: "閉じる" });
+      expect(button.className).toMatch(
+        /bd-c_border\.subtle|borderColor.*border\.subtle/,
+      );
+    });
+
+    it("閉じるボタンが hover 背景に bg.muted の class を持つ", () => {
+      render(
+        <ImageLightbox
+          isOpen={true}
+          imageSrc="https://example.com/photo.jpg"
+          imageAlt=""
+          onClose={vi.fn()}
+        />,
+      );
+
+      const button = screen.getByRole("button", { name: "閉じる" });
+      expect(button.className).toMatch(/bg_bg\.muted/);
+    });
+  });
 });

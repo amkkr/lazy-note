@@ -126,4 +126,26 @@ describe("useAdjacentPosts", () => {
     expect(result.current.newerPost).toBeNull();
     expect(mockGetAllPostSummaries).not.toHaveBeenCalled();
   });
+
+  it("同じcurrentIdで2回マウントするとgetAllPostSummariesが2回呼ばれる", async () => {
+    mockGetAllPostSummaries.mockResolvedValue(mockSummaries);
+
+    const { result: firstResult } = renderHook(() =>
+      useAdjacentPosts("20240102100000"),
+    );
+
+    await waitFor(() => {
+      expect(firstResult.current.loading).toBe(false);
+    });
+
+    const { result: secondResult } = renderHook(() =>
+      useAdjacentPosts("20240102100000"),
+    );
+
+    await waitFor(() => {
+      expect(secondResult.current.loading).toBe(false);
+    });
+
+    expect(mockGetAllPostSummaries).toHaveBeenCalledTimes(2);
+  });
 });

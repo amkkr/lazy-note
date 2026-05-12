@@ -48,6 +48,24 @@ describe("ReadingProgressBar", () => {
     expect(bar).toHaveAttribute("aria-valuemax", "100");
   });
 
+  it("aria-label として「読書進捗」を持つ", () => {
+    vi.mocked(useReadingProgress).mockReturnValue(0);
+
+    render(<ReadingProgressBar />);
+
+    const bar = screen.getByRole("progressbar");
+    expect(bar).toHaveAttribute("aria-label", "読書進捗");
+  });
+
+  it("aria-valuetext として進捗をパーセント表記で持つ", () => {
+    vi.mocked(useReadingProgress).mockReturnValue(42);
+
+    render(<ReadingProgressBar />);
+
+    const bar = screen.getByRole("progressbar");
+    expect(bar).toHaveAttribute("aria-valuetext", "42%");
+  });
+
   // ====================================================================
   // Editorial Citrus token Tripwire テスト (R-2b / Issue #389)
   //

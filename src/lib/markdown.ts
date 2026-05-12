@@ -179,63 +179,6 @@ export const getAllPostSummaries = async (): Promise<PostSummary[]> => {
   }
 };
 
-/**
- * 全投稿を取得（後方互換性のため維持、詳細ページで使用）
- */
-export const getAllPosts = async (): Promise<Post[]> => {
-  try {
-    // 開発環境ではAPIを使用、本番環境では静的ファイルを使用
-    if (import.meta.env.DEV) {
-      // まずメタデータを取得
-      const summaries = await getAllPostSummaries();
-
-      // 各投稿の本文を取得
-      const posts = await Promise.all(
-        summaries.map(async (summary) => {
-          const fileResponse = await fetch(`/api/posts/${summary.id}`);
-
-          if (!fileResponse.ok) {
-            return null;
-          }
-
-          const content = await fileResponse.text();
-          return parseMarkdown(content, summary.id);
-        }),
-      );
-
-      return posts
-        .filter((post): post is Post => post !== null)
-        .sort((a, b) => b.id.localeCompare(a.id));
-    } else {
-      // 本番環境では動的インポートを使用して静的ファイルを読み込み
-      const posts: Post[] = [];
-
-      // 既知のMarkdownファイルを動的にインポート
-      try {
-        const modules = import.meta.glob("/datasources/*.md", {
-          query: "?raw",
-          import: "default",
-        });
-
-        for (const filePath in modules) {
-          const content = (await modules[filePath]()) as string;
-          const timestamp = filePath.split("/").pop()?.replace(".md", "") || "";
-          if (timestamp) {
-            posts.push(parseMarkdown(content, timestamp));
-          }
-        }
-      } catch (error) {
-        console.error("Error loading static posts:", error);
-      }
-
-      return posts.sort((a, b) => b.id.localeCompare(a.id));
-    }
-  } catch (error) {
-    console.error("Error loading posts:", error);
-    return [];
-  }
-};
-
 export const getPost = async (timestamp: string): Promise<Post | null> => {
   try {
     // 開発環境ではAPIを使用、本番環境では静的ファイルを使用

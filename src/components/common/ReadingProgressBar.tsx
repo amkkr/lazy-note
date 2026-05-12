@@ -31,9 +31,11 @@ export const ReadingProgressBar = () => {
     <div
       className={barContainerStyles}
       role="progressbar"
+      aria-label="読書進捗"
       aria-valuenow={progress}
       aria-valuemin={0}
       aria-valuemax={100}
+      aria-valuetext={`${progress}%`}
     >
       <div className={barStyles} style={{ width: `${progress}%` }} />
     </div>

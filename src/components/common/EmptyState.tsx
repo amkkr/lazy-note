@@ -88,6 +88,9 @@ export const EmptyState = ({
           // で 2px 以上の visible focus ring を提供する。
           <Link
             to={action.href}
+            data-token-bg="accent.brand"
+            data-token-color="fg.onBrand"
+            data-focus-ring="on-accent"
             className={`${css({
               display: "inline-flex",
               alignItems: "center",

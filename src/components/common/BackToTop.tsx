@@ -78,6 +78,10 @@ export const BackToTop = () => {
         className={`${buttonStyles} ${focusRingStyles}`}
         onClick={handleClick}
         aria-label="ページトップへ戻る"
+        data-token-bg="bg.surface"
+        data-token-border="border.subtle"
+        data-token-hover-bg="bg.muted"
+        data-focus-ring="default"
       >
         ↑
       </button>

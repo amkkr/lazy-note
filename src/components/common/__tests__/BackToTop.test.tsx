@@ -58,31 +58,29 @@ describe("BackToTop", () => {
   });
 
   // ====================================================================
-  // Editorial Citrus token Tripwire (Issue #421)
+  // Editorial Citrus token Tripwire (Issue #421、Issue #422 で刷新)
   //
   // bg.elevated 反転 border は light で 1.06:1 となり視覚消失していた。
-  // border 専用 token (border.subtle) に置換し、hover bg は bg.elevated
-  // (dark で border.subtle と 2.25:1 = 3:1 未達) を避けて bg.muted に変更する。
+  // border 専用 token (border.subtle) を、hover 背景に bg.muted を参照
+  // していることを `data-token-*` 意味属性で検証する (hash 化耐性)。
   // ====================================================================
   describe("Editorial Citrus token 参照 (Tripwire)", () => {
-    it("border.subtle 専用 token の border class を持つ", () => {
+    it("border.subtle 専用 token を border として宣言する", () => {
       vi.mocked(useScrollPosition).mockReturnValue(500);
 
       render(<BackToTop />);
 
       const button = screen.getByRole("button", { name: "ページトップへ戻る" });
-      expect(button.className).toMatch(
-        /bd-c_border\.subtle|borderColor.*border\.subtle/,
-      );
+      expect(button).toHaveAttribute("data-token-border", "border.subtle");
     });
 
-    it("hover 背景に bg.muted の class を持つ", () => {
+    it("hover 時の background token として bg.muted を宣言する", () => {
       vi.mocked(useScrollPosition).mockReturnValue(500);
 
       render(<BackToTop />);
 
       const button = screen.getByRole("button", { name: "ページトップへ戻る" });
-      expect(button.className).toMatch(/bg_bg\.muted/);
+      expect(button).toHaveAttribute("data-token-hover-bg", "bg.muted");
     });
   });
 });

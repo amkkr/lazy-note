@@ -36,8 +36,13 @@ export const ReadingProgressBar = () => {
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuetext={`${progress}%`}
+      data-token-bg="bg.elevated"
     >
-      <div className={barStyles} style={{ width: `${progress}%` }} />
+      <div
+        className={barStyles}
+        style={{ width: `${progress}%` }}
+        data-token-bg="accent.link"
+      />
     </div>
   );
 };

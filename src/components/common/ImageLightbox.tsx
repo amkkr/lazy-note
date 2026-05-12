@@ -142,6 +142,10 @@ const ImageLightboxInner = ({
             className={`${closeButtonStyle} ${focusRingStyles}`}
             onClick={onClose}
             aria-label="閉じる"
+            data-token-bg="bg.surface"
+            data-token-border="border.subtle"
+            data-token-hover-bg="bg.muted"
+            data-focus-ring="default"
           >
             ×
           </button>

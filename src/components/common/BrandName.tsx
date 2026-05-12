@@ -25,7 +25,12 @@ export const BrandName = ({ variant = "header" }: BrandNameProps) => {
   });
 
   return (
-    <Link to="/" className={`${brandLinkStyles} ${focusRingStyles}`}>
+    <Link
+      to="/"
+      className={`${brandLinkStyles} ${focusRingStyles}`}
+      data-variant={variant}
+      data-focus-ring="default"
+    >
       Lazy Note
     </Link>
   );

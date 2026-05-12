@@ -159,10 +159,11 @@ describe("IndexRow", () => {
     });
   });
 
-  // Issue #445: 旧 token (bg.elevated) は light 環境で外側 bg.canvas との
-  // 差が 1.06:1 となり borderBottom が視覚消失していた。border 専用 token
-  // (border.subtle) に置換した後、Tripwire テストで CI 検出する。
-  it("li の borderColor が border.subtle 専用 token を参照している", () => {
+  // Issue #445 / Issue #422: 旧 token (bg.elevated) は light 環境で外側
+  // bg.canvas との差が 1.06:1 となり borderBottom が視覚消失していた。
+  // border 専用 token (border.subtle) を参照していることを
+  // `data-token-border` 意味属性で検証する (hash 化耐性)。
+  it("li は border.subtle 専用 token を border として宣言する", () => {
     const { container } = render(
       <MemoryRouter>
         <ul>
@@ -173,15 +174,13 @@ describe("IndexRow", () => {
 
     const li = container.querySelector("li");
     expect(li).toBeInTheDocument();
-    // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
-    expect(li?.className).toMatch(/bd-c_border\.subtle/);
+    expect(li).toHaveAttribute("data-token-border", "border.subtle");
   });
 
-  // Issue #445: 最終行は親 ul の構造的位置から上下罫線不要のため、
-  // `&:last-child` の borderBottom: none を維持していることを Panda の
-  // 生成クラス名 ([&:last-child]:bd-b_none 形式) で検証する。border.subtle
-  // 置換後もこの挙動が継続することを保証する Tripwire。
-  it("最終行の borderBottom を none に上書きするクラスを持つ", () => {
+  // Issue #445 / Issue #422: 最終行は親 ul の構造的位置から上下罫線不要のため、
+  // `&:last-child` の borderBottom: none を維持していることを
+  // `data-last-child-border` 意味属性で検証する (旧版 className `/\[&:last-child\]:bd-b_none/`)。
+  it("最終行の borderBottom を none に上書きすることを宣言する", () => {
     const { container } = render(
       <MemoryRouter>
         <ul>
@@ -192,8 +191,6 @@ describe("IndexRow", () => {
 
     const li = container.querySelector("li");
     expect(li).toBeInTheDocument();
-    // Panda は `&:last-child` の borderBottom: none を
-    // `[&:last-child]:bd-b_none` 形式に変換する。
-    expect(li?.className).toMatch(/\[&:last-child\]:bd-b_none/);
+    expect(li).toHaveAttribute("data-last-child-border", "none");
   });
 });

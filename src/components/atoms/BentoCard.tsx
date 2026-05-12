@@ -198,7 +198,11 @@ export const BentoCard = memo(
     };
 
     return (
-      <article className={`${bentoWrapperBaseStyles} ${sizeStyles}`}>
+      <article
+        className={`${bentoWrapperBaseStyles} ${sizeStyles}`}
+        data-token-border="border.subtle"
+        data-token-bg="bg.surface"
+      >
         <div className={bentoMetaStyles}>
           <MetaInfo
             createdAt={post.createdAt}

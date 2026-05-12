@@ -192,7 +192,11 @@ export const IndexRow = memo(({ post, index }: IndexRowProps) => {
   };
 
   return (
-    <li className={indexRowStyles}>
+    <li
+      className={indexRowStyles}
+      data-token-border="border.subtle"
+      data-last-child-border="none"
+    >
       <span className={`index-row-number ${indexNumberStyles}`}>
         {numberLabel}
       </span>

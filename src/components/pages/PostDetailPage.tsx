@@ -1,9 +1,9 @@
-import DOMPurify from "dompurify";
 import { type CSSProperties, useRef } from "react";
 import { css } from "../../../styled-system/css";
 import { useCodeBlockCopy } from "../../hooks/useCodeBlockCopy";
 import { useImageLightbox } from "../../hooks/useImageLightbox";
 import type { Post, PostSummary } from "../../lib/markdown";
+import { sanitizePostHtml } from "../../lib/sanitize";
 import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { Link } from "../atoms/Link";
 import { Heading1 } from "../atoms/Typography";
@@ -358,12 +358,9 @@ export const PostDetailPage = ({
               })}
             >
               <div
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: MarkdownをHTMLとして表示するために必要。DOMPurifyでサニタイズ済み
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: MarkdownをHTMLとして表示するために必要。sanitizePostHtml (DOMPurify) でサニタイズ済み
                 dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(post.content, {
-                    ADD_TAGS: ["button"],
-                    ADD_ATTR: ["data-code"],
-                  }),
+                  __html: sanitizePostHtml(post.content),
                 }}
               />
             </div>

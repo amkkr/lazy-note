@@ -8,11 +8,15 @@ on:
       update_snapshots:
         description: "Update VR baseline snapshots (true で --update-snapshots を付与)"
         required: false
-        default: "true"
+        default: "false"
         type: choice
         options:
           - "true"
           - "false"
+
+concurrency:
+  group: vr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   visual:
@@ -66,16 +70,12 @@ jobs:
         continue-on-error: true
 
       - name: Run Playwright VR tests (compare)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.update_snapshots != 'true')
         run: pnpm exec playwright test --project=visual-desktop
 
       - name: Run Playwright VR tests (update snapshots)
         if: github.event_name == 'workflow_dispatch' && inputs.update_snapshots == 'true'
         run: pnpm exec playwright test --project=visual-desktop --update-snapshots
-
-      - name: Run Playwright VR tests (compare on dispatch)
-        if: github.event_name == 'workflow_dispatch' && inputs.update_snapshots != 'true'
-        run: pnpm exec playwright test --project=visual-desktop
 
       - name: Upload Playwright report
         if: always()

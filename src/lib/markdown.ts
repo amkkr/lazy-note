@@ -1,4 +1,4 @@
-import { marked } from "marked";
+import { Marked, type RendererObject } from "marked";
 import {
   calculateReadingTime,
   extractBodyContent,
@@ -54,51 +54,54 @@ export const escapeHtmlAttr = (str: string): string => {
     .replace(/'/g, "&#39;");
 };
 
-// marked()は同期関数のためparseMarkdown内でのリセット→収集→コピーは安全
-let tocItems: TocItem[] = [];
+/**
+ * parseMarkdown 呼び出しごとに専用の Marked インスタンスを生成する。
+ *
+ * tocItems は parseMarkdown のローカル配列をクロージャ経由で renderer に共有させる。
+ * モジュールスコープの可変状態を持たないため、並行呼び出しや将来的な async モード化、
+ * SSR / Worker 環境でも状態が交錯しない。
+ */
+const createMarkedInstance = (tocItems: TocItem[]): Marked => {
+  const renderer: RendererObject = {
+    image({ href, title, text }) {
+      const resolvedHref = resolveImagePath(href);
+      const escapedHref = escapeHtmlAttr(resolvedHref);
+      const escapedText = escapeHtmlAttr(text);
+      const titleAttr = title ? ` title="${escapeHtmlAttr(title)}"` : "";
+      return `<img src="${escapedHref}" alt="${escapedText}"${titleAttr} loading="lazy" decoding="async">`;
+    },
+    heading({ text, depth, tokens }) {
+      const rendered = this.parser.parseInline(tokens);
+      if (depth === 2 || depth === 3) {
+        const id = `heading-${tocItems.length}`;
+        tocItems.push({ id, text, level: depth });
+        return `<h${depth} id="${id}">${rendered}</h${depth}>`;
+      }
+      return `<h${depth}>${rendered}</h${depth}>`;
+    },
+    code({ text, lang }) {
+      const safeLang = lang ? lang.replace(/[^a-zA-Z0-9-]/g, "") : "";
+      const langClass = safeLang ? ` class="language-${safeLang}"` : "";
+      const escapedForAttr = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+      const escapedForDisplay = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return `<div class="code-block-wrapper"><button type="button" class="copy-btn" data-code="${escapedForAttr}">コピー</button><pre><code${langClass}>${escapedForDisplay}</code></pre></div>`;
+    },
+  };
 
-// カスタムレンダラーを作成
-const renderer = new marked.Renderer();
-renderer.image = ({ href, title, text }) => {
-  const resolvedHref = resolveImagePath(href);
-  const escapedHref = escapeHtmlAttr(resolvedHref);
-  const escapedText = escapeHtmlAttr(text);
-  const titleAttr = title ? ` title="${escapeHtmlAttr(title)}"` : "";
-  return `<img src="${escapedHref}" alt="${escapedText}"${titleAttr} loading="lazy" decoding="async">`;
+  return new Marked({
+    breaks: true, // 改行を<br>タグに変換
+    gfm: true, // GitHub Flavored Markdownを有効化
+    renderer,
+  });
 };
-
-renderer.heading = function ({ text, depth, tokens }) {
-  const rendered = this.parser.parseInline(tokens);
-  if (depth === 2 || depth === 3) {
-    const id = `heading-${tocItems.length}`;
-    tocItems.push({ id, text, level: depth });
-    return `<h${depth} id="${id}">${rendered}</h${depth}>`;
-  }
-  return `<h${depth}>${rendered}</h${depth}>`;
-};
-
-renderer.code = ({ text, lang }) => {
-  const safeLang = lang ? lang.replace(/[^a-zA-Z0-9-]/g, "") : "";
-  const langClass = safeLang ? ` class="language-${safeLang}"` : "";
-  const escapedForAttr = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-  const escapedForDisplay = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  return `<div class="code-block-wrapper"><button type="button" class="copy-btn" data-code="${escapedForAttr}">コピー</button><pre><code${langClass}>${escapedForDisplay}</code></pre></div>`;
-};
-
-// markedの設定
-marked.use({
-  breaks: true, // 改行を<br>タグに変換
-  gfm: true, // GitHub Flavored Markdownを有効化
-  renderer,
-});
 
 /**
  * 投稿の完全なデータ（詳細ページで使用）
@@ -118,10 +121,13 @@ export const parseMarkdown = (content: string, timestamp: string): Post => {
   const author = extractSectionContent(lines, "筆者名");
   const bodyContent = extractBodyContent(lines);
 
-  // TOCデータをリセットしてからマークダウンをパース
-  tocItems = [];
-  const parsedContent = marked(bodyContent) as string;
-  const toc = [...tocItems];
+  // tocItems は関数ローカルに閉じ込め、renderer のクロージャ経由で共有する。
+  // 呼び出しごとに専用の Marked インスタンスを生成するため、モジュール state を介さない。
+  const tocItems: TocItem[] = [];
+  const markedInstance = createMarkedInstance(tocItems);
+  const parsedContent = markedInstance.parse(bodyContent, {
+    async: false,
+  });
 
   return {
     id: timestamp,
@@ -132,7 +138,7 @@ export const parseMarkdown = (content: string, timestamp: string): Post => {
     rawContent: content,
     excerpt: extractExcerpt(bodyContent),
     readingTimeMinutes: calculateReadingTime(bodyContent),
-    toc,
+    toc: tocItems,
   };
 };
 

@@ -117,19 +117,30 @@ const buttonRecipe = cva({
  *
  * Issue #422 DA: className 文字列マッチ (`/bg_accent\.brand/` 等) は
  * Panda の `hash: true` を有効化すると破綻するため、意味属性に集約する。
+ *
+ * Issue #474 DA: `color` には現時点で実 CSS が参照している primitive token を
+ * `_light/_dark` 形式で出す ("cream.50/ink.900" 等)。`colorTodo` には R-2c+ で
+ * 導入予定の semantic token (`fg.onBrand`) を別属性として併記し、Tripwire
+ * テストでは「実 CSS と data 属性が一致している」「将来の置換先が宣言されて
+ * いる」の両方を独立に検証できるようにする (data 属性が実 CSS と乖離しない
+ * 不変条件を機械的に保証)。
  */
 const variantTokenAttrs: Record<
   ButtonVariant,
   {
     bg: string;
     color: string;
+    colorTodo?: string;
     border?: string;
     hoverBg?: string;
   }
 > = {
   primary: {
     bg: "accent.brand",
-    color: "fg.onBrand",
+    // 実 CSS は `_light: cream.50 / _dark: ink.900` (primitive 直書き)。
+    // R-2c+ で `fg.onBrand` semantic token に置換予定 (`colorTodo` を参照)。
+    color: "cream.50/ink.900",
+    colorTodo: "fg.onBrand",
   },
   secondary: {
     bg: "bg.surface",
@@ -178,6 +189,7 @@ export const Button = memo(
         data-size={size}
         data-token-bg={tokens.bg}
         data-token-color={tokens.color}
+        data-token-color-todo={tokens.colorTodo}
         data-token-border={tokens.border}
         data-token-hover-bg={tokens.hoverBg}
         data-focus-ring={focusRingTone}

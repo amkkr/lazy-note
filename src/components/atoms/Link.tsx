@@ -123,11 +123,19 @@ const linkRecipe = cva({
  *
  * `textDecoration` も variant の意味的特徴のため `data-text-decoration`
  * として吐く (R-5 / Issue #393 の Tripwire と対応)。
+ *
+ * Issue #474 DA: `color` には現時点で実 CSS が参照している primitive token を
+ * 出力する (button variant は `_light: cream.50 / _dark: ink.900` のため
+ * slash 表記)。`colorTodo` には R-2c+ で導入予定の semantic token
+ * (`fg.onBrand`) を別属性で併記し、Tripwire テストでは「実 CSS と data 属性が
+ * 一致している」「将来の置換先が宣言されている」の両方を独立に検証できる
+ * ようにする (data 属性が実 CSS と乖離しない不変条件を機械的に保証)。
  */
 const variantTokenAttrs: Record<
   LinkVariant,
   {
     color: string;
+    colorTodo?: string;
     bg?: string;
     textDecoration: "underline" | "none";
     hoverColor?: string;
@@ -142,7 +150,10 @@ const variantTokenAttrs: Record<
     textDecoration: "none",
   },
   button: {
-    color: "fg.onBrand",
+    // 実 CSS は `_light: cream.50 / _dark: ink.900` (primitive 直書き)。
+    // R-2c+ で `fg.onBrand` semantic token に置換予定 (`colorTodo` を参照)。
+    color: "cream.50/ink.900",
+    colorTodo: "fg.onBrand",
     bg: "accent.brand",
     textDecoration: "none",
   },
@@ -235,6 +246,7 @@ export const Link = ({
   const dataAttrs: Record<string, string | undefined> = {
     "data-variant": variant,
     "data-token-color": tokens.color,
+    "data-token-color-todo": tokens.colorTodo,
     "data-token-bg": tokens.bg,
     "data-token-hover-color": tokens.hoverColor,
     "data-text-decoration": tokens.textDecoration,

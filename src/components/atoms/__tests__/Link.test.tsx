@@ -192,6 +192,34 @@ describe("Link", () => {
       expect(link).toHaveAttribute("data-token-bg", "accent.brand");
     });
 
+    // Issue #474 DA レビュー: 旧 PR で `data-token-color="fg.onBrand"` を吐いて
+    // いたが、実 CSS は primitive (`cream.50` / `ink.900`) 直書きであり
+    // 嘘になっていた。修正後は実 CSS と一致する primitive を `data-token-color`
+    // に、将来の置換予定先を `data-token-color-todo` に分離する。
+    it("button variant は実 CSS と一致する primitive (cream.50/ink.900) を color として宣言する", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/cta" variant="button">
+            CTA
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "CTA" });
+      expect(link).toHaveAttribute("data-token-color", "cream.50/ink.900");
+    });
+
+    it("button variant は R-2c+ で置換予定の fg.onBrand を TODO として併記する", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/cta" variant="button">
+            CTA
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "CTA" });
+      expect(link).toHaveAttribute("data-token-color-todo", "fg.onBrand");
+    });
+
     it("card variant は hover 時に accent.link を color token として宣言する", () => {
       render(
         <MemoryRouter>

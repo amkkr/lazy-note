@@ -1,6 +1,13 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "../Button";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const projectRoot = resolve(__dirname, "../../../..");
+const indexCssPath = resolve(projectRoot, "src/index.css");
 
 describe("Button", () => {
   it("ボタンテキストを表示できる", () => {
@@ -167,6 +174,24 @@ describe("Button", () => {
       const button = screen.getByRole("button", { name: "Ghost" });
       expect(button).toHaveAttribute("data-token-color", "accent.link");
     });
+
+    // Issue #474 DA レビュー: 旧 PR で `data-token-color="fg.onBrand"` を吐いて
+    // いたが、実 CSS は primitive (`cream.50` / `ink.900`) 直書きであり、
+    // `fg.onBrand` semantic token は未定義 (panda.config.ts 未追加) のため
+    // data 属性が嘘になっていた。修正後は実 CSS と一致する primitive を
+    // `data-token-color` に、将来の置換予定先を `data-token-color-todo` に
+    // 分離して両方を Tripwire で固定する。
+    it("primary variant は実 CSS と一致する primitive (cream.50/ink.900) を color として宣言する", () => {
+      render(<Button variant="primary">Primary</Button>);
+      const button = screen.getByRole("button", { name: "Primary" });
+      expect(button).toHaveAttribute("data-token-color", "cream.50/ink.900");
+    });
+
+    it("primary variant は R-2c+ で置換予定の fg.onBrand を TODO として併記する", () => {
+      render(<Button variant="primary">Primary</Button>);
+      const button = screen.getByRole("button", { name: "Primary" });
+      expect(button).toHaveAttribute("data-token-color-todo", "fg.onBrand");
+    });
   });
 
   // ====================================================================
@@ -198,6 +223,58 @@ describe("Button", () => {
       render(<Button variant="ghost">Ghost</Button>);
       const button = screen.getByRole("button", { name: "Ghost" });
       expect(button).toHaveAttribute("data-focus-ring", "default");
+    });
+  });
+
+  // ====================================================================
+  // R-5 (Issue #393) focus-visible グローバル outline 再導入の Tripwire
+  // (Issue #474 DA レビュー対応: PR #474 で削除された防護線を復活)
+  //
+  // 背景:
+  //   旧実装の `button:focus-visible { outline: 2px solid ... }` は CSS
+  //   Cascade Layers の規則上 un-layered として any layer よりも優先され、
+  //   Panda の `_focusVisible: { outline: "none" }` を破ってリングが
+  //   二重描画される問題があった。R-5 修正で `button:focus { outline: none }`
+  //   のみに集約し、focus-visible 用 outline 宣言は削除済み。
+  //
+  // 検証方針:
+  //   `data-focus-ring="on-accent"` 単一値検証では、index.css に
+  //   `button:focus-visible { outline: ... }` を新たに書き戻す regression
+  //   を検出できない (Component 側の data 属性は変化しないため)。
+  //   そこで `src/index.css` を文字列として読み込み、`button:focus-visible`
+  //   セレクタで `outline:` プロパティが宣言されていないことを直接担保する。
+  //
+  //   jsdom は CSSOM の var() 解決を持たないため getComputedStyle ベース
+  //   では検証不能 (Issue #422 で確認済み)。一次正本である CSS ファイルの
+  //   文字列検査で代替するアプローチを採用する。
+  // ====================================================================
+  describe("R-5 focus-visible グローバル outline 再導入 (Issue #393 regression)", () => {
+    const rawIndexCss = readFileSync(indexCssPath, "utf8");
+    // `/* ... */` のブロックコメントは検出対象外 (R-5 修正の経緯説明として
+    // 「旧実装の `button:focus-visible { outline: 2px solid ... }`」という
+    // サンプル記述が含まれているため)。CSS のブロックコメントを空文字に
+    // 置換してから検査する。
+    const indexCss = rawIndexCss.replace(/\/\*[\s\S]*?\*\//g, "");
+
+    it("src/index.css に `button:focus-visible` セレクタの outline 宣言が存在しない", () => {
+      // `button:focus-visible { ... outline: ... }` パターンを検出する。
+      // 改行・他プロパティを挟むケースに対応するため、セレクタから次の
+      // `}` までの中に `outline` プロパティが現れる場合のみマッチする。
+      const buttonFocusVisibleBlocks = indexCss.match(
+        /button:focus-visible\s*\{[^}]*\}/g,
+      );
+      const offendingBlocks = (buttonFocusVisibleBlocks ?? []).filter(
+        (block) => /\boutline\s*:/.test(block),
+      );
+      expect(offendingBlocks).toEqual([]);
+    });
+
+    it("src/index.css の `button:focus` ブロックは outline: none を維持している", () => {
+      // 二重リング描画を防ぐため `button:focus { outline: none }` は維持
+      // されなければならない (R-5 修正)。本テストはその設計意図の固定。
+      expect(indexCss).toMatch(
+        /button:focus\s*\{\s*outline\s*:\s*none\s*;?\s*\}/,
+      );
     });
   });
 });

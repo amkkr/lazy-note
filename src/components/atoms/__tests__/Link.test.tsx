@@ -42,87 +42,49 @@ describe("Link", () => {
   });
 
   it("デフォルトでdefaultスタイルになる", () => {
-    const { container: defaultContainer } = render(
+    render(
       <MemoryRouter>
         <Link to="/home">Home</Link>
       </MemoryRouter>,
     );
-    const { container: navContainer } = render(
-      <MemoryRouter>
-        <Link to="/nav" variant="navigation">
-          Navigation Link
-        </Link>
-      </MemoryRouter>,
-    );
-
-    const defaultClass = defaultContainer.querySelector("a")?.className;
-    const navClass = navContainer.querySelector("a")?.className;
-    expect(defaultClass).not.toBe("");
-    expect(defaultClass).not.toBe(navClass);
+    const link = screen.getByRole("link", { name: "Home" });
+    expect(link).toHaveAttribute("data-variant", "default");
   });
 
   it("navigationスタイルに変更できる", () => {
-    const { container: navContainer } = render(
+    render(
       <MemoryRouter>
         <Link to="/nav" variant="navigation">
           Navigation Link
         </Link>
       </MemoryRouter>,
     );
-    const { container: buttonContainer } = render(
-      <MemoryRouter>
-        <Link to="/action" variant="button">
-          Button Link
-        </Link>
-      </MemoryRouter>,
-    );
-
-    const navClass = navContainer.querySelector("a")?.className;
-    const buttonClass = buttonContainer.querySelector("a")?.className;
-    expect(navClass).not.toBe("");
-    expect(navClass).not.toBe(buttonClass);
+    const link = screen.getByRole("link", { name: "Navigation Link" });
+    expect(link).toHaveAttribute("data-variant", "navigation");
   });
 
   it("buttonスタイルに変更できる", () => {
-    const { container: buttonContainer } = render(
+    render(
       <MemoryRouter>
         <Link to="/action" variant="button">
           Button Link
         </Link>
       </MemoryRouter>,
     );
-    const { container: cardContainer } = render(
-      <MemoryRouter>
-        <Link to="/card" variant="card">
-          Card Link
-        </Link>
-      </MemoryRouter>,
-    );
-
-    const buttonClass = buttonContainer.querySelector("a")?.className;
-    const cardClass = cardContainer.querySelector("a")?.className;
-    expect(buttonClass).not.toBe("");
-    expect(buttonClass).not.toBe(cardClass);
+    const link = screen.getByRole("link", { name: "Button Link" });
+    expect(link).toHaveAttribute("data-variant", "button");
   });
 
   it("cardスタイルに変更できる", () => {
-    const { container: cardContainer } = render(
+    render(
       <MemoryRouter>
         <Link to="/card" variant="card">
           Card Link
         </Link>
       </MemoryRouter>,
     );
-    const { container: defaultContainer } = render(
-      <MemoryRouter>
-        <Link to="/home">Home</Link>
-      </MemoryRouter>,
-    );
-
-    const cardClass = cardContainer.querySelector("a")?.className;
-    const defaultClass = defaultContainer.querySelector("a")?.className;
-    expect(cardClass).not.toBe("");
-    expect(cardClass).not.toBe(defaultClass);
+    const link = screen.getByRole("link", { name: "Card Link" });
+    expect(link).toHaveAttribute("data-variant", "card");
   });
 
   it("カスタムCSSクラスを追加できる", () => {
@@ -153,29 +115,17 @@ describe("Link", () => {
   });
 
   it("外部リンクにvariantを設定できる", () => {
-    const { container: buttonContainer } = render(
+    render(
       <MemoryRouter>
         <Link to="https://example.com" external variant="button">
           External Button
         </Link>
       </MemoryRouter>,
     );
-    const { container: defaultContainer } = render(
-      <MemoryRouter>
-        <Link to="https://example.com" external>
-          External Default
-        </Link>
-      </MemoryRouter>,
-    );
 
-    const buttonClass = buttonContainer.querySelector("a")?.className;
-    const defaultClass = defaultContainer.querySelector("a")?.className;
-    expect(buttonClass).not.toBe("");
-    expect(buttonClass).not.toBe(defaultClass);
-    expect(buttonContainer.querySelector("a")).toHaveAttribute(
-      "target",
-      "_blank",
-    );
+    const link = screen.getByRole("link", { name: "External Button" });
+    expect(link).toHaveAttribute("data-variant", "button");
+    expect(link).toHaveAttribute("target", "_blank");
   });
 
   it("ルート相対パスでリンクできる", () => {
@@ -201,26 +151,24 @@ describe("Link", () => {
   });
 
   // ====================================================================
-  // Editorial Citrus token Tripwire テスト (R-2b / Issue #389)
+  // Editorial Citrus token Tripwire テスト (R-2b / Issue #389、Issue #422 で刷新)
   //
-  // Panda CSS の生成 class 名 (例: "c_accent.link" / "bg_accent.brand")
-  // を検証し、後続 R-2c での誤削除を CI で検出する。
-  //
-  // class 名は <css-prop-prefix>_<token-path> (literal "." を含む)。
-  // 詳細は styled-system/styles.css を参照。
+  // Issue #422 (DA レビュー): className 文字列マッチは Panda の `hash: true`
+  // で破綻するため、Component 側が吐く `data-token-*` 属性で検証する形に
+  // 変更。hash 化耐性 + 意味性を両立する。
   // ====================================================================
   describe("Editorial Citrus token 参照 (Tripwire)", () => {
-    it("default variant は accent.link の color class を持つ", () => {
+    it("default variant は accent.link を color token として宣言する", () => {
       render(
         <MemoryRouter>
           <Link to="/home">Home</Link>
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "Home" });
-      expect(link.className).toMatch(/c_accent\.link/);
+      expect(link).toHaveAttribute("data-token-color", "accent.link");
     });
 
-    it("navigation variant は accent.link の color class を持つ", () => {
+    it("navigation variant は accent.link を color token として宣言する", () => {
       render(
         <MemoryRouter>
           <Link to="/nav" variant="navigation">
@@ -229,10 +177,10 @@ describe("Link", () => {
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "Nav" });
-      expect(link.className).toMatch(/c_accent\.link/);
+      expect(link).toHaveAttribute("data-token-color", "accent.link");
     });
 
-    it("button variant は accent.brand の background class を持つ", () => {
+    it("button variant は accent.brand を background token として宣言する", () => {
       render(
         <MemoryRouter>
           <Link to="/cta" variant="button">
@@ -241,10 +189,38 @@ describe("Link", () => {
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "CTA" });
-      expect(link.className).toMatch(/bg_accent\.brand/);
+      expect(link).toHaveAttribute("data-token-bg", "accent.brand");
     });
 
-    it("card variant は hover 時に accent.link の color class が適用される", () => {
+    // Issue #474 DA レビュー: 旧 PR で `data-token-color="fg.onBrand"` を吐いて
+    // いたが、実 CSS は primitive (`cream.50` / `ink.900`) 直書きであり
+    // 嘘になっていた。修正後は実 CSS と一致する primitive を `data-token-color`
+    // に、将来の置換予定先を `data-token-color-todo` に分離する。
+    it("button variant は実 CSS と一致する primitive (cream.50/ink.900) を color として宣言する", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/cta" variant="button">
+            CTA
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "CTA" });
+      expect(link).toHaveAttribute("data-token-color", "cream.50/ink.900");
+    });
+
+    it("button variant は R-2c+ で置換予定の fg.onBrand を TODO として併記する", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/cta" variant="button">
+            CTA
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "CTA" });
+      expect(link).toHaveAttribute("data-token-color-todo", "fg.onBrand");
+    });
+
+    it("card variant は hover 時に accent.link を color token として宣言する", () => {
       render(
         <MemoryRouter>
           <Link to="/card" variant="card">
@@ -253,19 +229,12 @@ describe("Link", () => {
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "Card" });
-      // hover 時の class 名は &:hover キーで個別生成される。
-      // Panda の生成名は [&:hover]:c_accent.link 形式となる。
-      expect(link.className).toMatch(/c_accent\.link/);
+      expect(link).toHaveAttribute("data-token-hover-color", "accent.link");
     });
   });
 
   // ====================================================================
   // View Transitions (Issue #397)
-  //
-  // viewTransition prop が true の場合、クリック時に preventDefault され、
-  // `document.startViewTransition` (利用可能な場合) でラップされた navigate
-  // が実行される。jsdom 既定では VT 未対応のため graceful degrade で navigate
-  // が即時実行される。
   // ====================================================================
   describe("View Transitions", () => {
     // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
@@ -364,7 +333,7 @@ describe("Link", () => {
   });
 
   // ====================================================================
-  // R-5 (Issue #393) リンク下線挙動の Tripwire
+  // R-5 (Issue #393) リンク下線挙動の Tripwire (Issue #422 で刷新)
   //
   // AC (ii): PostDetail 本文内のインラインリンクは underline を維持し、
   // Header / Footer ナビは下線なしで一貫させる。
@@ -374,20 +343,21 @@ describe("Link", () => {
   // - button          : CTA → text-decoration: none
   // - card            : カード → text-decoration: none
   //
-  // Panda の class 名は `td_underline` `td_none` 形式で生成される。
+  // 旧版は className `/td_underline/` / `/td_none/` で検証していたが、
+  // hash 化耐性のため `data-text-decoration` 属性に集約。
   // ====================================================================
   describe("R-5 リンク下線挙動 (Issue #393)", () => {
-    it("default variant は textDecoration: underline を持つ", () => {
+    it("default variant は underline を text-decoration として宣言する", () => {
       render(
         <MemoryRouter>
           <Link to="/article">Inline</Link>
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "Inline" });
-      expect(link.className).toMatch(/td_underline/);
+      expect(link).toHaveAttribute("data-text-decoration", "underline");
     });
 
-    it("navigation variant は textDecoration: none を持つ (下線なし)", () => {
+    it("navigation variant は none を text-decoration として宣言する (下線なし)", () => {
       render(
         <MemoryRouter>
           <Link to="/nav" variant="navigation">
@@ -396,10 +366,10 @@ describe("Link", () => {
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "Nav" });
-      expect(link.className).toMatch(/td_none/);
+      expect(link).toHaveAttribute("data-text-decoration", "none");
     });
 
-    it("button variant は textDecoration: none を持つ (下線なし、CTA)", () => {
+    it("button variant は none を text-decoration として宣言する (下線なし、CTA)", () => {
       render(
         <MemoryRouter>
           <Link to="/cta" variant="button">
@@ -408,10 +378,10 @@ describe("Link", () => {
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "CTA" });
-      expect(link.className).toMatch(/td_none/);
+      expect(link).toHaveAttribute("data-text-decoration", "none");
     });
 
-    it("card variant は textDecoration: none を持つ (下線なし、カード全体)", () => {
+    it("card variant は none を text-decoration として宣言する (下線なし、カード全体)", () => {
       render(
         <MemoryRouter>
           <Link to="/card" variant="card">
@@ -420,7 +390,7 @@ describe("Link", () => {
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "Card" });
-      expect(link.className).toMatch(/td_none/);
+      expect(link).toHaveAttribute("data-text-decoration", "none");
     });
   });
 });

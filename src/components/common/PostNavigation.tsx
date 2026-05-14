@@ -61,7 +61,11 @@ export const PostNavigation = memo(
     }
 
     return (
-      <nav className={navStyles} aria-label="前後の記事">
+      <nav
+        className={navStyles}
+        aria-label="前後の記事"
+        data-token-border="border.subtle"
+      >
         <div className={linkContainerStyles}>
           {olderPost && (
             // viewTransition=true で記事 → 記事の遷移時にも Hero morph

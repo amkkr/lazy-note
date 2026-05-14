@@ -91,42 +91,60 @@ describe("EmptyState", () => {
   });
 
   // ====================================================================
-  // R-5 (Issue #393) focus ring Tripwire
+  // R-5 (Issue #393) focus ring Tripwire (Issue #422 で刷新)
   //
   // EmptyState の CTA Link は accent.brand 背景上のキーボード操作可能要素
   // として AC i 「全インタラクティブ要素で 2px 以上の visible focus ring」を
   // 満たす必要がある。`focusRingOnAccentStyles` (内側 ink-900/cream-50 +
-  // 外側 citrus-500) が適用されているかを Panda の生成 class 名で検証する。
-  // (Button.test.tsx の R-5 Tripwire と同方針)
+  // 外側 citrus-500) が適用されているかを `data-focus-ring="on-accent"` 属性
+  // で検証する (Panda `hash: true` 耐性、Option A)。
   // ====================================================================
   describe("R-5 focus ring (Issue #393)", () => {
-    const hasFocusRingClass = (className: string): boolean => {
-      return /focusVisible[:\\][^\s]*bx-sh[^\s]*--colors-focus-ring/.test(
-        className,
-      );
-    };
-
-    it("CTA Link は focus.ring を含む focus-visible box-shadow class を持つ", () => {
+    it("CTA Link は accent 上向け二重リング (on-accent) を宣言する", () => {
       const action = {
         label: "記事を作成",
         href: "/posts/new",
       };
       render(<EmptyState {...defaultProps} action={action} />);
       const actionLink = screen.getByRole("link", { name: "記事を作成" });
-      expect(hasFocusRingClass(actionLink.className)).toBe(true);
+      expect(actionLink).toHaveAttribute("data-focus-ring", "on-accent");
     });
 
-    it("CTA Link は accent 上向け内側リング (ink-900 / cream-50) class を持つ", () => {
+    it("CTA Link は accent.brand を background token として宣言する", () => {
       const action = {
         label: "記事を作成",
         href: "/posts/new",
       };
       render(<EmptyState {...defaultProps} action={action} />);
       const actionLink = screen.getByRole("link", { name: "記事を作成" });
-      // accent 上では light: 内側 ink-900 / dark: 内側 cream-50。
-      expect(actionLink.className).toMatch(
-        /focusVisible[:\\][^\s]*(--colors-ink-900|--colors-cream-50)/,
+      expect(actionLink).toHaveAttribute("data-token-bg", "accent.brand");
+    });
+
+    // Issue #474 DA レビュー: 旧 PR で `data-token-color="fg.onBrand"` を吐いて
+    // いたが、実 CSS は primitive (`cream.50` / `ink.900`) 直書きであり
+    // 嘘になっていた。修正後は実 CSS と一致する primitive を `data-token-color`
+    // に、将来の置換予定先を `data-token-color-todo` に分離する。
+    it("CTA Link は実 CSS と一致する primitive (cream.50/ink.900) を color として宣言する", () => {
+      const action = {
+        label: "記事を作成",
+        href: "/posts/new",
+      };
+      render(<EmptyState {...defaultProps} action={action} />);
+      const actionLink = screen.getByRole("link", { name: "記事を作成" });
+      expect(actionLink).toHaveAttribute(
+        "data-token-color",
+        "cream.50/ink.900",
       );
+    });
+
+    it("CTA Link は R-2c+ で置換予定の fg.onBrand を TODO として併記する", () => {
+      const action = {
+        label: "記事を作成",
+        href: "/posts/new",
+      };
+      render(<EmptyState {...defaultProps} action={action} />);
+      const actionLink = screen.getByRole("link", { name: "記事を作成" });
+      expect(actionLink).toHaveAttribute("data-token-color-todo", "fg.onBrand");
     });
   });
 });

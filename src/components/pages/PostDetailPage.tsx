@@ -40,6 +40,7 @@ export const PostDetailPage = ({
       {/* Navigation */}
       <nav
         aria-label="ページナビゲーション"
+        data-token-border="border.subtle"
         className={css({
           background: "bg.surface",
           borderBottom: "1px solid",
@@ -98,6 +99,7 @@ export const PostDetailPage = ({
            *   (light: 3.29-3.49:1 / dark: 3.29-6.18:1)。
            */}
           <article
+            data-token-border="border.subtle"
             className={css({
               background: "bg.surface",
               borderRadius: "lg",
@@ -146,6 +148,7 @@ export const PostDetailPage = ({
              * 関連: article 全体の border / nav の borderBottom と同一 token。
              */}
             <div
+              data-divider="border.subtle"
               className={css({
                 borderTop: "1px solid",
                 borderColor: "border.subtle",

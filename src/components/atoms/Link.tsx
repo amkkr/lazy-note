@@ -1,16 +1,18 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import { css } from "../../../styled-system/css";
+import { cva } from "../../../styled-system/css";
 import { useViewTransitionNavigate } from "../../hooks/useViewTransitionNavigate";
 import {
   focusRingOnAccentStyles,
   focusRingStyles,
 } from "../../styles/focusRing";
 
+type LinkVariant = "default" | "navigation" | "button" | "card";
+
 interface LinkProps {
   children: ReactNode;
   to: string;
-  variant?: "default" | "navigation" | "button" | "card";
+  variant?: LinkVariant;
   external?: boolean;
   className?: string;
   /**
@@ -38,10 +40,10 @@ interface LinkProps {
 }
 
 /**
- * Link 共通スタイル定義。
+ * Link recipe (Issue #422 Option A)。
  *
- * 表示用の hook (Panda の css() 呼び出し) に副作用は無いので、コンポーネント
- * 外側 (関数内 module-scope) で組み立てて全ての Link variant が共有する。
+ * Panda CSS の `cva` で variant を定義し、Tripwire テストは Component 側で
+ * 吐く `data-token-*` 属性で検証する形に切り替えた。
  *
  * variant ごとの下線挙動 (R-5 / Issue #393):
  * - default     : 本文中のインラインリンク扱い → 常時 underline (WCAG 1.4.1 補強)
@@ -50,86 +52,116 @@ interface LinkProps {
  * - button      : CTA 扱い → underline なし。背景色 (accent.brand) で誘導。
  * - card        : 記事カードラッパ → 通常時は underline なし、hover で color
  *                 のみ accent.link に切り替え (カード全体の装飾は内部要素が担う)。
- *
- * focus-visible リングは src/styles/focusRing.ts に共通化:
- * - button variant のみ accent.brand (persimmon) 背景上のため
- *   `focusRingOnAccentStyles` (内側 ink-900/cream-50 + 外側 citrus-500)。
- * - 他 variant は `focusRingStyles` (内側 bg.canvas + 外側 citrus-500)。
  */
-const buildLinkClassName = (
-  variant: NonNullable<LinkProps["variant"]>,
-  className: string | undefined,
-): string => {
-  const baseStyles = css({
+const linkRecipe = cva({
+  base: {
     textDecoration: "none",
     transition: "all 0.2s ease",
     _motionReduce: {
       transition: "none",
     },
-  });
-
-  // Editorial Citrus トークンへ移行 (R-2b / Issue #389)。
-  // - default / navigation / card のリンク色は accent.link (indigo) で統一。
-  //   light: cream-50 上 7.82:1 AAA / dark: sumi-950 上 8.79:1 AAA。
-  // - button variant は CTA 扱いのため accent.brand を使用。
-  //   文字色は light=cream.50, dark=ink.900 (CTA 専用ペア、AA pass を担保)。
-  // - hover で色相を切り替えず、background の変化や filter で表現する
-  //   (Editorial Citrus の「accent は単色運用」方針)。
-  const variantStyles = {
-    default: css({
-      color: "accent.link",
-      // R-5 (Issue #393) AC (ii): 本文インラインリンクは常時 underline。
-      // PostDetailPage.tsx の prose 内の <a> 既存スタイルとも整合。
-      textDecoration: "underline",
-      textUnderlineOffset: "2px",
-    }),
-    navigation: css({
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "sm",
-      color: "accent.link",
-      fontSize: "sm",
-      fontWeight: "600",
-      // R-5 (Issue #393) AC (ii): Header/Footer ナビは下線なし、配色 + 太字で誘導。
-      textDecoration: "none",
-    }),
-    button: css({
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "sm-md md",
-      background: "accent.brand",
-      // TODO(R-2c+): fg.onBrand semantic token に置換予定
-      // (CTA 文字色を直書きせず semantic token に集約する。R-2a #388 は merge 準備中
-      //  のため再変更は避け、R-2c または別 hotfix で導入。)
-      color: { _light: "cream.50", _dark: "ink.900" },
-      fontWeight: "600",
-      borderRadius: "md",
-      // R-5 (Issue #393) AC (ii): CTA は背景色で誘導するため下線なし。
-      textDecoration: "none",
-      "&:hover": {
-        background: "accent.brand",
-        transform: "translateY(-1px)",
-        filter: "brightness(0.92)",
-      },
-    }),
-    card: css({
-      display: "block",
-      color: "inherit",
-      // R-5 (Issue #393) AC (ii): カードは内部見出しの underline で誘導するため
-      // 全体としては下線なし。
-      textDecoration: "none",
-      "&:hover": {
+  },
+  variants: {
+    variant: {
+      default: {
         color: "accent.link",
+        // R-5 (Issue #393) AC (ii): 本文インラインリンクは常時 underline。
+        textDecoration: "underline",
+        textUnderlineOffset: "2px",
       },
-    }),
-  };
+      navigation: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "sm",
+        color: "accent.link",
+        fontSize: "sm",
+        fontWeight: "600",
+        // R-5 (Issue #393) AC (ii): Header/Footer ナビは下線なし、配色 + 太字で誘導。
+        textDecoration: "none",
+      },
+      button: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "sm-md md",
+        background: "accent.brand",
+        // TODO(R-2c+): fg.onBrand semantic token に置換予定。
+        color: { _light: "cream.50", _dark: "ink.900" },
+        fontWeight: "600",
+        borderRadius: "md",
+        // R-5 (Issue #393) AC (ii): CTA は背景色で誘導するため下線なし。
+        textDecoration: "none",
+        "&:hover": {
+          background: "accent.brand",
+          transform: "translateY(-1px)",
+          filter: "brightness(0.92)",
+        },
+      },
+      card: {
+        display: "block",
+        color: "inherit",
+        // R-5 (Issue #393) AC (ii): カードは内部見出しの underline で誘導するため
+        // 全体としては下線なし。
+        textDecoration: "none",
+        "&:hover": {
+          color: "accent.link",
+        },
+      },
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+  },
+});
 
-  // focus-visible 二重リング (R-5 / Issue #393)
-  const focusRingClass =
-    variant === "button" ? focusRingOnAccentStyles : focusRingStyles;
-
-  return `${baseStyles} ${variantStyles[variant]} ${focusRingClass} ${className || ""}`;
+/**
+ * variant ごとに参照する Panda token を `data-token-*` 属性として
+ * Tripwire テスト用に export する。
+ *
+ * Issue #422 DA: className 文字列マッチは Panda の `hash: true` で破綻する。
+ * 意味属性に集約して hash 化耐性を確保する。
+ *
+ * `textDecoration` も variant の意味的特徴のため `data-text-decoration`
+ * として吐く (R-5 / Issue #393 の Tripwire と対応)。
+ *
+ * Issue #474 DA: `color` には現時点で実 CSS が参照している primitive token を
+ * 出力する (button variant は `_light: cream.50 / _dark: ink.900` のため
+ * slash 表記)。`colorTodo` には R-2c+ で導入予定の semantic token
+ * (`fg.onBrand`) を別属性で併記し、Tripwire テストでは「実 CSS と data 属性が
+ * 一致している」「将来の置換先が宣言されている」の両方を独立に検証できる
+ * ようにする (data 属性が実 CSS と乖離しない不変条件を機械的に保証)。
+ */
+const variantTokenAttrs: Record<
+  LinkVariant,
+  {
+    color: string;
+    colorTodo?: string;
+    bg?: string;
+    textDecoration: "underline" | "none";
+    hoverColor?: string;
+  }
+> = {
+  default: {
+    color: "accent.link",
+    textDecoration: "underline",
+  },
+  navigation: {
+    color: "accent.link",
+    textDecoration: "none",
+  },
+  button: {
+    // 実 CSS は `_light: cream.50 / _dark: ink.900` (primitive 直書き)。
+    // R-2c+ で `fg.onBrand` semantic token に置換予定 (`colorTodo` を参照)。
+    color: "cream.50/ink.900",
+    colorTodo: "fg.onBrand",
+    bg: "accent.brand",
+    textDecoration: "none",
+  },
+  card: {
+    color: "inherit",
+    textDecoration: "none",
+    hoverColor: "accent.link",
+  },
 };
 
 /**
@@ -145,20 +177,17 @@ const ViewTransitionLink = ({
   to,
   className,
   style,
+  dataAttrs,
 }: {
   children: ReactNode;
   to: string;
   className: string;
   style?: CSSProperties;
+  dataAttrs: Record<string, string | undefined>;
 }) => {
   const vtNavigate = useViewTransitionNavigate();
 
   // View Transitions 利用時のクリックハンドラ。
-  // - 修飾キー併用 (Cmd/Ctrl/Shift/Alt クリック / 中クリック) は新規タブやウィンドウ
-  //   操作のため preventDefault せず、ブラウザ既定挙動に委ねる。
-  // - target=_blank なども想定されるが、本コンポーネントは internal Link なので
-  //   そのケースは external prop 側を使う前提。
-  // - 通常クリックのみ preventDefault → vtNavigate でラップ navigate を実行する。
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
       event.defaultPrevented ||
@@ -180,6 +209,7 @@ const ViewTransitionLink = ({
       className={className}
       style={style}
       onClick={handleClick}
+      {...dataAttrs}
     >
       {children}
     </RouterLink>
@@ -203,7 +233,25 @@ export const Link = ({
   viewTransition = false,
   style,
 }: LinkProps) => {
-  const combinedClassName = buildLinkClassName(variant, className);
+  // focus-visible 二重リング (R-5 / Issue #393)
+  const focusRingClass =
+    variant === "button" ? focusRingOnAccentStyles : focusRingStyles;
+  const focusRingTone = variant === "button" ? "on-accent" : "default";
+
+  const combinedClassName = `${linkRecipe({ variant })} ${focusRingClass} ${className || ""}`;
+
+  const tokens = variantTokenAttrs[variant];
+  // Tripwire 用 data 属性。undefined は React により出力されないので
+  // 必要なものだけ吐かせる。
+  const dataAttrs: Record<string, string | undefined> = {
+    "data-variant": variant,
+    "data-token-color": tokens.color,
+    "data-token-color-todo": tokens.colorTodo,
+    "data-token-bg": tokens.bg,
+    "data-token-hover-color": tokens.hoverColor,
+    "data-text-decoration": tokens.textDecoration,
+    "data-focus-ring": focusRingTone,
+  };
 
   if (external) {
     return (
@@ -213,6 +261,7 @@ export const Link = ({
         rel="noopener noreferrer"
         className={combinedClassName}
         style={style}
+        {...dataAttrs}
       >
         {children}
       </a>
@@ -221,14 +270,24 @@ export const Link = ({
 
   if (viewTransition) {
     return (
-      <ViewTransitionLink to={to} className={combinedClassName} style={style}>
+      <ViewTransitionLink
+        to={to}
+        className={combinedClassName}
+        style={style}
+        dataAttrs={dataAttrs}
+      >
         {children}
       </ViewTransitionLink>
     );
   }
 
   return (
-    <RouterLink to={to} className={combinedClassName} style={style}>
+    <RouterLink
+      to={to}
+      className={combinedClassName}
+      style={style}
+      {...dataAttrs}
+    >
       {children}
     </RouterLink>
   );

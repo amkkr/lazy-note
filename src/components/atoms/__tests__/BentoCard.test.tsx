@@ -146,10 +146,11 @@ describe("BentoCard", () => {
     });
   });
 
-  // Issue #445: 旧 token (bg.elevated) は light 環境で外側 bg.canvas との
-  // 差が 1.06:1 となり border が視覚消失していた。border 専用 token
-  // (border.subtle) に置換した後、Tripwire テストで CI 検出する。
-  it("article の borderColor が border.subtle 専用 token を参照している", () => {
+  // Issue #445 / Issue #422: 旧 token (bg.elevated) は light 環境で外側
+  // bg.canvas との差が 1.06:1 となり border が視覚消失していた。border 専用
+  // token (border.subtle) を参照していることを `data-token-border` 意味属性で
+  // 検証する (Panda `hash: true` 耐性、Option A)。
+  it("article は border.subtle 専用 token を border として宣言する", () => {
     const { container } = render(
       <MemoryRouter>
         <BentoCard post={buildPost()} />
@@ -158,7 +159,6 @@ describe("BentoCard", () => {
 
     const article = container.querySelector("article");
     expect(article).toBeInTheDocument();
-    // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
-    expect(article?.className).toMatch(/bd-c_border\.subtle/);
+    expect(article).toHaveAttribute("data-token-border", "border.subtle");
   });
 });

@@ -137,12 +137,16 @@ const navLinkStyles = css({
 
 /**
  * 記事詳細ページ用スケルトンローディング
+ *
+ * Issue #422: Tripwire テストを className 文字列マッチから `data-token-*`
+ * 属性ベースに刷新。Panda `hash: true` 有効化時にも破綻しないよう、
+ * border.subtle / borderTop divider を参照していることを意味属性で宣言する。
  */
 export const ArticleSkeleton = memo(() => {
   return (
     <div role="status" aria-busy="true" aria-label="記事を読み込み中">
       {/* ナビゲーションスケルトン */}
-      <nav className={navStyles}>
+      <nav className={navStyles} data-token-border="border.subtle">
         <div className={navInnerStyles}>
           <div className={`${skeletonBase} ${navLinkStyles}`} />
         </div>
@@ -150,14 +154,14 @@ export const ArticleSkeleton = memo(() => {
 
       <div className={wrapperStyles}>
         <div className={innerStyles}>
-          <article className={articleStyles}>
+          <article className={articleStyles} data-token-border="border.subtle">
             {/* ヘッダースケルトン */}
             <header className={headerStyles}>
               <div className={`${skeletonBase} ${headerTitleStyles}`} />
               <div className={`${skeletonBase} ${headerMetaStyles}`} />
             </header>
 
-            <div className={dividerStyles} />
+            <div className={dividerStyles} data-divider="border.subtle" />
 
             {/* コンテンツスケルトン */}
             <div className={contentStyles}>

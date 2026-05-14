@@ -213,14 +213,17 @@ describe("PostDetailPage", () => {
   });
 
   // ==========================================================================
-  // Issue #409: bg.muted / border.subtle 階層 token 新設の Tripwire。
+  // Issue #409 / Issue #422: bg.muted / border.subtle 階層 token 新設の Tripwire。
   //
   // R-2b/R-2c で旧 5 段階を 3 段階に圧縮した結果、border に bg.elevated を流用
   // すると外側 bg.canvas と同色化して視覚消失する設計上の問題があった。
   // border.subtle (border 専用色) で 1.4.11 (3:1) を確保している。
+  //
+  // Issue #422: className 文字列マッチを `data-token-border` / `data-divider`
+  // 意味属性に置換 (Panda `hash: true` 耐性、Option A)。
   // ==========================================================================
   describe("border.subtle 階層 token 適用", () => {
-    it("article の border が border.subtle 専用 token を参照している", () => {
+    it("article は border.subtle 専用 token を border として宣言する", () => {
       const { container } = render(
         <MemoryRouter>
           <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
@@ -229,11 +232,10 @@ describe("PostDetailPage", () => {
 
       const article = container.querySelector("article");
       expect(article).toBeInTheDocument();
-      // Panda は `borderColor: "border.subtle"` を `bd-c_border.subtle` 等に変換する。
-      expect(article?.className).toMatch(/bd-c_border\.subtle/);
+      expect(article).toHaveAttribute("data-token-border", "border.subtle");
     });
 
-    it("ページナビゲーションの borderBottom が border.subtle を参照している", () => {
+    it("ページナビゲーションは border.subtle を border として宣言する", () => {
       const { container } = render(
         <MemoryRouter>
           <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
@@ -242,13 +244,14 @@ describe("PostDetailPage", () => {
 
       const nav = container.querySelector('nav[aria-label="ページナビゲーション"]');
       expect(nav).toBeInTheDocument();
-      expect(nav?.className).toMatch(/bd-c_border\.subtle/);
+      expect(nav).toHaveAttribute("data-token-border", "border.subtle");
     });
 
     // Issue #458: header と本文の間の 1px divider は、旧実装で bg.elevated を
     // background に流用しており light テーマでは bg.surface との差が 1.06:1 と
-    // 薄く視覚消失していた。borderTop + border.subtle に変更したことを保証する。
-    it("header と本文の間の divider が borderTop + border.subtle を参照している", () => {
+    // 薄く視覚消失していた。borderTop + border.subtle に変更したことを
+    // `data-divider` 意味属性で保証する。
+    it("header と本文の間の divider が borderTop + border.subtle を宣言する", () => {
       const { container } = render(
         <MemoryRouter>
           <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
@@ -259,11 +262,7 @@ describe("PostDetailPage", () => {
       const header = article?.querySelector("header");
       const divider = header?.nextElementSibling as HTMLElement | null;
       expect(divider).not.toBeNull();
-      // Panda は `borderTop: "1px solid"` を `bd-t_1px_solid` に変換する。
-      expect(divider?.className).toMatch(/bd-t_1px_solid/);
-      expect(divider?.className).toMatch(/bd-c_border\.subtle/);
-      // 旧実装の background: bg.elevated が残っていないことを確認する。
-      expect(divider?.className).not.toMatch(/bg_bg\.elevated/);
+      expect(divider).toHaveAttribute("data-divider", "border.subtle");
     });
   });
 

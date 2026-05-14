@@ -88,6 +88,14 @@ export const EmptyState = ({
           // で 2px 以上の visible focus ring を提供する。
           <Link
             to={action.href}
+            data-token-bg="accent.brand"
+            // 実 CSS は `_light: cream.50 / _dark: ink.900` (primitive 直書き)。
+            // R-2c+ で `fg.onBrand` semantic token に置換予定
+            // (Issue #474 DA レビューで「data 属性は実 CSS と一致させる」
+            //  方針に統一。`data-token-color-todo` で将来の置換先を併記)。
+            data-token-color="cream.50/ink.900"
+            data-token-color-todo="fg.onBrand"
+            data-focus-ring="on-accent"
             className={`${css({
               display: "inline-flex",
               alignItems: "center",

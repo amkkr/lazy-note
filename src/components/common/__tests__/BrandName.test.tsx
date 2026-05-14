@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import { BrandName } from "../BrandName";
 
 describe("BrandName", () => {
+  // Issue #422: 旧版は Panda の class 名 (`fs_lg` / `fs_sm`) で variant を判定
+  // していたが、`hash: true` 耐性のため `data-variant` 意味属性に切り替えた。
   it("ヘッダースタイルで表示できる", () => {
     render(
       <MemoryRouter>
@@ -11,10 +13,9 @@ describe("BrandName", () => {
       </MemoryRouter>,
     );
 
-    const brandName = screen.getByText("Lazy Note");
-    expect(brandName).toBeInTheDocument();
-    // Panda CSSはfs_lgのようなクラス名を生成する
-    expect(brandName.className).toContain("fs_lg");
+    const link = screen.getByRole("link", { name: "Lazy Note" });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("data-variant", "header");
   });
 
   it("フッタースタイルで表示できる", () => {
@@ -24,10 +25,9 @@ describe("BrandName", () => {
       </MemoryRouter>,
     );
 
-    const brandName = screen.getByText("Lazy Note");
-    expect(brandName).toBeInTheDocument();
-    // Panda CSSはfs_smのようなクラス名を生成する
-    expect(brandName.className).toContain("fs_sm");
+    const link = screen.getByRole("link", { name: "Lazy Note" });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("data-variant", "footer");
   });
 
   it("デフォルトでヘッダーバリアントが使用される", () => {
@@ -78,39 +78,32 @@ describe("BrandName", () => {
   });
 
   // ====================================================================
-  // R-5 (Issue #393) focus ring Tripwire
+  // R-5 (Issue #393) focus ring Tripwire (Issue #422 で刷新)
   //
   // BrandName は Header/Footer のキーボード操作可能要素として
   // AC i 「全インタラクティブ要素で 2px 以上の visible focus ring」を満たす
-  // 必要がある。`focusRingStyles` (二重リング / box-shadow + var(--colors-focus-ring))
-  // が確実に適用されているかを Panda の生成 class 名で検証する。
-  // (Button.test.tsx の R-5 Tripwire と同方針)
+  // 必要がある。`focusRingStyles` (二重リング) が確実に適用されているかを
+  // `data-focus-ring="default"` 属性で検証する (Panda `hash: true` 耐性、Option A)。
   // ====================================================================
   describe("R-5 focus ring (Issue #393)", () => {
-    const hasFocusRingClass = (className: string): boolean => {
-      return /focusVisible[:\\][^\s]*bx-sh[^\s]*--colors-focus-ring/.test(
-        className,
-      );
-    };
-
-    it("header variant は focus.ring を含む focus-visible box-shadow class を持つ", () => {
+    it("header variant は通常背景向け二重リング (default) を宣言する", () => {
       render(
         <MemoryRouter>
           <BrandName variant="header" />
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "Lazy Note" });
-      expect(hasFocusRingClass(link.className)).toBe(true);
+      expect(link).toHaveAttribute("data-focus-ring", "default");
     });
 
-    it("footer variant は focus.ring を含む focus-visible box-shadow class を持つ", () => {
+    it("footer variant も通常背景向け二重リング (default) を宣言する", () => {
       render(
         <MemoryRouter>
           <BrandName variant="footer" />
         </MemoryRouter>,
       );
       const link = screen.getByRole("link", { name: "Lazy Note" });
-      expect(hasFocusRingClass(link.className)).toBe(true);
+      expect(link).toHaveAttribute("data-focus-ring", "default");
     });
   });
 });

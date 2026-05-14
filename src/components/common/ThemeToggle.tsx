@@ -111,8 +111,15 @@ export const ThemeToggle = () => {
       className={`${switchOuterStyles} ${focusRingStyles}`}
       aria-label={ariaLabel}
       title={ariaLabel}
+      data-touch-target="56x44"
+      data-focus-ring="default"
     >
-      <span aria-hidden="true" className={trackStyles}>
+      <span
+        aria-hidden="true"
+        className={trackStyles}
+        data-token-border="border.subtle"
+        data-token-bg="bg.surface"
+      >
         <span
           className={`${thumbStyles} ${isLight ? thumbTranslateOn : thumbTranslateOff}`}
         >

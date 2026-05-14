@@ -163,37 +163,30 @@ describe("ThemeToggle", () => {
 
     it("外枠 Switch のタッチターゲットが 44px 以上になる (WCAG 2.5.5 AAA)", () => {
       // jsdom はレイアウトを計算しないため、style 経由で width/height を確認する
-      // (Panda の class からは値を直接取れないため、外枠 Switch がタッチ用に
-      // 56x44 の class を持つことだけ確認する)。
+      // ことはできない。Issue #422: 旧版は className `/w_56px/` 等で検証していたが、
+      // Panda の `hash: true` 耐性のため `data-touch-target` 意味属性に切替。
       render(<ThemeToggle />);
 
       const toggle = screen.getByRole("switch");
-      // R-5 で外枠は w-14 (56px) × h-11 (44px) の class を Panda 経由で持つ。
-      // class 名のフォーマット: w_56px / h_44px (Panda は token を使わない直接値も出力する)。
-      // 直値指定のため Panda は `w_56px` `h_44px` 形式で生成する。
-      expect(toggle.className).toMatch(/w_56px/);
-      expect(toggle.className).toMatch(/h_44px/);
+      expect(toggle).toHaveAttribute("data-touch-target", "56x44");
     });
   });
 
   // ====================================================================
-  // Editorial Citrus token Tripwire (Issue #421)
+  // Editorial Citrus token Tripwire (Issue #421、Issue #422 で刷新)
   //
   // track の bg.elevated 反転 border は light で 1.06:1 となり視覚消失して
-  // いた。border 専用 token (border.subtle) に置換する。ThemeToggle は
-  // hover 状態を持たない (クリックで即状態遷移) ため、border 単純置換のみ。
+  // いた。border 専用 token (border.subtle) を参照していることを
+  // `data-token-border` 意味属性で検証する (Panda `hash: true` 耐性、Option A)。
   // ====================================================================
   describe("Editorial Citrus token 参照 (Tripwire) - Issue #421", () => {
-    it("track が border.subtle 専用 token の border class を持つ", () => {
+    it("track は border.subtle 専用 token を border として宣言する", () => {
       render(<ThemeToggle />);
 
       const toggle = screen.getByRole("switch");
-      // track 視覚層は toggle 内部の span。innerHTML を介して class を確認する。
       const track = toggle.querySelector("span[aria-hidden='true']");
       expect(track).not.toBeNull();
-      expect(track?.className).toMatch(
-        /bd-c_border\.subtle|borderColor.*border\.subtle/,
-      );
+      expect(track).toHaveAttribute("data-token-border", "border.subtle");
     });
   });
 });

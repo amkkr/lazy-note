@@ -130,12 +130,20 @@ const linkRecipe = cva({
  * (`fg.onBrand`) を別属性で併記し、Tripwire テストでは「実 CSS と data 属性が
  * 一致している」「将来の置換先が宣言されている」の両方を独立に検証できる
  * ようにする (data 属性が実 CSS と乖離しない不変条件を機械的に保証)。
+ *
+ * Issue #477: `data-token-*` は「Panda token 名」を吐く属性スキーマ
+ * (`accent.link` / `border.subtle` 等)。card variant の `color: inherit` は
+ * Panda token ではなく CSS キーワードのため、`data-token-color="inherit"` で
+ * 表現すると「token 名を吐く」という不変条件が壊れる。`color` には token を
+ * 持つ variant のみ値を設定し、カスケード継承は `colorInherit` フラグとして
+ * `data-color-inherit` bool 属性に分離する (token 参照と継承の意味を区別)。
  */
 const variantTokenAttrs: Record<
   LinkVariant,
   {
-    color: string;
+    color?: string;
     colorTodo?: string;
+    colorInherit?: boolean;
     bg?: string;
     textDecoration: "underline" | "none";
     hoverColor?: string;
@@ -158,7 +166,9 @@ const variantTokenAttrs: Record<
     textDecoration: "none",
   },
   card: {
-    color: "inherit",
+    // card variant は `color: inherit` (token 参照ではなくカスケード継承)。
+    // token 属性は吐かず、継承を `colorInherit` で宣言する (Issue #477)。
+    colorInherit: true,
     textDecoration: "none",
     hoverColor: "accent.link",
   },
@@ -243,10 +253,13 @@ export const Link = ({
   const tokens = variantTokenAttrs[variant];
   // Tripwire 用 data 属性。undefined は React により出力されないので
   // 必要なものだけ吐かせる。
+  // Issue #477: `data-token-color` は Panda token 名のみを吐く。card variant の
+  // `color: inherit` (カスケード継承) は `data-color-inherit="true"` で分離する。
   const dataAttrs: Record<string, string | undefined> = {
     "data-variant": variant,
     "data-token-color": tokens.color,
     "data-token-color-todo": tokens.colorTodo,
+    "data-color-inherit": tokens.colorInherit ? "true" : undefined,
     "data-token-bg": tokens.bg,
     "data-token-hover-color": tokens.hoverColor,
     "data-text-decoration": tokens.textDecoration,

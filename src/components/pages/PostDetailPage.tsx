@@ -147,8 +147,13 @@ export const PostDetailPage = ({
              * 確保し WCAG 1.4.11 (3:1) を満たす static divider にする。
              * 関連: article 全体の border / nav の borderBottom と同一 token。
              */}
+            {/* Issue #477: divider は border.subtle token を borderTop に参照する
+             * だけのため、PR #474 (Issue #422) で導入された `data-divider` ではなく
+             * 他の border 参照箇所と同じ `data-token-border` 命名に統一する
+             * (token 参照属性の命名一本化)。
+             */}
             <div
-              data-divider="border.subtle"
+              data-token-border="border.subtle"
               className={css({
                 borderTop: "1px solid",
                 borderColor: "border.subtle",

@@ -231,6 +231,36 @@ describe("Link", () => {
       const link = screen.getByRole("link", { name: "Card" });
       expect(link).toHaveAttribute("data-token-hover-color", "accent.link");
     });
+
+    // Issue #477: card variant の `color: inherit` は Panda token ではなく
+    // CSS キーワード (カスケード継承)。PR #474 (Issue #422) ではこれを
+    // `data-token-color="inherit"` で吐いていたが (この属性は master には存在せず
+    // PR #474 で導入)、`data-token-color` は token 名のみを吐く属性スキーマのため、
+    // card variant では `data-token-color` を吐かず、継承を
+    // `data-color-inherit="true"` で別属性として宣言するように修正する。
+    it("card variant は color のカスケード継承を data-color-inherit で宣言する", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/card" variant="card">
+            Card
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "Card" });
+      expect(link).toHaveAttribute("data-color-inherit", "true");
+    });
+
+    it("card variant は token 名でない inherit を data-token-color に吐かない", () => {
+      render(
+        <MemoryRouter>
+          <Link to="/card" variant="card">
+            Card
+          </Link>
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole("link", { name: "Card" });
+      expect(link).not.toHaveAttribute("data-token-color");
+    });
   });
 
   // ====================================================================

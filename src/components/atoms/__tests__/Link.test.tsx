@@ -233,9 +233,11 @@ describe("Link", () => {
     });
 
     // Issue #477: card variant の `color: inherit` は Panda token ではなく
-    // CSS キーワード (カスケード継承)。`data-token-color` は token 名のみを
-    // 吐く属性スキーマのため、card variant では `data-token-color` を吐かず、
-    // 継承を `data-color-inherit="true"` で別属性として宣言する。
+    // CSS キーワード (カスケード継承)。PR #474 (Issue #422) ではこれを
+    // `data-token-color="inherit"` で吐いていたが (この属性は master には存在せず
+    // PR #474 で導入)、`data-token-color` は token 名のみを吐く属性スキーマのため、
+    // card variant では `data-token-color` を吐かず、継承を
+    // `data-color-inherit="true"` で別属性として宣言するように修正する。
     it("card variant は color のカスケード継承を data-color-inherit で宣言する", () => {
       render(
         <MemoryRouter>

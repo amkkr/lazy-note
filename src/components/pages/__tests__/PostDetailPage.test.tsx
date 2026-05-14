@@ -219,10 +219,11 @@ describe("PostDetailPage", () => {
   // すると外側 bg.canvas と同色化して視覚消失する設計上の問題があった。
   // border.subtle (border 専用色) で 1.4.11 (3:1) を確保している。
   //
-  // Issue #422: className 文字列マッチを `data-token-border` / `data-divider`
-  // 意味属性に置換 (Panda `hash: true` 耐性、Option A)。
-  // Issue #477: divider も border token を参照するだけのため、`data-divider` を
-  // 他の border 参照と同じ `data-token-border` 命名に統一した。
+  // Issue #422 (PR #474): className 文字列マッチを `data-token-border` /
+  // `data-divider` 意味属性に置換 (Panda `hash: true` 耐性、Option A)。
+  // これらの data 属性は master には存在せず PR #474 で導入された。
+  // Issue #477: divider も border token を参照するだけのため、PR #474 で導入した
+  // `data-divider` を他の border 参照と同じ `data-token-border` 命名に統一した。
   // ==========================================================================
   describe("border.subtle 階層 token 適用", () => {
     it("article は border.subtle 専用 token を border として宣言する", () => {
@@ -252,8 +253,8 @@ describe("PostDetailPage", () => {
     // Issue #458: header と本文の間の 1px divider は、旧実装で bg.elevated を
     // background に流用しており light テーマでは bg.surface との差が 1.06:1 と
     // 薄く視覚消失していた。borderTop + border.subtle に変更したことを
-    // `data-token-border` 意味属性で保証する (Issue #477 で `data-divider` から
-    // 他の border 参照と同じ命名に統一)。
+    // `data-token-border` 意味属性で保証する (PR #474 で導入された `data-divider`
+    // を Issue #477 で他の border 参照と同じ命名に統一)。
     it("header と本文の間の divider が borderTop + border.subtle を宣言する", () => {
       const { container } = render(
         <MemoryRouter>

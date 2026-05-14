@@ -143,8 +143,9 @@ const navLinkStyles = css({
  * border.subtle / borderTop divider を参照していることを意味属性で宣言する。
  *
  * Issue #477: divider 要素も実態は `border.subtle` token を borderTop に
- * 参照しているだけのため、旧 `data-divider="border.subtle"` を他の border 参照と
- * 同じ `data-token-border` 命名に統一する (token 参照属性の命名スキーマを一本化)。
+ * 参照しているだけのため、PR #474 (Issue #422) で導入された
+ * `data-divider="border.subtle"` を他の border 参照と同じ `data-token-border`
+ * 命名に統一する (token 参照属性の命名スキーマを一本化)。
  */
 export const ArticleSkeleton = memo(() => {
   return (

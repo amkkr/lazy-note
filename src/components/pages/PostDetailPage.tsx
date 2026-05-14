@@ -148,8 +148,9 @@ export const PostDetailPage = ({
              * 関連: article 全体の border / nav の borderBottom と同一 token。
              */}
             {/* Issue #477: divider は border.subtle token を borderTop に参照する
-             * だけのため、`data-divider` ではなく他の border 参照箇所と同じ
-             * `data-token-border` 命名に統一する (token 参照属性の命名一本化)。
+             * だけのため、PR #474 (Issue #422) で導入された `data-divider` ではなく
+             * 他の border 参照箇所と同じ `data-token-border` 命名に統一する
+             * (token 参照属性の命名一本化)。
              */}
             <div
               data-token-border="border.subtle"

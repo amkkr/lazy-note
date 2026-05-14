@@ -66,7 +66,9 @@ describe("ArticleSkeleton", () => {
   // Issue #458: header と本文の間の 1px divider は、旧実装で bg.elevated を
   // background に流用しており light テーマでは bg.surface との差が 1.06:1 と薄く
   // 視覚消失していた。borderTop + border.subtle に変更したことを保証する Tripwire。
-  // Issue #422: `data-divider` 属性で divider のトークン参照を意味的に宣言する。
+  // Issue #422: divider のトークン参照を意味属性で宣言する。
+  // Issue #477: divider も border token を参照するだけのため、`data-divider` から
+  // 他の border 参照と同じ `data-token-border` 命名に統一した。
   it("header と本文の間の divider が borderTop + border.subtle を宣言する", () => {
     const { container } = render(<ArticleSkeleton />);
 
@@ -75,6 +77,6 @@ describe("ArticleSkeleton", () => {
     const header = article?.querySelector("header");
     const divider = header?.nextElementSibling as HTMLElement | null;
     expect(divider).not.toBeNull();
-    expect(divider).toHaveAttribute("data-divider", "border.subtle");
+    expect(divider).toHaveAttribute("data-token-border", "border.subtle");
   });
 });

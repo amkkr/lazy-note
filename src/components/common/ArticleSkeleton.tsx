@@ -141,6 +141,10 @@ const navLinkStyles = css({
  * Issue #422: Tripwire テストを className 文字列マッチから `data-token-*`
  * 属性ベースに刷新。Panda `hash: true` 有効化時にも破綻しないよう、
  * border.subtle / borderTop divider を参照していることを意味属性で宣言する。
+ *
+ * Issue #477: divider 要素も実態は `border.subtle` token を borderTop に
+ * 参照しているだけのため、旧 `data-divider="border.subtle"` を他の border 参照と
+ * 同じ `data-token-border` 命名に統一する (token 参照属性の命名スキーマを一本化)。
  */
 export const ArticleSkeleton = memo(() => {
   return (
@@ -161,7 +165,7 @@ export const ArticleSkeleton = memo(() => {
               <div className={`${skeletonBase} ${headerMetaStyles}`} />
             </header>
 
-            <div className={dividerStyles} data-divider="border.subtle" />
+            <div className={dividerStyles} data-token-border="border.subtle" />
 
             {/* コンテンツスケルトン */}
             <div className={contentStyles}>

@@ -2,6 +2,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import {
+  buildPostDetailPath,
+  getPostTimestampByRecency,
+} from "../fixtures/posts";
 
 /**
  * a11y ハードゲート G1: axe-core violations = 0
@@ -13,6 +17,9 @@ import { expect, test } from "@playwright/test";
  *   axe-core 側では AA までを必須ゲートとする。
  * - 違反があれば `expect.soft` で全件まとめて出力し、CI ログ / Summary で確認できるようにする。
  * - `/about` は本サイトに存在しないため、最新の 2 記事を代表ページとして採用する。
+ * - 代表記事の URL は datasource (`datasources/*.md`) から動的取得する共通 fixture
+ *   (`e2e/fixtures/posts.ts`) を使う。ハードコードすると記事の追加 / 削除のたびに
+ *   テストが壊れるため (Issue #478)。
  *
  * 既知違反 (allowList):
  *   現状 allow-list は空。Editorial Citrus OKLCH トークン移行 (Issue #0a / #4a / Phase2 リニューアル)
@@ -23,8 +30,14 @@ import { expect, test } from "@playwright/test";
  */
 const TARGETS = [
   { name: "home", path: "/" },
-  { name: "post-detail-latest", path: "/posts/20260307120000" },
-  { name: "post-detail-secondary", path: "/posts/20260221104801" },
+  {
+    name: "post-detail-latest",
+    path: buildPostDetailPath(getPostTimestampByRecency(0)),
+  },
+  {
+    name: "post-detail-secondary",
+    path: buildPostDetailPath(getPostTimestampByRecency(1)),
+  },
 ];
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];

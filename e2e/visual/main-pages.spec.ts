@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { getLatestPostDetailPath } from "../fixtures/posts";
 
 /**
  * Visual Regression (VR) Phase 1
@@ -6,7 +7,7 @@ import { expect, test } from "@playwright/test";
  * Issue #410: Phase 2 リニューアル後の VR テスト基盤 (新規構築) の Phase 1 スコープ。
  *
  * 対象:
- * - Home (`/`) と PostDetail (`/posts/20260307120000`) の 2 ページ
+ * - Home (`/`) と PostDetail (datasource の最新記事) の 2 ページ
  * - viewport: desktop 1280x720
  * - theme: light のみ
  * - 合計 2 PNG
@@ -35,9 +36,11 @@ type VisualTarget = {
   readonly path: string;
 };
 
+// PostDetail の URL は datasource から最新記事を動的取得する。
+// (ハードコードすると記事削除時に VR が一斉に壊れるため。Issue #478)
 const TARGETS: readonly VisualTarget[] = [
   { name: "home", path: "/" },
-  { name: "post-detail", path: "/posts/20260307120000" },
+  { name: "post-detail", path: getLatestPostDetailPath() },
 ];
 
 test.describe("visual: main pages (desktop x light)", () => {

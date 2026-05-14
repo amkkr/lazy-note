@@ -98,6 +98,24 @@ const bentoSizeWideStyles = css({
   },
 });
 
+/**
+ * size prop ごとに article が伸ばす grid 軸を表す意味属性の値。
+ *
+ * Issue #480 DA: Tripwire テストは旧来 className 文字列 (`lg:grid-r_span_2`
+ * 等) を regex マッチしていたが、Panda の `hash: true` を有効化すると class 名
+ * が SHA hash 化されて破綻する。PR #474 で確立した「コンポーネントが意味属性を
+ * 吐き、テストは `toHaveAttribute` で検証する」方式 (Option A) に揃えるため、
+ * size と grid span 軸の対応を `data-grid-span` 属性として宣言する。
+ * - tall   : `grid-row: span 2`    を当てるため "row"
+ * - wide   : `grid-column: span 2` を当てるため "column"
+ * - default: span を当てないため "none"
+ */
+const gridSpanAttrs: Record<NonNullable<BentoCardProps["size"]>, string> = {
+  default: "none",
+  tall: "row",
+  wide: "column",
+};
+
 // メタ情報行。タイトル前に控えめに配置。
 const bentoMetaStyles = css({
   marginBottom: "sm-md",
@@ -202,6 +220,7 @@ export const BentoCard = memo(
         className={`${bentoWrapperBaseStyles} ${sizeStyles}`}
         data-token-border="border.subtle"
         data-token-bg="bg.surface"
+        data-grid-span={gridSpanAttrs[size]}
       >
         <div className={bentoMetaStyles}>
           <MetaInfo

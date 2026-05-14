@@ -184,8 +184,22 @@ export const PostDetailPage = ({
             </div>
 
             {/* Article Content */}
+            {/*
+             * Issue #391: 本文要素 (p / h1-h3 / ul / ol / blockquote / dl /
+             * figure / table / hr) に prose レイアウト制約 (max-width prose +
+             * margin auto + line-height prose、table は overflow-x auto) を
+             * 適用する本文コンテナ。
+             *
+             * Issue #480: Tripwire テストは旧来この div の className に Panda が
+             * 生成する arbitrary selector (`[&_p]:max-w_prose` 等) が含まれるか
+             * を `toContain` で検証していたが、`hash: true` で class 名が hash
+             * 化されると破綻する。PR #474 の Option A に倣い、本文コンテナで
+             * あることを `data-prose-scope` 意味属性で宣言し、テストは
+             * `toHaveAttribute` で検証する。
+             */}
             <div
               ref={contentRef}
+              data-prose-scope="article-content"
               className={css({
                 paddingRight: "md",
                 paddingLeft: "md",

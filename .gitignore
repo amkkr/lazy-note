@@ -31,8 +31,3 @@ styled-system-studio
 playwright-report
 test-results
 /playwright/.cache
-
-## Visual Regression (Issue #410)
-# macOS 上で生成された snapshot は CI Linux と必発で差分が出るためコミット禁止。
-# baseline は CI (vr.yml の workflow_dispatch) で生成し、artifact 経由で取得する。
-e2e/visual/**/*-darwin.png

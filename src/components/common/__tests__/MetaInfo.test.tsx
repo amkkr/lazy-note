@@ -41,28 +41,36 @@ describe("MetaInfo", () => {
     expect(screen.getByText("匿名")).toBeInTheDocument();
   });
 
-  it("cardバリアントがデフォルトで適用される", () => {
+  // Issue #480: 旧実装は item の className に "bg_" が含まれるかを
+  // `querySelector('[class*="bg_"]')` で検証していたが、Panda の `hash: true`
+  // で class 名が hash 化されると card variant 側の `not.toBeInTheDocument()`
+  // が常に成立して regression を検知できない (false negative)。PR #474 の
+  // Option A に倣い、item が参照する背景 token を `data-token-bg` 意味属性で
+  // 宣言し、`toHaveAttribute` / `not.toHaveAttribute` で検証する。
+  it("cardバリアントがデフォルトで適用され item に背景 token を持たない", () => {
     const { container } = render(
       <MetaInfo createdAt="2024-01-01" author="山田太郎" />,
     );
 
-    // cardバリアントの場合、コンテナが存在し子要素にグレーの色が適用される
     const metaInfo = container.firstChild as HTMLElement;
     expect(metaInfo).toBeInTheDocument();
-    // cardバリアントではヘッダーと異なり背景が適用されない
-    const dateElement = metaInfo.querySelector('[class*="bg_"]');
-    expect(dateElement).not.toBeInTheDocument();
+    expect(metaInfo).toHaveAttribute("data-variant", "card");
+    // false negative 修正: card variant の item は背景塗りを持たないため
+    // `data-token-bg` 属性自体が出力されないことを明示的に正検証する。
+    const dateElement = metaInfo.querySelector("div");
+    expect(dateElement).not.toHaveAttribute("data-token-bg");
   });
 
-  it("headerバリアントが適用できる", () => {
+  it("headerバリアントが適用でき item に bg.muted token を持つ", () => {
     const { container } = render(
       <MetaInfo createdAt="2024-01-01" author="山田太郎" variant="header" />,
     );
 
-    // headerバリアントの場合、子要素に背景が適用される
     const metaInfo = container.firstChild as HTMLElement;
-    const dateElement = metaInfo.querySelector('[class*="bg_"]');
-    expect(dateElement).toBeInTheDocument();
+    expect(metaInfo).toHaveAttribute("data-variant", "header");
+    // header variant の item は bg.muted の pill 背景を持つ。
+    const dateElement = metaInfo.querySelector("div");
+    expect(dateElement).toHaveAttribute("data-token-bg", "bg.muted");
   });
 
   it("空文字列を渡した場合、デフォルトテキストが表示される", () => {
@@ -89,7 +97,7 @@ describe("MetaInfo", () => {
   // ===================================================================
   // Issue #395 (Editorial Bento) で追加した variant のテスト
   // ===================================================================
-  it("featuredバリアントが適用できる", () => {
+  it("featuredバリアントが適用でき著者名を大文字化しない", () => {
     const { container } = render(
       <MetaInfo
         createdAt="2024-01-01"
@@ -103,15 +111,16 @@ describe("MetaInfo", () => {
     // のオーバーラインとして実装していたが、英字主体の著者名 (例: `amkkr`) が
     // データ表記のまま意図せず大文字化される不具合が顕在化したため、
     // `textTransform: uppercase` と `letterSpacing: 0.08em` を撤去した。
-    // ここでは regression 防止として uppercase クラスが付与されないことを検証する。
+    // ここでは regression 防止として大文字化されないことを検証する。
     //
-    // 注意: この `not.toMatch` は #422 (Tripwire CSS 変数解決ベース刷新) 完了
-    // までの暫定実装。Panda の className 命名規則 (textTransform_uppercase /
-    // tt_uppercase) が変更されると false positive で誤検知不能になる。
+    // Issue #480: 旧実装は `not.toMatch(/tt_uppercase/)` で className 文字列を
+    // 検証していたが、Panda の `hash: true` で class 名が hash 化されると常に
+    // true となり regression を検知できなくなる (false negative)。PR #474 の
+    // Option A に倣い、container が出力する `data-text-transform` 意味属性で
+    // 「uppercase ではない (none である)」ことを明示的に正検証する。
     const metaInfo = container.firstChild as HTMLElement;
-    expect(metaInfo.className).not.toMatch(
-      /textTransform_uppercase|tt_uppercase/,
-    );
+    expect(metaInfo).toHaveAttribute("data-variant", "featured");
+    expect(metaInfo).toHaveAttribute("data-text-transform", "none");
     expect(screen.getByText("2024-01-01")).toBeInTheDocument();
     expect(screen.getByText("山田太郎")).toBeInTheDocument();
     expect(screen.getByText("5分で読了")).toBeInTheDocument();

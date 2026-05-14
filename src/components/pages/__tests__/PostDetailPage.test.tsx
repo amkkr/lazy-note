@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { Post } from "../../../lib/markdown";
@@ -111,30 +111,34 @@ describe("PostDetailPage", () => {
   // ==========================================================================
   // Editorial Citrus 本文タイポグラフィ (Issue #391) の構造テスト。
   //
-  // - Panda CSS が生成する className パターン (`[&_p]:max-w_prose` 等) を
-  //   検証することで、prose 制約が想定要素に当たっていることを保証する。
-  //   ハードコード値テスト (576px 等) を避け、トークン側の値変更に強くする。
-  // - JSDOM 環境では Panda が生成する styles.css が読み込まれないため、
-  //   getComputedStyle() ではなく className 文字列の包含で検証する。
+  // Issue #480: 旧実装は Panda が生成する arbitrary selector の className
+  // (`[&_p]:max-w_prose` 等) を `toContain` で検証していたが、`hash: true` で
+  // class 名が hash 化されると破綻する。PR #474 の Option A に倣い、本文
+  // コンテナ (p / h1-h3 / ul / ol / blockquote / dl / figure / table / hr に
+  // prose 制約を適用する div) であることを `data-prose-scope` 意味属性で
+  // 宣言し、テストは `toHaveAttribute` で検証する。prose の値そのもの
+  // (max-width 576px 等) は Panda token 定義側のテスト責務とし、ここでは
+  // 「本文コンテナが prose scope として宣言されている」構造と、prose 制約の
+  // 対象要素 (段落 / 見出し / table 等) がその scope の内側に物理配置されて
+  // いる構造を保証する。
   // ==========================================================================
   describe("本文 prose レイアウト", () => {
     /**
      * 本文コンテナ (paragraphs / lists / blockquote の親) を取得する。
-     * className に Panda が生成した prose セレクタが付与された要素を選ぶ。
+     * prose 制約を適用する本文コンテナは `data-prose-scope="article-content"`
+     * 意味属性を持つ。
      */
     const getContentContainer = (): HTMLElement => {
-      const paragraph = screen.getByText("これはテスト記事の内容です。");
-      // 段落の親 = dangerouslySetInnerHTML の出力をラップする div、
-      // さらにその親が contentRef の付いた本文コンテナ。
-      const innerWrapper = paragraph.parentElement;
-      const contentContainer = innerWrapper?.parentElement;
+      const contentContainer = document.querySelector<HTMLElement>(
+        '[data-prose-scope="article-content"]',
+      );
       if (!contentContainer) {
         throw new Error("本文コンテナを特定できませんでした");
       }
       return contentContainer;
     };
 
-    it("本文コンテナの className に段落 max-width prose セレクタが含まれる", () => {
+    it("本文コンテナが prose scope として宣言される", () => {
       render(
         <MemoryRouter>
           <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
@@ -142,36 +146,16 @@ describe("PostDetailPage", () => {
       );
 
       const contentContainer = getContentContainer();
-      // Panda は `"& p": { maxWidth: "prose" }` を `[&_p]:max-w_prose` に変換する。
-      expect(contentContainer.className).toContain("[&_p]:max-w_prose");
-    });
-
-    it("本文コンテナの className に段落 line-height prose セレクタが含まれる", () => {
-      render(
-        <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
-        </MemoryRouter>,
-      );
-
-      const contentContainer = getContentContainer();
-      expect(contentContainer.className).toContain("[&_p]:lh_prose");
-    });
-
-    it("本文コンテナの className に見出し (h1/h2/h3) max-width prose セレクタが含まれる", () => {
-      render(
-        <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
-        </MemoryRouter>,
-      );
-
-      const contentContainer = getContentContainer();
-      // 見出し左端ずれ解消 (DA 致命 3) の検証。
-      expect(contentContainer.className).toContain(
-        "[&_h1,_&_h2,_&_h3]:max-w_prose",
+      // 本文要素 (p / h1-h3 / ul / ol / blockquote / dl / figure / table / hr)
+      // に prose レイアウト制約 (max-width prose + margin auto + line-height
+      // prose) を適用するコンテナであることを宣言する属性。
+      expect(contentContainer).toHaveAttribute(
+        "data-prose-scope",
+        "article-content",
       );
     });
 
-    it("本文コンテナの className に table overflow-x auto セレクタが含まれる", () => {
+    it("段落が prose scope コンテナの内側に配置される", () => {
       render(
         <MemoryRouter>
           <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
@@ -179,11 +163,13 @@ describe("PostDetailPage", () => {
       );
 
       const contentContainer = getContentContainer();
-      // GFM table 横スクロール退避 (DA 重大 1) の検証。
-      expect(contentContainer.className).toContain("[&_table]:ov-x_auto");
+      const paragraph = screen.getByText("これはテスト記事の内容です。");
+      // `& p` セレクタの max-width prose / line-height prose を受けるよう、
+      // 段落が prose scope の内側に物理配置されていることを保証する。
+      expect(contentContainer.contains(paragraph)).toBe(true);
     });
 
-    it("本文コンテナの className に hr / dl / figure max-width prose セレクタが含まれる", () => {
+    it("見出し (h2) が prose scope コンテナの内側に配置される", () => {
       render(
         <MemoryRouter>
           <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
@@ -191,10 +177,54 @@ describe("PostDetailPage", () => {
       );
 
       const contentContainer = getContentContainer();
-      // GFM 周辺要素のレイアウト統一の検証。
-      expect(contentContainer.className).toContain("[&_hr]:max-w_prose");
-      expect(contentContainer.className).toContain("[&_dl]:max-w_prose");
-      expect(contentContainer.className).toContain("[&_figure]:max-w_prose");
+      const heading = screen.getByRole("heading", { name: "見出し" });
+      // 見出し左端ずれ解消 (DA 致命 3): 見出しも prose scope の内側にあり
+      // `& h1, & h2, & h3` セレクタの max-width prose を受ける。
+      expect(contentContainer.contains(heading)).toBe(true);
+    });
+
+    it("table が prose scope コンテナの内側に配置される", () => {
+      const postWithTable: Post = {
+        ...mockPost,
+        content:
+          "<table><thead><tr><th>列見出し</th></tr></thead><tbody><tr><td>セル値</td></tr></tbody></table>",
+      };
+
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={postWithTable}
+            olderPost={null}
+            newerPost={null}
+          />
+        </MemoryRouter>,
+      );
+
+      const contentContainer = getContentContainer();
+      const table = screen.getByRole("table");
+      // GFM table 横スクロール退避 (DA 重大 1): table も prose scope の
+      // 内側にあり `& table` セレクタの overflow-x auto / max-width prose を受ける。
+      expect(contentContainer.contains(table)).toBe(true);
+    });
+
+    it("リストが prose scope コンテナの内側に配置される", () => {
+      const postWithList: Post = {
+        ...mockPost,
+        content: "<ul><li>箇条書き項目</li></ul>",
+      };
+
+      render(
+        <MemoryRouter>
+          <PostDetailPage post={postWithList} olderPost={null} newerPost={null} />
+        </MemoryRouter>,
+      );
+
+      const contentContainer = getContentContainer();
+      // GFM 周辺要素のレイアウト統一: リストも prose scope の内側にあり
+      // `& ul, & ol` セレクタの max-width prose / line-height prose を受ける。
+      // TOC も <ul> を描画するため、prose scope の内側に限定して取得する。
+      const list = within(contentContainer).getByRole("list");
+      expect(contentContainer.contains(list)).toBe(true);
     });
 
     it("TOC は本文コンテナの外側に配置される", () => {

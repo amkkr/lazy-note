@@ -81,8 +81,11 @@ describe("BentoCard", () => {
     expect(screen.getByText("無題の記事")).toBeInTheDocument();
   });
 
-  it("size=tall は grid-row span 2 のクラスを持つ", () => {
-    // Panda CSS は grid-row を grid-r に短縮するため lg:grid-r_span_2 で検証
+  // Issue #480: 旧実装は Panda が生成する className (`lg:grid-r_span_2` 等) を
+  // regex マッチしていたが、`hash: true` で class 名が hash 化されると破綻する。
+  // PR #474 の Option A に倣い、article が伸ばす grid 軸を `data-grid-span`
+  // 意味属性で宣言し、テストは `toHaveAttribute` で検証する。
+  it("size=tall は grid-row 方向に span する", () => {
     const { container } = render(
       <MemoryRouter>
         <BentoCard post={buildPost()} size="tall" />
@@ -90,11 +93,10 @@ describe("BentoCard", () => {
     );
 
     const article = container.querySelector("article");
-    expect(article?.className).toMatch(/lg:grid-r_span_2/);
+    expect(article).toHaveAttribute("data-grid-span", "row");
   });
 
-  it("size=wide は grid-column span 2 のクラスを持つ", () => {
-    // Panda CSS は grid-column を grid-c に短縮するため lg:grid-c_span_2 で検証
+  it("size=wide は grid-column 方向に span する", () => {
     const { container } = render(
       <MemoryRouter>
         <BentoCard post={buildPost()} size="wide" />
@@ -102,10 +104,10 @@ describe("BentoCard", () => {
     );
 
     const article = container.querySelector("article");
-    expect(article?.className).toMatch(/lg:grid-c_span_2/);
+    expect(article).toHaveAttribute("data-grid-span", "column");
   });
 
-  it("size=default では grid span クラスを持たない", () => {
+  it("size=default では grid span しない", () => {
     const { container } = render(
       <MemoryRouter>
         <BentoCard post={buildPost()} size="default" />
@@ -113,8 +115,10 @@ describe("BentoCard", () => {
     );
 
     const article = container.querySelector("article");
-    expect(article?.className).not.toMatch(/lg:grid-r_span_2/);
-    expect(article?.className).not.toMatch(/lg:grid-c_span_2/);
+    // false negative 修正: 旧 `not.toMatch(/lg:grid-r_span_2/)` は hash 化で
+    // 常に true となり「span していないこと」を検知できなくなる。span 軸が
+    // "none" であることを明示的に正検証する。
+    expect(article).toHaveAttribute("data-grid-span", "none");
   });
 
   it("article 要素として描画される", () => {

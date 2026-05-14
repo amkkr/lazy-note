@@ -101,6 +101,33 @@ interface VariantStyleSet {
   readonly item: string;
   readonly itemBase: string;
   readonly iconSize: number;
+  /**
+   * variant が container に適用する `text-transform` の値。
+   *
+   * Issue #424 で featured variant の `textTransform: uppercase` を撤去した
+   * (英字主体の著者名がデータ表記のまま大文字化される不具合の解消)。
+   * 現状すべての variant が `none` (原文表記を尊重) だが、誰かが再び uppercase
+   * を持ち込んだら regression として検知できるよう値を明示する。
+   *
+   * Issue #480: 旧テストは `not.toMatch(/tt_uppercase/)` で className 文字列を
+   * 検証していたが、Panda の `hash: true` で class 名が hash 化されると常に
+   * true となり regression を検知できなくなる (false negative)。PR #474 の
+   * Option A に倣い `data-text-transform` 意味属性として宣言する。
+   */
+  readonly textTransform: "none" | "uppercase";
+  /**
+   * item (日付 / 著者 / 読了時間の各行) が参照する背景 Panda token。
+   *
+   * header variant のみ `bg.muted` の塗りを持つ pill 表示で、その他の variant
+   * は背景なし (undefined)。
+   *
+   * Issue #480: 旧テストは `metaInfo.querySelector('[class*="bg_"]')` で
+   * className 文字列に "bg_" が含まれるかを検証していたが、`hash: true` で
+   * class 名が hash 化されると card variant の `not.toBeInTheDocument()` が
+   * 常に成立し regression を検知できなくなる (false negative)。item に
+   * `data-token-bg` 意味属性を出すことで属性ベースに移行する。
+   */
+  readonly itemBg?: string;
 }
 
 const variantStyleSets: Record<Variant, VariantStyleSet> = {
@@ -109,24 +136,31 @@ const variantStyleSets: Record<Variant, VariantStyleSet> = {
     item: itemCardStyles,
     itemBase: itemBaseStyles,
     iconSize: ICON_SIZE,
+    textTransform: "none",
   },
   header: {
     container: containerStyles,
     item: itemHeaderStyles,
     itemBase: itemBaseStyles,
     iconSize: ICON_SIZE,
+    textTransform: "none",
+    // header variant の item は bg.muted の pill 背景を持つ。
+    itemBg: "bg.muted",
   },
   featured: {
     container: containerFeaturedStyles,
     item: itemFeaturedStyles,
     itemBase: itemCompactStyles,
     iconSize: ICON_SIZE_COMPACT,
+    // Issue #424: uppercase を撤去済み。原文表記を尊重する。
+    textTransform: "none",
   },
   bento: {
     container: containerBentoStyles,
     item: itemBentoStyles,
     itemBase: itemCompactStyles,
     iconSize: ICON_SIZE_COMPACT,
+    textTransform: "none",
   },
 };
 
@@ -154,17 +188,21 @@ export const MetaInfo = memo(
     const itemClassName = `${styles.itemBase} ${styles.item}`;
 
     return (
-      <div className={styles.container}>
-        <div className={itemClassName}>
+      <div
+        className={styles.container}
+        data-variant={variant}
+        data-text-transform={styles.textTransform}
+      >
+        <div className={itemClassName} data-token-bg={styles.itemBg}>
           <Calendar aria-hidden="true" size={styles.iconSize} />
           <span>{createdAt || "日付未設定"}</span>
         </div>
-        <div className={itemClassName}>
+        <div className={itemClassName} data-token-bg={styles.itemBg}>
           <PenLine aria-hidden="true" size={styles.iconSize} />
           <span>{author || "匿名"}</span>
         </div>
         {readingTimeMinutes !== undefined && (
-          <div className={itemClassName}>
+          <div className={itemClassName} data-token-bg={styles.itemBg}>
             <Clock aria-hidden="true" size={styles.iconSize} />
             <span>{readingTimeMinutes}分で読了</span>
           </div>

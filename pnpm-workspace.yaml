@@ -1,7 +1,2 @@
-# pnpm 11+ では allowBuilds は pnpm-workspace.yaml に書く必要がある
-# (package.json の pnpm フィールドは pnpm 11 で読まれない)
-# https://pnpm.io/blog/releases/11.0
-onlyBuiltDependencies:
-  - esbuild
 allowBuilds:
   esbuild: true

@@ -263,6 +263,153 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       expect(night[0].daysSince).toBe(9);
     });
   });
+
+  describe("入力順の保持", () => {
+    /**
+     * 設計上の意図: computeCoordinates の JSDoc に「milestones の順序を
+     * 保ったまま返す」と明記しているため、テストで仕様固定する。
+     * 表示層 (#491) でソート順を別途指定する/しないの判断はこの不変条件に依存する。
+     */
+    it("milestones の入力順を保持したまま Coordinate 配列を返す", () => {
+      const milestones: readonly Milestone[] = [
+        { date: "2025-01-05", label: "B", tone: "neutral" },
+        { date: "2025-01-01", label: "A", tone: "neutral" },
+        { date: "2025-01-03", label: "C", tone: "light" },
+      ];
+      const result = computeCoordinates(
+        "2025-02-01T12:00:00+09:00",
+        milestones,
+      );
+
+      expect(result.map((c) => c.label)).toEqual(["B", "A", "C"]);
+    });
+
+    it("publishedAt より後ろの節目を除外しても残った要素の相対順は保持される", () => {
+      const milestones: readonly Milestone[] = [
+        { date: "2025-01-05", label: "B", tone: "neutral" },
+        { date: "2025-12-31", label: "未来", tone: "light" },
+        { date: "2025-01-01", label: "A", tone: "neutral" },
+        { date: "2025-01-03", label: "C", tone: "light" },
+      ];
+      const result = computeCoordinates(
+        "2025-02-01T12:00:00+09:00",
+        milestones,
+      );
+
+      expect(result.map((c) => c.label)).toEqual(["B", "A", "C"]);
+    });
+  });
+
+  /**
+   * Milestone.date の値範囲検証は本モジュールでは行わない。
+   * 不正な YYYY-MM-DD は `Date.UTC` のロールオーバーでサイレントに
+   * 別の日付として解釈される (例: "2025-13-32" → 2026-02-01)。
+   *
+   * 将来 milestones.json の値範囲検証関数を #489 で追加するため、
+   * 本モジュールの「ロールオーバー許容」挙動を仕様としてここで固定する。
+   * 将来 #489 で検証関数が導入されたとしても、anchors.ts の純粋関数は
+   * この挙動を保つ前提 (検証は呼び出し側責務)。
+   */
+  describe("Milestone.date 不正値の仕様: Date.UTC ロールオーバーを許容", () => {
+    it('Milestone.date が "2025-13-32" のとき、Date.UTC のロールオーバーで 2026-02-01 として解釈される', () => {
+      // 2025-13-32 → Date.UTC(2025, 12, 32) = 2026-02-01
+      // publishedAt = 2026-02-10 とすると 9 日差になる
+      const milestones: readonly Milestone[] = [
+        { date: "2025-13-32", label: "ロールオーバー", tone: "neutral" },
+      ];
+      const result = computeCoordinates(
+        "2026-02-10T12:00:00+09:00",
+        milestones,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].daysSince).toBe(9);
+    });
+
+    it('Milestone.date が "2025-00-01" のとき、Date.UTC のロールオーバーで 2024-12-01 として解釈される', () => {
+      // 2025-00-01 → Date.UTC(2025, -1, 1) = 2024-12-01
+      // publishedAt = 2024-12-11 とすると 10 日差になる
+      const milestones: readonly Milestone[] = [
+        { date: "2025-00-01", label: "ロールオーバー", tone: "neutral" },
+      ];
+      const result = computeCoordinates(
+        "2024-12-11T12:00:00+09:00",
+        milestones,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].daysSince).toBe(10);
+    });
+
+    it('Milestone.date が "2025-99-99" のとき、Date.UTC のロールオーバーで 2033-06-07 として解釈される', () => {
+      // 2025-99-99 → Date.UTC(2025, 98, 99) = 2033-06-07
+      const milestones: readonly Milestone[] = [
+        { date: "2025-99-99", label: "ロールオーバー", tone: "neutral" },
+      ];
+      const result = computeCoordinates(
+        "2033-06-08T12:00:00+09:00",
+        milestones,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].daysSince).toBe(1);
+    });
+
+    it('Milestone.date が "abc-de-fg" のとき、正規表現で reject されて結果から除外される', () => {
+      const milestones: readonly Milestone[] = [
+        { date: "abc-de-fg", label: "形式不正", tone: "neutral" },
+      ];
+      const result = computeCoordinates(
+        "2025-02-01T12:00:00+09:00",
+        milestones,
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it('Milestone.date が "2025-02-29" (非閏年 2/29) のとき、Date.UTC のロールオーバーで 2025-03-01 として解釈される', () => {
+      // 2025-02-29 → Date.UTC(2025, 1, 29) = 2025-03-01
+      const milestones: readonly Milestone[] = [
+        { date: "2025-02-29", label: "非閏年 2/29", tone: "neutral" },
+      ];
+      const result = computeCoordinates(
+        "2025-03-02T12:00:00+09:00",
+        milestones,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].daysSince).toBe(1);
+    });
+  });
+
+  /**
+   * ラウンドトリップ整合性: inferPublishedAt が非閏年 2/29 を文字列として
+   * 通すため (`"2025-02-29T12:00:00+09:00"`)、それを computeCoordinates に
+   * 渡したときの挙動を仕様として固定する。
+   *
+   * - inferPublishedAt: 文字列再構築のためそのまま返す
+   * - computeCoordinates: JST 暦上では Date.UTC ロールオーバーで 2025-03-01 扱い
+   * - 結果として milestone "2025-03-01" との差分は 0 日になる
+   */
+  describe("inferPublishedAt → computeCoordinates のラウンドトリップ整合性", () => {
+    it("inferPublishedAt が返した非閏年 2/29 の publishedAt は、暦上同一日 (2025-03-01) として扱われる", () => {
+      const publishedAt = inferPublishedAt("20250229120000.md");
+      expect(publishedAt).toBe("2025-02-29T12:00:00+09:00");
+
+      // null チェック: 上の expect で確定済みだが TypeScript narrowing のため
+      if (publishedAt === null) {
+        throw new Error("unreachable");
+      }
+
+      const milestones: readonly Milestone[] = [
+        { date: "2025-03-01", label: "x", tone: "neutral" },
+      ];
+      const result = computeCoordinates(publishedAt, milestones);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].daysSince).toBe(0);
+    });
+  });
 });
 
 describe("computeElapsed: 層2=経過 (暦上の経過日数)", () => {

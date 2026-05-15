@@ -60,9 +60,23 @@ const Index = () => {
   // - today は JST 暦の YYYY-MM-DD
   // - loading 中は計算しない (allPosts が空 → null になるため低コストではあるが、
   //   allPosts が解決した瞬間に再計算したいので useMemo で deps に入れる)
+  //
+  // excludeIds (致命: View Transition 名前衝突回避):
+  //   HomePage では `posts` (= 現在ページに表示する 16 件) の各カード/行に
+  //   `view-transition-name: post-{id}` が付与される。Resurface に同じ post.id を
+  //   浮上させると DOM 内で同名 transition が 2 か所に同時宣言され、Chrome は
+  //   `Unexpected duplicate view-transition-name` で transition 全体を abort する。
+  //   呼び出し側で「現在表示中の posts.id」を `excludeIds` に渡すことで、Resurface
+  //   候補から強制的に除外して衝突を防ぐ。
+  //   1 ページ目以外でも Resurface は描画しない (HomePage 側の currentPage === 1
+  //   ガード) ため、`posts` が現在ページ分しか含まなくても問題ない (Resurface が
+  //   出るのは常に「1 ページ目の posts」のとき = HomePage に表示中の post 集合)。
   const resurfaceEntry = useMemo(
-    () => selectResurfaced(allPosts, MILESTONES, getTodayJst()),
-    [allPosts],
+    () =>
+      selectResurfaced(allPosts, MILESTONES, getTodayJst(), {
+        excludeIds: posts.map((p) => p.id),
+      }),
+    [allPosts, posts],
   );
 
   return (

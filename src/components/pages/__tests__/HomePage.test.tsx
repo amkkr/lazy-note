@@ -402,5 +402,51 @@ describe("HomePage", () => {
         screen.queryByRole("region", { name: "過去の記事" }),
       ).not.toBeInTheDocument();
     });
+
+    // Anchor 企画の「いつでも黙らせられる」要件 (Issue #492 AC: 撤退可能性)。
+    // showResurface=false を渡したとき、resurfaceEntry が非 null でも
+    // Resurface セクションが描画されないことを保証する。
+    it("showResurface=false のとき entry があっても Resurface は描画されない (撤退スイッチ)", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={buildEntry()}
+            showResurface={false}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "過去の記事" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("showResurface=true (既定相当) のとき entry があれば Resurface が描画される (対称ケース)", () => {
+      // 上記の showResurface=false と対称になることを明示するためのテスト。
+      // 既存の「resurfaceEntry を渡すと描画される」テストは showResurface を省略
+      // (= 既定 true) しているが、明示的に true を渡したケースも担保する。
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={buildEntry()}
+            showResurface={true}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.getByRole("region", { name: "過去の記事" }),
+      ).toBeInTheDocument();
+    });
   });
 });

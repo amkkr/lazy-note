@@ -327,6 +327,145 @@ describe("selectResurfaced: 既存16記事の実データに対する分岐", ()
   });
 });
 
+describe("selectResurfaced: options.excludeIds (View Transition 名前衝突回避)", () => {
+  /**
+   * HomePage では Featured / Bento / Index で `view-transition-name: post-{id}` を
+   * 既に付与しているため、Resurface に同じ post.id を浮上させると View Transitions
+   * API が "Unexpected duplicate view-transition-name" エラーで abort する。
+   * 呼び出し側 (`pages/index.tsx`) で「現在 1 ページ目に表示中の posts.id」を
+   * options.excludeIds で渡すことで、Resurface 候補から強制的に除外する。
+   */
+  it("excludeIds に含まれる post.id は浮上対象から除外される (沈黙時 yearAgo)", () => {
+    // 1年前同月同日の候補 (20240401120000) を excludeIds で除外すると、
+    // フォールバックとして「最古記事」が選ばれる。
+    // 最新: 2025-02-01 / today: 2025-04-01 (59 日沈黙)
+    const posts = [
+      makePost("20250201120000"),
+      makePost("20240401120000", "1年前の今日 (除外対象)"),
+      makePost("20240101120000", "最古記事 (除外されない)"),
+    ];
+    const result = selectResurfaced(posts, [], "2025-04-01", {
+      excludeIds: ["20240401120000"],
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.post.id).toBe("20240101120000");
+    expect(result?.reason.kind).toBe("silence");
+    if (result?.reason.kind === "silence") {
+      // 1年前候補が除外されたので最古フォールバック
+      expect(result.reason.sub).toBe("oldest");
+    }
+  });
+
+  it("excludeIds に含まれる post.id は暦の節目の候補からも除外される", () => {
+    // 沈黙でないケース。1年前 (2025-05-15) は除外されているので 2年前 (2024-05-15) が選ばれる。
+    const posts = [
+      makePost("20260510120000"),
+      makePost("20250515120000", "1年前 (除外対象)"),
+      makePost("20240515120000", "2年前 (除外されない)"),
+    ];
+    const result = selectResurfaced(posts, [], "2026-05-15", {
+      excludeIds: ["20250515120000"],
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.post.id).toBe("20240515120000");
+    expect(result?.reason.kind).toBe("calendar");
+    if (result?.reason.kind === "calendar") {
+      expect(result.reason.yearsAgo).toBe(2);
+    }
+  });
+
+  it("excludeIds に含まれる post.id は節目記念日の候補からも除外される", () => {
+    // 節目 "社会復帰" (2024-05-01) の 1 年後 (2025-05-01) の記事を excludeIds で
+    // 除外すると、ほかに節目記念日の候補がないので null になる。
+    const posts = [
+      makePost("20260110120000"),
+      makePost("20250501120000", "節目1年後 (除外対象)"),
+    ];
+    const milestones: readonly Milestone[] = [
+      { date: "2024-05-01", label: "社会復帰", tone: "neutral" },
+    ];
+    const result = selectResurfaced(posts, milestones, "2026-01-15", {
+      excludeIds: ["20250501120000"],
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("excludeIds で過去候補が全て除外されると沈黙でも null を返す", () => {
+    // 最新: 2025-02-01 / today: 2025-04-01 (59 日沈黙)
+    // 過去候補 (20240401120000 / 20240101120000) を両方除外すると、
+    // pastCandidates が空になるため null。
+    const posts = [
+      makePost("20250201120000"),
+      makePost("20240401120000"),
+      makePost("20240101120000"),
+    ];
+    const result = selectResurfaced(posts, [], "2025-04-01", {
+      excludeIds: ["20240401120000", "20240101120000"],
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("excludeIds が空配列なら除外されない (既定動作と同じ)", () => {
+    // excludeIds: [] と省略時で同じ結果が出ることを確認 (空配列も許可)。
+    const posts = [
+      makePost("20250201120000"),
+      makePost("20240401120000", "1年前の今日"),
+      makePost("20240101120000"),
+    ];
+    const withEmpty = selectResurfaced(posts, [], "2025-04-01", {
+      excludeIds: [],
+    });
+    const withoutOption = selectResurfaced(posts, [], "2025-04-01");
+
+    expect(withEmpty).not.toBeNull();
+    expect(withEmpty?.post.id).toBe("20240401120000");
+    expect(withEmpty?.post.id).toBe(withoutOption?.post.id);
+  });
+
+  it("excludeIds は最新記事の id を含めても影響しない (最新は元から除外されている)", () => {
+    // newest (= resolved[0]) は元から pastCandidates から除外されているため、
+    // excludeIds に最新 id を入れても入れなくても結果が同じ。
+    const posts = [
+      makePost("20250201120000", "最新 (元から除外)"),
+      makePost("20240401120000", "1年前の今日"),
+    ];
+    const result = selectResurfaced(posts, [], "2025-04-01", {
+      excludeIds: ["20250201120000"],
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.post.id).toBe("20240401120000");
+  });
+
+  it("実データ (16記事) で today=2026-05-15、最古記事 id を excludeIds に渡すと別記事 or null になる", () => {
+    // datasources から実 16 記事を読む。最古は 20250826031705。
+    // 既定では沈黙トリガーで最古 (20250826031705) が選定される (1年前候補が無いため)。
+    // この id を excludeIds に渡すと、フォールバックの最古が無くなるので
+    // pastCandidates の末尾 (次に古い) が選ばれる。
+    const datasourcesDir = join(__dirname, "../../../datasources");
+    const files = readdirSync(datasourcesDir).filter((file) =>
+      /^\d{14}\.md$/.test(file),
+    );
+    const posts: PostSummary[] = files
+      .map((file) => makePost(file.replace(".md", "")))
+      .sort((a, b) => b.id.localeCompare(a.id));
+
+    const defaultResult = selectResurfaced(posts, [], "2026-05-15");
+    expect(defaultResult?.post.id).toBe("20250826031705");
+
+    const excludedResult = selectResurfaced(posts, [], "2026-05-15", {
+      excludeIds: ["20250826031705"],
+    });
+    expect(excludedResult).not.toBeNull();
+    // 除外で最古が抜けたので、次に古い記事が選ばれる
+    expect(excludedResult?.post.id).not.toBe("20250826031705");
+  });
+});
+
 describe("selectResurfaced: 戻り値型", () => {
   it("ResurfacedEntry は post と reason のみ公開し、頻度・間隔の数値プロパティを持たない", () => {
     const posts = [makePost("20250101120000"), makePost("20240101120000")];

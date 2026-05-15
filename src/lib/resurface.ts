@@ -30,9 +30,20 @@ import type { PostSummary } from "./markdown";
  * 沈黙トリガーのデフォルトしきい値 (日数)。
  *
  * 30 日 (≒ 1 ヶ月) は「明らかな沈黙」と「通常の運用ペース」を分ける境界として採用。
- * 過去16記事の投稿間隔の中央値は 10-40 日であり、30 日を超えると "運用ペースから
- * 外れた沈黙" と評価できる。マジックナンバーをハードコードしないために定数として export
- * し、N-6 (/anchor ページ) や将来の調整でも単一の出所からアクセスする。
+ *
+ * 過去16記事 (= 15 区間) の投稿間隔の実分布:
+ *   - 中央値: 10 日
+ *   - 平均:   12.53 日
+ *   - 最大:   42 日
+ *   - 30 日以上の頻度: 15 区間中 1 回 (6.7%)
+ *
+ * 30 日は「最大値 42 日」に近い境界 (最大の 7 割強) であり、通常運用では稀にしか
+ * 到達しない値であるため、「明らかな沈黙」として扱うのに妥当。同時に「中央値 10 日」
+ * の 3 倍に相当し、平均 12.53 日からも 2 倍以上離れているため、ノイズではなく
+ * "運用ペースから外れた沈黙" と評価できる。
+ *
+ * マジックナンバーをハードコードしないために定数として export し、N-6 (/anchor
+ * ページ) や将来の調整でも単一の出所からアクセスする。
  *
  * 上書きは `selectResurfaced` の `options.silenceThresholdDays` で行う。
  */
@@ -86,9 +97,22 @@ export interface ResurfacedEntry {
  * オプション。
  *
  * - silenceThresholdDays: 沈黙トリガーのしきい値日数の上書き (省略時は SILENCE_THRESHOLD_DAYS)
+ * - excludeIds: 浮上対象から除外する post.id のリスト。
+ *
+ * `excludeIds` の用途 (致命: View Transition `view-transition-name` 重複回避):
+ *   HomePage では新着セクション (Featured / Bento / Index) で既に `view-transition-name:
+ *   post-{id}` を付与しているため、Resurface に同じ post.id を浮上させると DOM 内で
+ *   同名 transition が 2 か所に同時宣言される。Chrome の View Transitions API は
+ *   重複時に "Unexpected duplicate view-transition-name" エラーで transition 全体を
+ *   abort するため (= 「最後の宣言が勝つ」のではない)、記事 → HomePage 戻り遷移の
+ *   Hero morph が壊れる。
+ *
+ *   呼び出し側で「現在表示中の posts.id」を `excludeIds` に渡すことで、Resurface 候補
+ *   から強制的に除外し名前衝突を防ぐ。
  */
 export interface SelectResurfacedOptions {
   readonly silenceThresholdDays?: number;
+  readonly excludeIds?: readonly string[];
 }
 
 /**
@@ -297,7 +321,7 @@ const pickMilestoneAnniversary = (
  * @param posts - 全記事の PostSummary 配列 (順序不問、内部で publishedAt 解決順に並び替える)
  * @param milestones - 登録された節目の配列 (空配列許可)
  * @param today - 今日の日付 (YYYY-MM-DD, JST 想定)
- * @param options - しきい値の上書き等
+ * @param options - しきい値の上書き / View Transition 衝突回避用の excludeIds 等
  * @returns 浮上対象とその理由、または null (スロット非表示)
  */
 export const selectResurfaced = (
@@ -312,6 +336,9 @@ export const selectResurfaced = (
   }
 
   const threshold = options.silenceThresholdDays ?? SILENCE_THRESHOLD_DAYS;
+  // excludeIds は配列で受け取り、O(1) 探索のために Set に変換する。
+  // 空配列ないし undefined を渡された場合は空 Set として扱う (全候補が有効)。
+  const excludeIdSet = new Set<string>(options.excludeIds ?? []);
 
   // publishedAt 解決済み記事を新→古 で並べる
   const resolved = resolveAndSortPosts(posts);
@@ -321,8 +348,15 @@ export const selectResurfaced = (
 
   const newest = resolved[0];
   // newest を浮上対象として選ぶことは設計上ない (最新は Featured で既に表示されているため
-  // Resurface には「過去の声」しか出さない)。
-  const pastCandidates = resolved.slice(1);
+  // Resurface には「過去の声」しか出さない)。さらに、HomePage で既に表示中の post (id) を
+  // 除外することで View Transition `view-transition-name` の重複衝突を回避する
+  // (excludeIds の責務、SelectResurfacedOptions の JSDoc を参照)。
+  //
+  // 注意: pastCandidates は resolveAndSortPosts の戻り値である ResolvedPost[] を維持する
+  // ため、ここで filter する。post.id は string 比較で十分 (id はファイル名タイムスタンプ)。
+  const pastCandidates = resolved
+    .slice(1)
+    .filter((r) => !excludeIdSet.has(r.post.id));
 
   // (1) 沈黙トリガー判定
   const lastPostDaysAgo = diffInDays(newest.publishedDate, todayDate);
@@ -330,7 +364,8 @@ export const selectResurfaced = (
 
   if (isSilence) {
     if (pastCandidates.length === 0) {
-      // 過去候補が無いので浮上できない (最新自身を選ばない方針)
+      // 過去候補が無い (= 全候補が excludeIds に含まれている等) 場合、浮上できない。
+      // 最新自身は選ばない方針 (Resurface は「過去の声」のみを差し出すため)。
       return null;
     }
 

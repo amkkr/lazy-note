@@ -208,17 +208,20 @@ export const Resurface = memo(({ entry, show = true }: ResurfaceProps) => {
   const reasonLabel = buildReasonLabel(reason);
 
   // Hero morph (Issue #397): タイトル H3 に view-transition-name: post-{id} を
-  // 付与し、記事詳細の H1 と morph させる。HomePage 内で他に同 ID の post を
-  // 表示している場合 (Featured / Bento / Index にも同 id がある場合) は名前衝突
-  // するため、選定ロジック側で「最新 (= Featured) は浮上対象にしない」前提を
-  // 守る (selectResurfaced で newest を pastCandidates から除外している)。
-  // ただし Bento / Index に同 id がある可能性は理屈上ありうる: 16 件以下なら
-  // Resurface の対象は Featured 以外の全候補なので、Bento (2-7) / Index (8-) と
-  // 重複する可能性がある。selectResurfaced の選定基準 (1年前同月同日 / 最古 /
-  // 暦/節目記念日) は新着セクション内の任意の記事と一致しうる。重複時の動作
-  // 仕様は将来 N-5 改修で検討するが、本実装では view-transition-name の重複は
-  // ブラウザ側で「最後の宣言が勝つ」ため、最新の描画位置 (= Resurface 側) で
-  // morph が動く想定で問題なし。
+  // 付与し、記事詳細の H1 と morph させる。
+  //
+  // HomePage の Featured / Bento / Index にも同じ post.id があると DOM 内で
+  // `view-transition-name: post-{id}` が複数宣言される。View Transitions API は
+  // 同名 transition の重複を許容せず "Unexpected duplicate view-transition-name"
+  // エラーで transition 全体を abort する (= 「最後の宣言が勝つ」ではない)。
+  //
+  // この衝突を回避するために、呼び出し側 (`pages/index.tsx`) で
+  // `selectResurfaced(..., { excludeIds: posts.map(p => p.id) })` を渡し、
+  // 現在ページに表示中の posts を Resurface 候補から強制的に除外している。
+  // Resurface 側はこのガードを前提として viewTransitionName を素直に付与する。
+  //
+  // (newest = Featured が選ばれない件は selectResurfaced 内で pastCandidates =
+  // resolved.slice(1) として既に除外済み。)
   const heroNameStyle: CSSProperties = {
     viewTransitionName: buildPostHeroTransitionName(String(post.id)),
   };

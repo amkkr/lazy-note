@@ -225,8 +225,55 @@ describe("Indexコンポーネント", () => {
      * モック記事の id (例: 20240102120000) は inferPublishedAt で解決可能なため、
      * today (現実時計) との差分で沈黙トリガーが発火する想定 (2026 年時点では
      * 2024-01-02 から 30 日以上経過 → 沈黙トリガー)。
+     *
+     * 重要 (View Transition 名前衝突回避):
+     *   pages/index.tsx は selectResurfaced に `excludeIds: posts.map(p => p.id)`
+     *   を渡し、現在ページに表示中の posts を Resurface 候補から除外する。
+     *   そのため Resurface を発火させるには allPosts に「posts に含まれない過去の id」
+     *   を別途含める必要がある (= ページに表示されていないが過去候補となる記事)。
      */
-    it("allPosts に沈黙トリガー条件を満たす記事があると、Resurface セクションが描画される", () => {
+    it("allPosts に沈黙トリガー条件を満たす過去記事 (posts に含まれない id) があると、Resurface セクションが描画される", () => {
+      // 表示中 (posts): 2024-01-02 / 2024-01-01
+      // 過去候補 (allPosts のみに存在、現在ページに表示されない): 2023-06-01
+      // → 表示中の id は excludeIds で除外され、2023-06-01 が最古候補として浮上
+      const hiddenPastPost = {
+        id: "20230601120000",
+        title: "ページ外の古い記事",
+        createdAt: "2023-06-01 12:00",
+        content: "<p>古い記事</p>",
+        author: "amkkr",
+        rawContent: "古い記事",
+        excerpt: "古い記事",
+        readingTimeMinutes: 1,
+      };
+      mockUsePosts.mockReturnValue({
+        posts: mockPosts,
+        allPosts: [...mockPosts, hiddenPastPost],
+        loading: false,
+        error: null,
+        currentPage: 1,
+        totalPages: 1,
+        totalPosts: 3,
+        setCurrentPage: vi.fn(),
+      });
+
+      render(
+        <TestWrapper>
+          <Index />
+        </TestWrapper>,
+      );
+
+      // 「過去の記事」セクションが描画される
+      expect(
+        screen.getByRole("region", { name: "過去の記事" }),
+      ).toBeInTheDocument();
+    });
+
+    it("allPosts のうち全ての過去候補が現在表示中の posts に含まれる場合、Resurface は描画されない (View Transition 衝突回避)", () => {
+      // 致命対応 (DA 指摘): pages/index.tsx は posts.map(p => p.id) を excludeIds
+      // として渡すため、allPosts === posts のとき過去候補が全て除外されて null になる。
+      // これにより HomePage の Featured/Bento/Index と Resurface で post.id が
+      // 重複することを防ぎ、View Transition の `view-transition-name` 衝突を回避する。
       mockUsePosts.mockReturnValue({
         posts: mockPosts,
         allPosts: mockPosts,
@@ -244,10 +291,9 @@ describe("Indexコンポーネント", () => {
         </TestWrapper>,
       );
 
-      // 「過去の記事」セクションが描画される
       expect(
-        screen.getByRole("region", { name: "過去の記事" }),
-      ).toBeInTheDocument();
+        screen.queryByRole("region", { name: "過去の記事" }),
+      ).not.toBeInTheDocument();
     });
 
     it("allPosts が空の場合、Resurface セクションは描画されない", () => {

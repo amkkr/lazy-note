@@ -100,10 +100,16 @@ describe("inferPublishedAt: ファイル名からの ISO 8601 推定 (JST 固定
   });
 
   describe("既存16記事すべての解決", () => {
-    it("datasources/ 配下の全 .md ファイルで publishedAt が解決できる", () => {
+    /**
+     * 対象は `YYYYMMDDhhmmss.md` 命名のファイルのみに絞る。
+     * 命名外のファイル (例: `non-yyyymmddhhmmss.md`) が将来追加されても
+     * inferPublishedAt の解決確認テストが壊れないようにする。
+     * 件数しきい値 (>= 16) と全件解決を担保する点は変わらない。
+     */
+    it("datasources/ 配下の YYYYMMDDhhmmss.md ファイル全件で publishedAt が解決できる", () => {
       const datasourcesDir = join(__dirname, "../../../datasources");
       const files = readdirSync(datasourcesDir).filter((file) =>
-        file.endsWith(".md"),
+        /^\d{14}\.md$/.test(file),
       );
 
       // 前提: 16 記事以上存在する (本 Issue の前提)

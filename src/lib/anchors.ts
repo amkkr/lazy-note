@@ -131,6 +131,12 @@ const toJstCalendarDate = (isoDateTime: string): Date => {
  *
  * - 年月日のみを保持した UTC 基準の Date インスタンスを返す
  * - 日数差の計算用 (時分秒は 00:00:00 固定)
+ * - 形式が `YYYY-MM-DD` を満たさない (例: "abc-de-fg") 場合のみ null を返す
+ * - 値範囲は検証せず、`Date.UTC` のロールオーバーを許容する
+ *   - 例: "2025-13-32" → 2026-02-01 / "2025-02-29" → 2025-03-01
+ *   - 仕様としての挙動は `anchors.test.ts` の「Milestone.date 不正値の仕様」で固定
+ *
+ * @todo 値範囲検証関数は #489 で別途追加予定。本関数は現状ロールオーバーを許容する
  */
 const toMilestoneCalendarDate = (date: string): Date | null => {
   const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -160,9 +166,15 @@ const diffInDays = (origin: Date, target: Date): number => {
 /**
  * 層1=座標: publishedAt と登録節目の差分日数を計算する
  *
- * - publishedAt より後 (未来) の節目は結果から除外する
- * - 引数の milestones の順序を保ったまま返す
+ * - publishedAt より後 (未来) の節目は結果から **除外 (filter)** する
+ *   これは「まだ存在しない節目」を Coordinate として返さないためである
+ *   (層2=`computeElapsed` は同じ未来起点を 0 にクランプするだけで除外しない。
+ *    両関数の「未来の起点が来たときの挙動」は意図的に非対称な仕様)
+ * - 引数の milestones の順序を保ったまま返す (`anchors.test.ts` の
+ *   「入力順の保持」で仕様として固定)
  * - 空配列が渡されたら空配列を返す
+ * - Milestone.date の値範囲は検証せず、`Date.UTC` のロールオーバーを許容する
+ *   (`toMilestoneCalendarDate` の JSDoc / テスト「Milestone.date 不正値の仕様」参照)
  *
  * @param publishedAt - 記事の公開日時 (ISO 8601 文字列)
  * @param milestones - 登録された節目の配列
@@ -197,7 +209,12 @@ export const computeCoordinates = (
  * 層2=経過: publishedAt と origin の暦上の経過日数を計算する
  *
  * - 節目が未登録または記事が全節目より前のときのフォールバック
- * - origin が publishedAt より後ろの場合は 0 を返す (負の値は返さない)
+ * - origin が publishedAt より後ろ (未来) の場合は 0 に **クランプ** する
+ *   (負の値は返さず、エラーにもしない)
+ *   これは Coordinate と異なり「未来からの経過」をそのまま 0 として扱うことで、
+ *   フォールバック表示が破綻しないようにするためである。
+ *   (層1=`computeCoordinates` は同じ未来起点を結果から filter で除外する。
+ *    両関数の「未来の起点が来たときの挙動」は意図的に非対称な仕様)
  * - tone を持たない点で Coordinate と命名区別する
  *
  * @param publishedAt - 記事の公開日時 (ISO 8601 文字列)

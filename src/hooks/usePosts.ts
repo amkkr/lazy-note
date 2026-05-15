@@ -19,6 +19,16 @@ const POSTS_PER_PAGE = 16;
 
 interface UsePostsReturn {
   posts: PostSummary[];
+  /**
+   * 全期間の記事一覧 (ページング前)。
+   *
+   * Issue #492 (N-5 Resurface) 対応: Resurface の浮上選定は「ページング後の
+   * 16 件」ではなく「全期間の全記事」に対して行う必要があるため、
+   * paginate される前の配列を別途 expose する。
+   * 1 ページに収まる運用では posts と同一だが、将来 16 件超で Pagination が
+   * 動いたときに HomePage 側で全件を参照できるようにしておく。
+   */
+  allPosts: PostSummary[];
   loading: boolean;
   error: string | null;
   currentPage: number;
@@ -84,6 +94,7 @@ export const usePosts = (): UsePostsReturn => {
 
   return {
     posts,
+    allPosts,
     loading,
     error,
     currentPage,

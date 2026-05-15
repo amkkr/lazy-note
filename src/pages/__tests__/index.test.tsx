@@ -49,6 +49,7 @@ describe("Indexコンポーネント", () => {
     // usePostsでローディング状態をモック
     mockUsePosts.mockReturnValue({
       posts: [],
+      allPosts: [],
       loading: true,
       error: null,
       currentPage: 1,
@@ -68,8 +69,14 @@ describe("Indexコンポーネント", () => {
 
   describe("記事が存在する場合の表示", () => {
     beforeEach(() => {
+      // Resurface (Issue #492) は usePosts.allPosts を入力に取るため、本テストでは
+      // allPosts を空にして Resurface を非発火 (null) にして Featured/Bento/Index
+      // 単独の振る舞いを検証する。Resurface 自体の振る舞いは
+      // src/components/common/__tests__/Resurface.test.tsx と
+      // src/lib/__tests__/resurface.test.ts で個別に検証済み。
       mockUsePosts.mockReturnValue({
         posts: mockPosts,
+        allPosts: [],
         loading: false,
         error: null,
         currentPage: 1,
@@ -113,6 +120,7 @@ describe("Indexコンポーネント", () => {
   it("記事がない場合に案内メッセージを表示する", async () => {
     mockUsePosts.mockReturnValue({
       posts: [],
+      allPosts: [],
       loading: false,
       error: null,
       currentPage: 1,
@@ -133,6 +141,7 @@ describe("Indexコンポーネント", () => {
   it("記事の読み込みでエラーが発生した場合に記事なしメッセージを表示する", async () => {
     mockUsePosts.mockReturnValue({
       posts: [],
+      allPosts: [],
       loading: false,
       error: "ネットワークエラー",
       currentPage: 1,
@@ -151,8 +160,10 @@ describe("Indexコンポーネント", () => {
   });
 
   it("記事リンクを設定できる", async () => {
+    // Resurface 非発火条件 (allPosts: []) で既存リンク振る舞いを検証する。
     mockUsePosts.mockReturnValue({
       posts: mockPosts,
+      allPosts: [],
       loading: false,
       error: null,
       currentPage: 1,
@@ -175,8 +186,10 @@ describe("Indexコンポーネント", () => {
   });
 
   it("記事が投稿日時の新しい順でソートされている", async () => {
+    // Resurface 非発火条件 (allPosts: []) で Featured/Bento の並びだけを検証する。
     mockUsePosts.mockReturnValue({
       posts: mockPosts,
+      allPosts: [],
       loading: false,
       error: null,
       currentPage: 1,
@@ -202,5 +215,62 @@ describe("Indexコンポーネント", () => {
     expect(firstArticle).toHaveTextContent("2024-01-02 12:00");
     expect(secondArticle).toHaveTextContent("最初の記事");
     expect(secondArticle).toHaveTextContent("2024-01-01 10:00");
+  });
+
+  describe("Resurface 連携 (Issue #492 / N-5)", () => {
+    /**
+     * Resurface は usePosts.allPosts を入力に取り、selectResurfaced で
+     * 浮上対象を選定する。HomePage に entry が伝播して描画されることを確認する。
+     *
+     * モック記事の id (例: 20240102120000) は inferPublishedAt で解決可能なため、
+     * today (現実時計) との差分で沈黙トリガーが発火する想定 (2026 年時点では
+     * 2024-01-02 から 30 日以上経過 → 沈黙トリガー)。
+     */
+    it("allPosts に沈黙トリガー条件を満たす記事があると、Resurface セクションが描画される", () => {
+      mockUsePosts.mockReturnValue({
+        posts: mockPosts,
+        allPosts: mockPosts,
+        loading: false,
+        error: null,
+        currentPage: 1,
+        totalPages: 1,
+        totalPosts: 2,
+        setCurrentPage: vi.fn(),
+      });
+
+      render(
+        <TestWrapper>
+          <Index />
+        </TestWrapper>,
+      );
+
+      // 「過去の記事」セクションが描画される
+      expect(
+        screen.getByRole("region", { name: "過去の記事" }),
+      ).toBeInTheDocument();
+    });
+
+    it("allPosts が空の場合、Resurface セクションは描画されない", () => {
+      mockUsePosts.mockReturnValue({
+        posts: mockPosts,
+        allPosts: [],
+        loading: false,
+        error: null,
+        currentPage: 1,
+        totalPages: 1,
+        totalPosts: 2,
+        setCurrentPage: vi.fn(),
+      });
+
+      render(
+        <TestWrapper>
+          <Index />
+        </TestWrapper>,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "過去の記事" }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

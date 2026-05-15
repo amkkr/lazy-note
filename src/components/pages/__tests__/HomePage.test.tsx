@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import type { Post, PostSummary } from "../../../lib/markdown";
+import type { ResurfacedEntry } from "../../../lib/resurface";
 import { HomePage } from "../HomePage";
 
 const mockPosts: Post[] = [
@@ -301,6 +302,104 @@ describe("HomePage", () => {
       // 注目の記事 region は表示されない
       expect(
         screen.queryByRole("region", { name: "注目の記事" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  // ===================================================================
+  // Resurface 連携 (Issue #492 / N-5)
+  //
+  // HomePage は resurfaceEntry props を受け取り、currentPage === 1 のときに
+  // 限り Resurface セクションを描画する。showResurface=false で OFF にできる。
+  // ===================================================================
+  describe("Resurface 連携 (Issue #492)", () => {
+    const buildEntry = (
+      overrides: Partial<ResurfacedEntry> = {},
+    ): ResurfacedEntry => ({
+      post: {
+        id: "20240101120000",
+        title: "再浮上した記事",
+        createdAt: "2024-01-01",
+        author: "amkkr",
+        excerpt: "過去の声",
+        readingTimeMinutes: 2,
+      },
+      reason: { kind: "silence", lastPostDaysAgo: 45, sub: "yearAgo" },
+      ...overrides,
+    });
+
+    it("resurfaceEntry を渡すと currentPage=1 で Resurface セクションが描画される", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={buildEntry()}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.getByRole("region", { name: "過去の記事" }),
+      ).toBeInTheDocument();
+    });
+
+    it("resurfaceEntry=null のとき Resurface セクションは描画されない", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={null}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "過去の記事" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("currentPage が 2 以上のときは Resurface を描画しない (1 ページ目限定)", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={2}
+            totalPages={3}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={buildEntry()}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "過去の記事" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("resurfaceEntry を省略すると Resurface セクションは描画されない (後方互換)", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "過去の記事" }),
       ).not.toBeInTheDocument();
     });
   });

@@ -1,18 +1,36 @@
 import { memo } from "react";
 import { css } from "../../../styled-system/css";
 import type { PostSummary } from "../../lib/markdown";
+import type { ResurfacedEntry } from "../../lib/resurface";
 import { BentoCard } from "../atoms/BentoCard";
 import { FeaturedCard } from "../atoms/FeaturedCard";
-import { FileText } from "../atoms/icons";
 import { IndexRow } from "../atoms/IndexRow";
+import { FileText } from "../atoms/icons";
 import { EmptyState } from "../common/EmptyState";
 import { Pagination } from "../common/Pagination";
+import { Resurface } from "../common/Resurface";
 
 interface HomePageProps {
   posts: PostSummary[];
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  /**
+   * Resurface (Issue #492 / N-5) の浮上対象エントリ。
+   *
+   * 算出は呼び出し側 (`pages/index.tsx`) で `selectResurfaced` により行い、
+   * 結果を props として受け取ることで HomePage は純粋にレンダリングに専念する。
+   * null のとき Resurface セクションは描画されない (スロット非表示)。
+   * 既定 null (= 後方互換: 既存テストは影響を受けない)。
+   */
+  resurfaceEntry?: ResurfacedEntry | null;
+  /**
+   * Resurface の表示 OFF フラグ (撤退可能性 / Issue #492 AC)。
+   *
+   * Anchor 企画の「いつでも黙らせられる」要件のため、Resurface を独立に OFF
+   * できる。既定 true (= 通常表示)。
+   */
+  showResurface?: boolean;
 }
 
 /**
@@ -139,13 +157,27 @@ const indexHeadingStyles = css({
  *   row3: [4_____][5____]
  * のような階段状の非対称配置になる。実セル数に応じて自動的に切り詰められる。
  */
-const bentoSizes = ["wide", "default", "default", "tall", "default", "default"] as const;
+const bentoSizes = [
+  "wide",
+  "default",
+  "default",
+  "tall",
+  "default",
+  "default",
+] as const;
 
 /**
  * ホームページコンポーネント (Editorial Bento レイアウト)。
  */
 export const HomePage = memo(
-  ({ posts, currentPage, totalPages, onPageChange }: HomePageProps) => {
+  ({
+    posts,
+    currentPage,
+    totalPages,
+    onPageChange,
+    resurfaceEntry = null,
+    showResurface = true,
+  }: HomePageProps) => {
     // 記事を Featured (1) / Bento (2-7) / Index (8+) に分割。
     //
     // 件数別の表示挙動:
@@ -178,10 +210,7 @@ export const HomePage = memo(
 
           {/* Bento: 2-7 記事目 */}
           {bentoPosts.length > 0 && (
-            <section
-              className={bentoGridStyles}
-              aria-label="注目の記事"
-            >
+            <section className={bentoGridStyles} aria-label="注目の記事">
               {bentoPosts.map((post, idx) => (
                 <BentoCard key={post.id} post={post} size={bentoSizes[idx]} />
               ))}
@@ -197,10 +226,7 @@ export const HomePage = memo(
               <h3 id="index-section-heading" className={indexHeadingStyles}>
                 Index
               </h3>
-              <ul
-                className={indexListStyles}
-                data-token-border="border.subtle"
-              >
+              <ul className={indexListStyles} data-token-border="border.subtle">
                 {indexPosts.map((post, idx) => (
                   // 全体連番 (Featured 1 件 + Bento 6 件 = 7 件オフセット)。
                   // POSTS_PER_PAGE = 16 で 1 ページ完結を前提としているため、
@@ -212,6 +238,18 @@ export const HomePage = memo(
                 ))}
               </ul>
             </section>
+          )}
+
+          {/* Resurface: Anchor 顔3「再浮上」(Issue #492 / N-5)。
+              新着セクション (Featured / Bento / Index) の下に独立スロットで配置し、
+              過去記事を 1 件浮上させる。
+              - currentPage === 1 のときのみ表示 (Featured が "全期間の最新" 意味を
+                持つのは 1 ページ目限定なので、Resurface も 1 ページ目限定にする)。
+              - resurfaceEntry===null または showResurface===false で非表示
+                (Resurface コンポーネント側で early return)。
+              - 新着とは aria-label="過去の記事" で意味的に分離 (Resurface 内部)。 */}
+          {currentPage === 1 && (
+            <Resurface entry={resurfaceEntry} show={showResurface} />
           )}
         </div>
 

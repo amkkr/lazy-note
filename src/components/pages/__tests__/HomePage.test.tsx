@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import type { Post, PostSummary } from "../../../lib/markdown";
+import type { ResurfacedEntry } from "../../../lib/resurface";
 import { HomePage } from "../HomePage";
 
 const mockPosts: Post[] = [
@@ -302,6 +303,150 @@ describe("HomePage", () => {
       expect(
         screen.queryByRole("region", { name: "注目の記事" }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  // ===================================================================
+  // Resurface 連携 (Issue #492 / N-5)
+  //
+  // HomePage は resurfaceEntry props を受け取り、currentPage === 1 のときに
+  // 限り Resurface セクションを描画する。showResurface=false で OFF にできる。
+  // ===================================================================
+  describe("Resurface 連携 (Issue #492)", () => {
+    const buildEntry = (
+      overrides: Partial<ResurfacedEntry> = {},
+    ): ResurfacedEntry => ({
+      post: {
+        id: "20240101120000",
+        title: "再浮上した記事",
+        createdAt: "2024-01-01",
+        author: "amkkr",
+        excerpt: "過去の声",
+        readingTimeMinutes: 2,
+      },
+      reason: { kind: "silence", lastPostDaysAgo: 45, sub: "yearAgo" },
+      ...overrides,
+    });
+
+    it("resurfaceEntry を渡すと currentPage=1 で Resurface セクションが描画される", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={buildEntry()}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.getByRole("region", { name: "過去の記事" }),
+      ).toBeInTheDocument();
+    });
+
+    it("resurfaceEntry=null のとき Resurface セクションは描画されない", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={null}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "過去の記事" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("currentPage が 2 以上のときは Resurface を描画しない (1 ページ目限定)", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={2}
+            totalPages={3}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={buildEntry()}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "過去の記事" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("resurfaceEntry を省略すると Resurface セクションは描画されない (後方互換)", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "過去の記事" }),
+      ).not.toBeInTheDocument();
+    });
+
+    // Anchor 企画の「いつでも黙らせられる」要件 (Issue #492 AC: 撤退可能性)。
+    // showResurface=false を渡したとき、resurfaceEntry が非 null でも
+    // Resurface セクションが描画されないことを保証する。
+    it("showResurface=false のとき entry があっても Resurface は描画されない (撤退スイッチ)", () => {
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={buildEntry()}
+            showResurface={false}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "過去の記事" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("showResurface=true (既定相当) のとき entry があれば Resurface が描画される (対称ケース)", () => {
+      // 上記の showResurface=false と対称になることを明示するためのテスト。
+      // 既存の「resurfaceEntry を渡すと描画される」テストは showResurface を省略
+      // (= 既定 true) しているが、明示的に true を渡したケースも担保する。
+      const posts = buildMockPosts(3);
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={buildEntry()}
+            showResurface={true}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.getByRole("region", { name: "過去の記事" }),
+      ).toBeInTheDocument();
     });
   });
 });

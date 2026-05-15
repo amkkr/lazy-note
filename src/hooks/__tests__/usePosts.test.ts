@@ -56,6 +56,20 @@ describe("usePosts", () => {
     expect(mockGetAllPostSummaries).toHaveBeenCalledTimes(1);
   });
 
+  it("allPosts は paginate 前の全期間記事一覧を返す (Issue #492 / Resurface 用)", async () => {
+    mockGetAllPostSummaries.mockResolvedValue(mockPosts);
+
+    const { result } = renderHook(() => usePosts());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // mockPosts は 2 件しかないため allPosts === posts だが、本テストは
+    // 「allPosts プロパティが usePosts の戻り値に含まれている」ことの仕様化が目的。
+    expect(result.current.allPosts).toEqual(mockPosts);
+  });
+
   it("取得完了後にローディングが解除される", async () => {
     mockGetAllPostSummaries.mockResolvedValue(mockPosts);
 

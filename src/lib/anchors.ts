@@ -1,7 +1,7 @@
 /**
  * 個人史座標エンジン (Anchor 機能の土台)
  *
- * 設計書: epic #487 / Issue #488
+ * 設計書: epic #487 / Issue #488 / Issue #497 (nominal 化)
  *
  * - 純粋関数のみで構成し、モジュールスコープの可変状態を持たない
  * - publishedAt はファイル名 (`YYYYMMDDhhmmss.md`) から ISO 8601 (JST +09:00 固定)
@@ -10,6 +10,21 @@
  * - 「座標」(層1=computeCoordinates) と「経過」(層2=computeElapsed) を
  *   別関数・別型として命名区別する
  * - status / tags / updatedAt は本モジュールの出力に露出させない
+ *
+ * 型の nominal 化 (Issue #497):
+ * - `Coordinate` (label/tone/daysSince) は構造的に `Elapsed` (label/daysSince) を
+ *   包含する。TypeScript の structural typing で `Coordinate` を `Elapsed` として
+ *   誤って受けて `tone` を捨てるサイレント縮退が表示層 (#491) で起きうる
+ * - 対策として両型に **discriminator field `kind`** を持たせる
+ *   (`"coordinate"` / `"elapsed"`)。Coordinate を Elapsed に代入すると
+ *   `kind` の不一致でコンパイル時に検出され、サイレント縮退を防げる
+ * - branded type ではなく discriminator を採用した理由:
+ *   1. 表示層 (#491) で `switch (x.kind)` による discriminated union narrowing が
+ *      効くため、`tone` への安全なアクセスが書ける (branded type では不可能)
+ *   2. branded type は `as` キャストで突破可能だが、discriminator は実行時にも
+ *      検証可能で防御力が高い
+ *   3. `kind` の JSON シリアライズへの混入は本モジュールでは問題にならない
+ *      (`anchors.ts` の戻り値は内部表現で、外部 API としてシリアライズされない)
  */
 
 /**
@@ -39,8 +54,17 @@ export interface Milestone {
  *
  * 登録された節目 (Milestone) と publishedAt の差分日数を保持する。
  * 節目が登録されている限りで意味を持つ「座標」を名乗れる層。
+ *
+ * - `kind: "coordinate"` を **discriminator field** として実体に持つ
+ *   (Elapsed との混同 = `Coordinate` を構造的互換で `Elapsed` として
+ *   受けて `tone` を捨てるサイレント縮退をコンパイル時に検出するため)
+ * - 設計判断: branded type ではなく discriminator を採用した理由は
+ *   `anchors.ts` 冒頭の JSDoc または Issue #497 のコミットメッセージを参照
+ * - 表示層 (#491) は `switch (x.kind)` で TypeScript の
+ *   discriminated union narrowing を効かせて分岐することを想定している
  */
 export interface Coordinate {
+  readonly kind: "coordinate";
   readonly label: string;
   readonly tone: MilestoneTone;
   readonly daysSince: number;
@@ -51,8 +75,13 @@ export interface Coordinate {
  *
  * 節目が未登録または記事が全節目より前のときのフォールバック。
  * 「座標」ではなく「経過」と用語を厳密区別する。tone は持たない。
+ *
+ * - `kind: "elapsed"` を **discriminator field** として実体に持つ
+ *   (Coordinate との混同をコンパイル時に検出するため)
+ * - 設計判断の詳細は Coordinate の JSDoc を参照
  */
 export interface Elapsed {
+  readonly kind: "elapsed";
   readonly label: string;
   readonly daysSince: number;
 }
@@ -197,6 +226,7 @@ export const computeCoordinates = (
       continue;
     }
     coordinates.push({
+      kind: "coordinate",
       label: milestone.label,
       tone: milestone.tone,
       daysSince: days,
@@ -234,6 +264,7 @@ export const computeElapsed = (
   }
   const days = diffInDays(originDate, publishedDate);
   return {
+    kind: "elapsed",
     label,
     daysSince: days < 0 ? 0 : days,
   };

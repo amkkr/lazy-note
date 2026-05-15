@@ -1,11 +1,12 @@
 /**
  * 個人史座標エンジン (anchors.ts) のテスト
  *
- * 設計書: epic #487 / Issue #488
+ * 設計書: epic #487 / Issue #488 / Issue #497 (nominal 化)
  *
  * - publishedAt 推定 (ファイル名 → ISO 8601 JST 固定)
  * - 層1=座標 (computeCoordinates): 登録節目との差分日数
  * - 層2=経過 (computeElapsed): フォールバックの暦上経過日数
+ * - 型の nominal 化 (Coordinate / Elapsed の discriminator field `kind`)
  *
  * `meta.ts` には依存しない (death module 扱い、本 Issue の制約)
  */
@@ -137,6 +138,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual<Coordinate>({
+        kind: "coordinate",
         label: "社会復帰",
         tone: "neutral",
         daysSince: 9,
@@ -421,6 +423,7 @@ describe("computeElapsed: 層2=経過 (暦上の経過日数)", () => {
     );
 
     expect(result).toEqual<Elapsed>({
+      kind: "elapsed",
       label: "サイト開設",
       daysSince: 9,
     });
@@ -468,8 +471,9 @@ describe("computeElapsed: 層2=経過 (暦上の経過日数)", () => {
 });
 
 describe("型定義: status / tags / updatedAt を露出しない", () => {
-  it("Coordinate 型は label / tone / daysSince のみを公開し、メタ情報を持たない", () => {
+  it("Coordinate 型は kind / label / tone / daysSince のみを公開し、メタ情報を持たない", () => {
     const coordinate: Coordinate = {
+      kind: "coordinate",
       label: "ラベル",
       tone: "neutral",
       daysSince: 0,
@@ -477,17 +481,20 @@ describe("型定義: status / tags / updatedAt を露出しない", () => {
 
     // status / tags / updatedAt のキーは存在しない
     expect(Object.keys(coordinate).sort()).toEqual(
-      ["daysSince", "label", "tone"].sort(),
+      ["daysSince", "kind", "label", "tone"].sort(),
     );
   });
 
-  it("Elapsed 型は label / daysSince のみを公開し、tone も含まない", () => {
+  it("Elapsed 型は kind / label / daysSince のみを公開し、tone も含まない", () => {
     const elapsed: Elapsed = {
+      kind: "elapsed",
       label: "ラベル",
       daysSince: 0,
     };
 
-    expect(Object.keys(elapsed).sort()).toEqual(["daysSince", "label"].sort());
+    expect(Object.keys(elapsed).sort()).toEqual(
+      ["daysSince", "kind", "label"].sort(),
+    );
   });
 
   it("Milestone 型は date / label / tone のみを公開する", () => {
@@ -500,5 +507,118 @@ describe("型定義: status / tags / updatedAt を露出しない", () => {
     expect(Object.keys(milestone).sort()).toEqual(
       ["date", "label", "tone"].sort(),
     );
+  });
+});
+
+/**
+ * Issue #497: Coordinate と Elapsed の nominal 化
+ *
+ * `Coordinate` (label/tone/daysSince) は構造的に `Elapsed` (label/daysSince) を
+ * 包含するため、structural typing の TypeScript では「Coordinate を Elapsed
+ * として受けて tone を捨てる」サイレント縮退が起きうる。
+ *
+ * 対策として両型に discriminator field `kind` を持たせ、型レベルで両者を
+ * 不整合にしている。本テスト群はその不整合がコンパイル時に検出されることを
+ * `@ts-expect-error` で固定する。
+ *
+ * Vitest の `// @ts-expect-error` ディレクティブは型エラーが発生しなければ
+ * 「Unused @ts-expect-error directive」として `pnpm type-check` (tsc --noEmit)
+ * が失敗するため、回帰テストとして機能する。
+ *
+ * 実行時アサーションは行わない (型レベルでの検証が目的)。
+ */
+describe("型レベル: Coordinate / Elapsed の nominal 化 (Issue #497)", () => {
+  it("Coordinate を Elapsed に直接代入するとコンパイルエラーになる", () => {
+    const coordinate: Coordinate = {
+      kind: "coordinate",
+      label: "ラベル",
+      tone: "neutral",
+      daysSince: 0,
+    };
+
+    // @ts-expect-error - Coordinate (kind: "coordinate") を Elapsed (kind: "elapsed")
+    // に代入することは discriminator の不一致でコンパイル時に検出される
+    const elapsed: Elapsed = coordinate;
+
+    // void で参照することで「未使用変数」警告を回避しつつ、型エラーが
+    // 発生していることを保証する
+    void elapsed;
+  });
+
+  it("Elapsed を Coordinate に直接代入するとコンパイルエラーになる (tone 欠落 + kind 不一致)", () => {
+    const elapsed: Elapsed = {
+      kind: "elapsed",
+      label: "ラベル",
+      daysSince: 0,
+    };
+
+    // @ts-expect-error - Elapsed (kind: "elapsed", tone なし) を
+    // Coordinate (kind: "coordinate", tone あり) に代入することは
+    // discriminator 不一致と tone 欠落の両方でコンパイル時に検出される
+    const coordinate: Coordinate = elapsed;
+
+    void coordinate;
+  });
+
+  it("kind を持たないオブジェクトを Coordinate に代入するとコンパイルエラーになる (structural 包含の塞ぎ)", () => {
+    // @ts-expect-error - discriminator `kind` が欠落しているため Coordinate
+    // として代入できない (Issue #497 で導入した nominal 化の主目的)
+    const coordinate: Coordinate = {
+      label: "ラベル",
+      tone: "neutral",
+      daysSince: 0,
+    };
+
+    void coordinate;
+  });
+
+  it("kind を持たないオブジェクトを Elapsed に代入するとコンパイルエラーになる (structural 包含の塞ぎ)", () => {
+    // @ts-expect-error - discriminator `kind` が欠落しているため Elapsed
+    // として代入できない (Issue #497 で導入した nominal 化の主目的)
+    const elapsed: Elapsed = {
+      label: "ラベル",
+      daysSince: 0,
+    };
+
+    void elapsed;
+  });
+
+  it("computeCoordinates の戻り値要素は Coordinate として narrow でき、Elapsed には代入できない", () => {
+    const milestones: readonly Milestone[] = [
+      { date: "2025-01-01", label: "x", tone: "neutral" },
+    ];
+    const result = computeCoordinates("2025-01-10T12:00:00+09:00", milestones);
+    const first = result[0];
+
+    // discriminated union narrowing が効くことを確認
+    if (first.kind === "coordinate") {
+      // tone への安全なアクセス
+      expect(first.tone).toBe("neutral");
+    }
+
+    // @ts-expect-error - computeCoordinates の戻り値要素 (Coordinate) を
+    // Elapsed として受けるのは Issue #497 で禁止された
+    const elapsed: Elapsed = first;
+
+    void elapsed;
+  });
+
+  it("computeElapsed の戻り値は Elapsed として narrow でき、Coordinate には代入できない", () => {
+    const result = computeElapsed(
+      "2025-01-10T12:00:00+09:00",
+      "2025-01-01",
+      "x",
+    );
+
+    if (result.kind === "elapsed") {
+      // discriminator が "elapsed" であることを確認
+      expect(result.daysSince).toBe(9);
+    }
+
+    // @ts-expect-error - computeElapsed の戻り値 (Elapsed) を Coordinate
+    // として受けるのは Issue #497 で禁止された (tone 欠落 + kind 不一致)
+    const coordinate: Coordinate = result;
+
+    void coordinate;
   });
 });

@@ -1,5 +1,6 @@
 import { Transition } from "@headlessui/react";
 import { useMemo } from "react";
+import milestonesData from "../../datasources/milestones.json";
 import { CardSkeleton } from "../components/common/CardSkeleton";
 import { Layout } from "../components/layouts/Layout";
 import { HomePage } from "../components/pages/HomePage";
@@ -15,15 +16,24 @@ import {
 /**
  * 現在の Resurface 用節目データ。
  *
- * Issue #492 (N-5) 時点では `datasources/milestones.json` がまだ存在しないため
- * (Issue #489 で別途追加予定) 空配列で動かす。空配列でも沈黙トリガー (=最も
- * 重要な顔) と暦の節目は機能する。節目記念日 (= milestoneAnniversary) は
- * milestones が登録された後で初めて発火する。
+ * `datasources/milestones.json` から JSON import で読み込む (Issue #489)。
  *
- * milestones.json が追加されたタイミング (#489 完了後) で本配列を JSON import
- * に差し替える。
+ * - 撤退方法: milestones.json の配列を `[]` にすれば座標は消える。沈黙トリガー
+ *   と暦の節目は引き続き機能し、節目記念日 (milestoneAnniversary) だけが
+ *   発火しなくなる。
+ * - 編集方法: `docs/MILESTONES.md` を参照する。
+ *
+ * 型は `Milestone[]` にキャストする。JSON import の型は構造的に Milestone を
+ * 満たすが、`tone` フィールドが `string` として推論されるため明示的に narrow する。
+ *
+ * `MILESTONES as readonly Milestone[]` は型レベルで `MilestoneTone` を満たすと
+ * 信頼するキャストであり、`anchors.ts` 側に tone のランタイム検証はない (型のみ)。
+ * 実値が `"neutral" | "light" | "heavy"` の値域から外れた場合の挙動は型保証されず、
+ * 実害は表示側で undefined になるか除外されるかに帰着する。
+ * (date の `YYYY-MM-DD` 形式違反は `anchors.ts` の `toMilestoneCalendarDate` が
+ *  null 扱いで sub-coordinate を捨てる仕様で吸収される)
  */
-const MILESTONES: readonly Milestone[] = [];
+const MILESTONES: readonly Milestone[] = milestonesData as readonly Milestone[];
 
 /**
  * 今日の日付を JST 暦上の YYYY-MM-DD として返す。
@@ -56,7 +66,7 @@ const Index = () => {
 
   // Resurface (Issue #492 / N-5) の浮上対象を算出する。
   // - 全期間の allPosts を入力にする (paginate 前の配列)
-  // - milestones は空配列 (#489 完了後に差し替え)
+  // - milestones は datasources/milestones.json から JSON import (Issue #489)
   // - today は JST 暦の YYYY-MM-DD
   // - loading 中は計算しない (allPosts が空 → null になるため低コストではあるが、
   //   allPosts が解決した瞬間に再計算したいので useMemo で deps に入れる)

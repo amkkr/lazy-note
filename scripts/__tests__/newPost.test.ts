@@ -582,7 +582,11 @@ describe("computeSiteOpeningFallback: milestones.json 不在時のサイト開�
       tempDir,
       "2025-01-11T12:00:00+09:00",
     );
-    expect(result).toEqual({ label: "サイト開設", daysSince: 10 });
+    expect(result).toEqual({
+      kind: "elapsed",
+      label: "サイト開設",
+      daysSince: 10,
+    });
   });
 });
 

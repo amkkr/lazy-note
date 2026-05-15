@@ -204,6 +204,18 @@ describe("buildIgnitionComment: 火種 HTML コメントの構築", () => {
       "この座標を一行目の呼び水にしてもいいし、消してもいい。",
     );
   });
+
+  it("末尾が `-->\\n\\n` で終わり後続セクションとの間に空行が確保される", () => {
+    // `buildPostMarkdown` で `${ignitionComment}## 本文` と直接連結するため、
+    // ここで末尾に空行を 1 つ含めておくことで `-->` と `## 本文` が密着しない。
+    const result = buildIgnitionComment({
+      coordinates: [{ label: "社会復帰", tone: "neutral", daysSince: 1 }],
+      siteOpeningElapsed: null,
+      previousPost: null,
+      publishedAt: "2025-01-02T12:00:00+09:00",
+    });
+    expect(result.endsWith("-->\n\n")).toBe(true);
+  });
 });
 
 // =============================================================================
@@ -616,5 +628,25 @@ describe("buildPostMarkdown: 完全な .md 出力", () => {
       ignitionComment: "",
     });
     expect(result).not.toContain("<!--");
+  });
+
+  it("火種コメント終端 `-->` と `## 本文` の間に空行 1 つを確保する", () => {
+    // buildIgnitionComment が末尾に `-->\n\n` を返す前提と組み合わさり、
+    // `-->` の直後に空行が 1 行入った状態で `## 本文` が続くことを担保。
+    // Markdown を直接開いたときの視認性と marked のブロック分割を両立する。
+    const ignition = buildIgnitionComment({
+      coordinates: [{ label: "社会復帰", tone: "neutral", daysSince: 1 }],
+      siteOpeningElapsed: null,
+      previousPost: null,
+      publishedAt: "2025-01-02T12:00:00+09:00",
+    });
+    const result = buildPostMarkdown({
+      displayDate: "2025/01/02 12:00",
+      authorName: "amkkr",
+      ignitionComment: ignition,
+    });
+    expect(result).toContain("-->\n\n## 本文");
+    expect(result).not.toContain("-->## 本文");
+    expect(result).not.toContain("-->\n## 本文");
   });
 });

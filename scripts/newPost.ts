@@ -33,7 +33,7 @@ import {
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import {
   computeCoordinates,
   computeElapsed,
@@ -134,11 +134,19 @@ export const buildIgnitionComment = (input: IgnitionInput): string => {
     return "";
   }
 
+  // 末尾は `-->\n\n` で終わる:
+  //   - 後段の `buildPostMarkdown` で `${ignitionComment}## 本文` と直接連結
+  //     するため、HTML コメント終端 `-->` と Markdown 見出し `## 本文` の
+  //     間に空行 1 行を挟む。
+  //   - 空行が無いと Markdown ファイルを開いたとき視認性が落ち、また
+  //     marked のパース時にコメントと見出しが同一ブロック扱いされる
+  //     リスクを避ける。
   return [
     "<!-- Anchor / Cast — 今日の座標",
     ...lines,
     "この座標を一行目の呼び水にしてもいいし、消してもいい。",
     "-->",
+    "",
     "",
   ].join("\n");
 };
@@ -443,11 +451,15 @@ const createNewPost = (): void => {
 };
 
 // CLI として実行されたときのみ動かす (テストからの import で副作用しないため)
+// 判定は `path.basename` 経由で行い、OS 依存のパス区切り (POSIX `/` /
+// Windows `\\`) 双方で同じ結果になるようにする。本プロジェクトは
+// macOS/Linux 前提だが、basename ベースなら CI を別 OS に持ち出した際にも
+// 同じ判定が走るため移植性のコストは無視できる。
 const isDirectInvocation =
   typeof process !== "undefined" &&
   Array.isArray(process.argv) &&
   process.argv[1] !== undefined &&
-  /(?:^|\/)newPost\.ts$/.test(process.argv[1]);
+  basename(process.argv[1]) === "newPost.ts";
 
 if (isDirectInvocation) {
   createNewPost();

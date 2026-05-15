@@ -8,7 +8,7 @@
   "include": [
     "src/**/*",
     "src/**/__tests__/**/*",
-    "scripts/**/*"
+    "scripts/**/__tests__/**/*"
   ],
   "exclude": []
 }

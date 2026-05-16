@@ -26,6 +26,18 @@ import {
  * Coordinate (Issue #491) / Resurface (Issue #492) と同じく
  * `datasources/milestones.json` を JSON import で読み込む。撤退方法も統一:
  * milestones.json の配列を `[]` にすれば AnchorPage の節目一覧が空状態になる。
+ *
+ * 表示順の責務 (Issue #543):
+ * - AnchorPage は受け取った `posts` / `milestones` の配列順をそのまま描画する
+ *   契約 (= 内部で再ソートしない)。本ファイルが「どの順で見せるか」を決める。
+ * - `posts`: `usePosts()` が返す `allPosts` は `getAllPostSummaries()` 内で
+ *   id (= timestamp) 降順にソート済み (`src/lib/markdown.ts` の
+ *   `summaries.sort((a, b) => b.id.localeCompare(a.id))`) のため、ここでの
+ *   追加ソートは不要 (= 最新記事が先頭に来る期待挙動と一致)。仕様変更で
+ *   別順序を望む場合は、本ファイル側で sort を挟んで AnchorPage に渡すこと。
+ * - `milestones`: `milestones.json` の配列順をそのまま渡す (= ファイル上の
+ *   記載順が画面の表示順になる)。日付順などで並び替えたい場合は、JSON 自体
+ *   を並び替えるか、本ファイルで sort を挟むこと。
  */
 const MILESTONES: readonly Milestone[] = milestonesData as readonly Milestone[];
 

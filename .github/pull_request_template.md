@@ -6,12 +6,13 @@
 
 ## 備考
 
-## チェックリスト (Anchor 型を扱うとき) (Issue #556)
+<details>
+<summary>Anchor 型を扱う PR のみチェック (Issue #556)</summary>
 
 <!--
 `scripts/newPost.ts` の `IgnitionInput` などに「Coordinate / Elapsed (Anchor 型)
 を要素として含むフィールド」を新規追加・変更する場合のみ以下を確認する。
-無関係な PR ではセクションごと削除してよい。
+dependabot / chore など Anchor 型と無関係な PR では本ブロックは無視してよい。
 -->
 
 - [ ] 新フィールドの型宣言で `Coordinate` / `Elapsed` (またはそれらを要素とする
@@ -25,3 +26,5 @@
 - [ ] 必要に応じて `scripts/__tests__/newPost.test.ts` の「型レベル: Anchor
       field 構造的縮退の予防ガード (Issue #556)」ブロックに、追加した
       フィールド向けの `@ts-expect-error` 回帰固定テストを足したか
+
+</details>

@@ -178,15 +178,15 @@ type EnforceAnchorDiscriminatorFields<T> = {
  * - previousPost: 直近記事 (タイトル + 日付)。存在しない場合は null
  *
  * 型レベルガード (Issue #556):
- *   - 直下にある `_IgnitionInputAnchorFieldGuard` が、`IgnitionInput` の各
- *     フィールドが「Anchor 型らしい (label + daysSince を持つ) のに
- *     discriminator `kind` を欠いている」場合にコンパイルエラーになる
- *     構造的回帰防止を提供する。
+ *   - 直下にある `_ignitionInputAnchorFieldGuardCheck` の宣言で、
+ *     `IgnitionInput` の各フィールドが「Anchor 型らしい (label + daysSince
+ *     を持つ) のに discriminator `kind` を欠いている」場合にコンパイル
+ *     エラーになる構造的回帰防止を提供する。
  *   - 新フィールド追加時に `readonly { label, tone, daysSince }[]` のような
  *     ハンドメイドな構造的リテラルを書くと、`type-check:test` で
- *     "Type '...' is not assignable to type 'never'" 系の型エラーになる
- *     ため、必ず `Coordinate` / `Elapsed` 等の Anchor 型を import するよう
- *     誘導される。
+ *     `AssertEqual` の不一致オブジェクト型 (`{ error; expected; actual }`)
+ *     が露出して `true` の代入が失敗し、必ず `Coordinate` / `Elapsed` 等の
+ *     Anchor 型を import するよう誘導される。
  */
 export interface IgnitionInput {
   readonly coordinates: readonly Coordinate[];
@@ -196,28 +196,46 @@ export interface IgnitionInput {
 }
 
 /**
+ * 型レベル等価性アサーション (Issue #556)
+ *
+ * `A` と `B` が双方向に extends 可能なら `true`、そうでないなら
+ * 失敗内容を示すオブジェクト型を返す。`const _x: AssertEqual<A, B> = true;`
+ * の形で代入することで、A と B が等しくないときに `true` をオブジェクト型に
+ * 代入できず型エラーになる。
+ *
+ * 旧実装の `A extends B ? A : never` 形は違反時に `never` に評価される
+ * だけでエラーにならず、ガードが空回りしていた。本実装は失敗時に `true`
+ * が代入できない非互換型を返すため、実機能化されている。
+ */
+type AssertEqual<A, B> = [A] extends [B]
+  ? [B] extends [A]
+    ? true
+    : { error: "A is not B"; expected: B; actual: A }
+  : { error: "B is not A"; expected: B; actual: A };
+
+/**
  * 型レベルガード本体 (Issue #556)
  *
- * `IgnitionInput` を `EnforceAnchorDiscriminatorFields` に通した結果と一致
- * することを `_IgnitionInputAnchorFieldGuard` の型として固定する。
- * いずれかのフィールドが Anchor 型らしいのに discriminator `kind` を欠いて
- * いると、対応するフィールド型が `never` に潰れて代入不可能となり、本宣言
- * 自体が型エラーになる。
+ * `IgnitionInput` を `EnforceAnchorDiscriminatorFields` に通した型と、
+ * 元の `IgnitionInput` が双方向に互換であることを `AssertEqual` で
+ * 検証する。いずれかのフィールドが Anchor 型らしいのに discriminator
+ * `kind` を欠いていると、対応するフィールド型が `never` に潰れて
+ * `IgnitionInput` と不一致となり、`_ignitionInputAnchorFieldGuardCheck`
+ * への `true` 代入が型エラーになる。
  *
- * - underscore prefix の型エイリアスとして残すことで、`IgnitionInput` の
- *   定義そのものを汚さずに型レベル契約だけを表明する。
- * - 値レベルの export は持たない (実行時オーバーヘッドゼロ)。
+ * - underscore prefix の定数として残すことで、`IgnitionInput` の定義
+ *   そのものを汚さずに型レベル契約だけを表明する。
+ * - 値は `true` リテラルだが値レベルの export は持たないため、実行時
+ *   オーバーヘッドはゼロ。
+ * - `void` 文で参照することで、将来 `scripts/` が `tsconfig.json` の
+ *   `include` 対象になった場合 (Issue #522) でも `noUnusedLocals`
+ *   警告を避ける。
  */
-type _IgnitionInputAnchorFieldGuard =
-  IgnitionInput extends EnforceAnchorDiscriminatorFields<IgnitionInput>
-    ? IgnitionInput
-    : never;
-
-// 上記ガード型を「定義したまま使わない」ことによる unused 警告を避けるため、
-// 自身を IgnitionInput に再代入可能なことを型レベルで宣言する (実行時には
-// 何も起きない)。
-type _IgnitionInputAnchorFieldGuardAssert =
-  _IgnitionInputAnchorFieldGuard extends IgnitionInput ? true : never;
+const _ignitionInputAnchorFieldGuardCheck: AssertEqual<
+  EnforceAnchorDiscriminatorFields<IgnitionInput>,
+  IgnitionInput
+> = true;
+void _ignitionInputAnchorFieldGuardCheck;
 
 /**
  * 型レベルガードヘルパの公開 export (Issue #556)

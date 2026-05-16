@@ -216,7 +216,11 @@ describe("PostDetailPage", () => {
 
       render(
         <MemoryRouter>
-          <PostDetailPage post={postWithList} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={postWithList}
+            olderPost={null}
+            newerPost={null}
+          />
         </MemoryRouter>,
       );
 
@@ -276,7 +280,9 @@ describe("PostDetailPage", () => {
         </MemoryRouter>,
       );
 
-      const nav = container.querySelector('nav[aria-label="ページナビゲーション"]');
+      const nav = container.querySelector(
+        'nav[aria-label="ページナビゲーション"]',
+      );
       expect(nav).toBeInTheDocument();
       expect(nav).toHaveAttribute("data-token-border", "border.subtle");
     });

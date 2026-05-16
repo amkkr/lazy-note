@@ -1,8 +1,8 @@
 import { memo } from "react";
 import { css } from "../../../styled-system/css";
 import {
-  computeCoordinates,
   type Coordinate as CoordinateData,
+  computeCoordinates,
   type Milestone,
 } from "../../lib/anchors";
 

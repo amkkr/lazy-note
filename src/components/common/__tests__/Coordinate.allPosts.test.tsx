@@ -25,14 +25,11 @@ import { Coordinate } from "../Coordinate";
  * 追加・削除しても再生成不要で常に最新の 16 件 (現在) を検査する。
  */
 
-const milestones: readonly Milestone[] =
-  milestonesData as readonly Milestone[];
+const milestones: readonly Milestone[] = milestonesData as readonly Milestone[];
 
 // datasources/*.md のファイル名を動的列挙する。
 // import.meta.glob は eager:false 既定で path のみ取得する。
-const postFilePaths = Object.keys(
-  import.meta.glob("/datasources/*.md"),
-);
+const postFilePaths = Object.keys(import.meta.glob("/datasources/*.md"));
 
 // ファイル名 (timestamp) を抽出。各 path は "/datasources/{timestamp}.md" 形式。
 const postIds = postFilePaths
@@ -144,10 +141,7 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
         }
 
         const { container, unmount } = render(
-          <Coordinate
-            publishedAt={publishedAt}
-            milestones={futureOnly}
-          />,
+          <Coordinate publishedAt={publishedAt} milestones={futureOnly} />,
         );
 
         expect(container.firstChild).toBeNull();

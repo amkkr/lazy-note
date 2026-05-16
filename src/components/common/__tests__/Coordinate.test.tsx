@@ -31,10 +31,7 @@ describe("Coordinate", () => {
 
     it("milestones が空配列のとき何も描画しない", () => {
       const { container } = render(
-        <Coordinate
-          publishedAt="2026-01-01T00:00:00+09:00"
-          milestones={[]}
-        />,
+        <Coordinate publishedAt="2026-01-01T00:00:00+09:00" milestones={[]} />,
       );
 
       expect(container.firstChild).toBeNull();
@@ -214,9 +211,7 @@ describe("Coordinate", () => {
       );
 
       // ul の親 div に data-token-color="fg.muted" が宣言される
-      const wrapper = container.querySelector(
-        '[data-token-color="fg.muted"]',
-      );
+      const wrapper = container.querySelector('[data-token-color="fg.muted"]');
       expect(wrapper).not.toBeNull();
       // ul の親要素であることを確認 (Coordinate の wrapper は ul を内包する)
       expect(wrapper?.querySelector("ul")).not.toBeNull();

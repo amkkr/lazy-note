@@ -7,6 +7,7 @@ import {
   extractSummaryFromContent,
   extractTitle,
   type PostSummary,
+  splitLines,
 } from "./markdownParser";
 
 // PostSummary型を再エクスポート
@@ -114,7 +115,7 @@ export interface Post extends PostSummary {
 }
 
 export const parseMarkdown = (content: string, timestamp: string): Post => {
-  const lines = content.split("\n");
+  const lines = splitLines(content);
 
   const title = extractTitle(lines);
   const createdAt = extractSectionContent(lines, "投稿日時");

@@ -17,15 +17,26 @@ import {
 } from "../../styles/transitions";
 
 /**
- * Coordinate (Issue #491) 用節目データ。
+ * 節目データ (`datasources/milestones.json`)。
  *
- * `datasources/milestones.json` を JSON import で読み込む (Resurface 側
- * `pages/index.tsx` と同じ参照経路で揃える)。撤退方法・編集方法も同様で、
- * milestones.json の配列を `[]` にすれば全記事の Coordinate が消える。
+ * Coordinate (Issue #491) で「記事ごとの個人史座標」を算出するために使用する。
+ * Resurface (Issue #492) / AnchorPage (Issue #493) と同じ JSON を共有しているが、
+ * Issue #546 の判断で **集約せず各 page で個別 import** する設計を採用している
+ * (撤退性 > DRY)。`src/lib/milestones.ts` のような集約点を作ると 1 行修正が
+ * 3 page に同時影響し、page 単位での段階的撤退 (例: Post だけ `[]` にして
+ * Coordinate だけ止める等) が困難になるため。詳細は Issue #546 / docs/ANCHOR.md
+ * 「撤退性」節を参照。
  *
- * 型は `as readonly Milestone[]` で narrow する。`anchors.ts` 側に tone の
- * ランタイム検証はなく、不正値はサイレントに無視される (`computeCoordinates`
- * が tone:heavy 以外を Coordinate にし、表示層で更に tone:heavy を除外する)。
+ * `as readonly Milestone[]` キャストは tsconfig.json の resolveJsonModule:true で
+ * 取得される widen された型 (例: `tone: string`) を `Milestone`
+ * (`tone: "neutral" | "light" | "heavy"`) に narrowing するため。
+ * JSON データの妥当性は datasources 側で人手担保しており (`docs/MILESTONES.md`)、
+ * `anchors.ts` 側にランタイム検証はない (将来 Issue #547 で Zod 等の導入を検討中)。
+ * 不正な tone はサイレントに無視される (`computeCoordinates` が tone:heavy 以外を
+ * Coordinate にし、表示層で更に tone:heavy を除外する)。
+ *
+ * 撤退方法: `datasources/milestones.json` の配列を `[]` にすれば全記事の
+ * Coordinate が消える。編集方法は `docs/MILESTONES.md` を参照する。
  */
 const MILESTONES: readonly Milestone[] = milestonesData as readonly Milestone[];
 

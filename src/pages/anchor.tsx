@@ -45,6 +45,27 @@ import {
  *   記載順が画面の表示順になる)。日付順などで並び替えたい場合は、JSON 自体
  *   を並び替えるか、本ファイルで sort を挟むこと。
  */
+
+/**
+ * 節目データ (`datasources/milestones.json`)。
+ *
+ * AnchorPage (個人史タイムライン) で「節目一覧 + 各記事の座標」を描画するために
+ * 使用する。Coordinate (Issue #491) / Resurface (Issue #492) と同じ JSON を
+ * 共有しているが、Issue #546 の判断で **集約せず各 page で個別 import** する
+ * 設計を採用している (撤退性 > DRY)。`src/lib/milestones.ts` のような集約点を
+ * 作ると 1 行修正が 3 page に同時影響し、page 単位での段階的撤退 (例: anchor
+ * だけ `[]` にして検証する等) が困難になるため。詳細は Issue #546 / docs/ANCHOR.md
+ * 「撤退性」節を参照。
+ *
+ * `as readonly Milestone[]` キャストは tsconfig.json の resolveJsonModule:true で
+ * 取得される widen された型 (例: `tone: string`) を `Milestone`
+ * (`tone: "neutral" | "light" | "heavy"`) に narrowing するため。
+ * JSON データの妥当性は datasources 側で人手担保しており (`docs/MILESTONES.md`)、
+ * `anchors.ts` 側にランタイム検証はない (将来 Issue #547 で Zod 等の導入を検討中)。
+ *
+ * 撤退方法: `datasources/milestones.json` の配列を `[]` にすれば AnchorPage の
+ * 節目一覧が空状態になる (AnchorPage 側で穏やかな 0 件文言を表示)。
+ */
 const MILESTONES: readonly Milestone[] = milestonesData as readonly Milestone[];
 
 const Anchor = () => {

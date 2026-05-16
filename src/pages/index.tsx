@@ -14,24 +14,28 @@ import {
 } from "../styles/transitions";
 
 /**
- * 現在の Resurface 用節目データ。
+ * 節目データ (`datasources/milestones.json`)。
  *
- * `datasources/milestones.json` から JSON import で読み込む (Issue #489)。
+ * Resurface (Issue #492 / N-5) で「節目記念日 (milestoneAnniversary)」の発火に
+ * 使用する。Coordinate (Issue #491) / AnchorPage (Issue #493) と同じ JSON を
+ * 共有しているが、Issue #546 の判断で **集約せず各 page で個別 import** する
+ * 設計を採用している (撤退性 > DRY)。`src/lib/milestones.ts` のような集約点を
+ * 作ると 1 行修正が 3 page に同時影響し、page 単位での段階的撤退 (例: index
+ * だけ `[]` にして Resurface だけ止める等) が困難になるため。詳細は Issue #546
+ * / docs/ANCHOR.md 「撤退性」節を参照。
  *
- * - 撤退方法: milestones.json の配列を `[]` にすれば座標は消える。沈黙トリガー
- *   と暦の節目は引き続き機能し、節目記念日 (milestoneAnniversary) だけが
- *   発火しなくなる。
- * - 編集方法: `docs/MILESTONES.md` を参照する。
+ * `as readonly Milestone[]` キャストは tsconfig.json の resolveJsonModule:true で
+ * 取得される widen された型 (例: `tone: string`) を `Milestone`
+ * (`tone: "neutral" | "light" | "heavy"`) に narrowing するため。
+ * JSON データの妥当性は datasources 側で人手担保しており (`docs/MILESTONES.md`)、
+ * `anchors.ts` 側にランタイム検証はない (将来 Issue #547 で Zod 等の導入を検討中)。
+ * 実値が値域から外れた場合の実害は、表示側で undefined になるか除外されるかに
+ * 帰着する。`date` の `YYYY-MM-DD` 形式違反は `anchors.ts` の
+ * `toMilestoneCalendarDate` が null 扱いで sub-coordinate を捨てる仕様で吸収される。
  *
- * 型は `Milestone[]` にキャストする。JSON import の型は構造的に Milestone を
- * 満たすが、`tone` フィールドが `string` として推論されるため明示的に narrow する。
- *
- * `MILESTONES as readonly Milestone[]` は型レベルで `MilestoneTone` を満たすと
- * 信頼するキャストであり、`anchors.ts` 側に tone のランタイム検証はない (型のみ)。
- * 実値が `"neutral" | "light" | "heavy"` の値域から外れた場合の挙動は型保証されず、
- * 実害は表示側で undefined になるか除外されるかに帰着する。
- * (date の `YYYY-MM-DD` 形式違反は `anchors.ts` の `toMilestoneCalendarDate` が
- *  null 扱いで sub-coordinate を捨てる仕様で吸収される)
+ * 撤退方法: `datasources/milestones.json` の配列を `[]` にすれば節目記念日が
+ * 発火しなくなる (沈黙トリガーと暦の節目は引き続き機能する)。編集方法は
+ * `docs/MILESTONES.md` を参照する。
  */
 const MILESTONES: readonly Milestone[] = milestonesData as readonly Milestone[];
 

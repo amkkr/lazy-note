@@ -26,16 +26,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **ビルドツール**: Vite 6
 - **テスト**: Vitest + React Testing Library + jsdom
 - **スタイリング**: Panda CSS（型安全なCSS-in-JS）
-- **ルーティング**: React Router DOM + vite-plugin-pages（ファイルベースルーティング対応）
+- **ルーティング**: React Router DOM（`src/main.tsx` で Routes を手動登録、`src/pages/` 配下にページコンポーネントを置く慣行）
 - **コード品質**: Biome（高速なフォーマッタ・リンター）
 
 ### ディレクトリ構造
 
-- `src/pages/` - ファイルベースルーティング用（vite-plugin-pages設定済み）
+- `src/pages/` - ページコンポーネント配置（`src/main.tsx` の Routes に手動登録）
 - `src/lib/` - ライブラリ・ユーティリティ関数
 - `src/test/` - テストの共通セットアップ
 - `styled-system/` - Panda CSS自動生成ファイル（編集不要）
 - `datasources/` - Markdownファイル等のデータソース
+
+> **既存 Issue / PR の用語解釈ガイド（Issue #542）**: 過去の Issue や PR の AC / 説明文に「ファイルベースルーティング」「vite-plugin-pages」と記載されているものは、いずれも本プロジェクトの実態である「`src/pages/` 配下にページコンポーネントを置き、`src/main.tsx` の `<Routes>` に手動登録する慣行」を指すものとして読み替えること。真のファイルベースルーティング（`vite-plugin-pages` 等の導入）への移行は別 Issue で検討する。
 
 ### スタイリングパターン
 
@@ -82,7 +84,7 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
 
 - TypeScript: 厳格モード、ES2020ターゲット、バンドラー解決
 - Biome: ダブルクォート、セミコロン必須、スペース2個インデント
-- Vite: React + ファイルベースルーティングプラグイン設定済み
+- Vite: `@vitejs/plugin-react` と独自の `datasources-plugin`（Markdown コピー / API ミドルウェア登録）を設定。ファイルベースルーティングのプラグイン（`vite-plugin-pages` 等）は導入していない
 
 ## Gitブランチ運用ルール
 

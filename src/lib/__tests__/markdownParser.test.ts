@@ -3,6 +3,7 @@ import {
   calculateReadingTime,
   extractExcerpt,
   extractSummaryFromContent,
+  splitLines,
 } from "../markdownParser";
 
 describe("extractExcerpt", () => {
@@ -136,5 +137,133 @@ describe("extractSummaryFromContent", () => {
 
     expect(result.excerpt).toBe("");
     expect(result.readingTimeMinutes).toBe(1);
+  });
+
+  it("先頭にBOM (U+FEFF) が混入してもタイトルを抽出できる", () => {
+    const content = `﻿# BOM付きタイトル
+
+## 投稿日時
+- 2024-01-01 10:00
+
+## 筆者名
+- テスト太郎
+
+## 本文
+BOM付きの本文です。`;
+
+    const result = extractSummaryFromContent(content, "20240101100000");
+
+    expect(result.title).toBe("BOM付きタイトル");
+    expect(result.createdAt).toBe("2024-01-01 10:00");
+    expect(result.author).toBe("テスト太郎");
+    expect(result.excerpt).toBe("BOM付きの本文です。");
+  });
+
+  it("改行コードが CRLF でもタイトル/セクションを抽出できる", () => {
+    const content = [
+      "# CRLFタイトル",
+      "",
+      "## 投稿日時",
+      "- 2024-02-02 12:00",
+      "",
+      "## 筆者名",
+      "- 改行太郎",
+      "",
+      "## 本文",
+      "CRLFの本文です。",
+    ].join("\r\n");
+
+    const result = extractSummaryFromContent(content, "20240202120000");
+
+    expect(result.title).toBe("CRLFタイトル");
+    expect(result.createdAt).toBe("2024-02-02 12:00");
+    expect(result.author).toBe("改行太郎");
+    expect(result.excerpt).toBe("CRLFの本文です。");
+  });
+
+  it("改行コードが CR (旧Mac形式) でもタイトル/セクションを抽出できる", () => {
+    const content = [
+      "# CRタイトル",
+      "",
+      "## 投稿日時",
+      "- 2024-03-03 13:00",
+      "",
+      "## 筆者名",
+      "- 旧Mac太郎",
+      "",
+      "## 本文",
+      "CRのみの本文です。",
+    ].join("\r");
+
+    const result = extractSummaryFromContent(content, "20240303130000");
+
+    expect(result.title).toBe("CRタイトル");
+    expect(result.createdAt).toBe("2024-03-03 13:00");
+    expect(result.author).toBe("旧Mac太郎");
+    expect(result.excerpt).toBe("CRのみの本文です。");
+  });
+});
+
+describe("splitLines", () => {
+  it("LFで区切られた文字列を行配列に分割できる", () => {
+    const content = "line1\nline2\nline3";
+
+    const result = splitLines(content);
+
+    expect(result).toEqual(["line1", "line2", "line3"]);
+  });
+
+  it("CRLFで区切られた文字列を行配列に分割できる", () => {
+    const content = "line1\r\nline2\r\nline3";
+
+    const result = splitLines(content);
+
+    expect(result).toEqual(["line1", "line2", "line3"]);
+  });
+
+  it("CR (旧Mac形式) で区切られた文字列を行配列に分割できる", () => {
+    const content = "line1\rline2\rline3";
+
+    const result = splitLines(content);
+
+    expect(result).toEqual(["line1", "line2", "line3"]);
+  });
+
+  it("CRLF / LF / CR が混在した文字列も分割できる", () => {
+    const content = "line1\r\nline2\nline3\rline4";
+
+    const result = splitLines(content);
+
+    expect(result).toEqual(["line1", "line2", "line3", "line4"]);
+  });
+
+  it("先頭の BOM (U+FEFF) を除去できる", () => {
+    const content = "﻿# タイトル\nbody";
+
+    const result = splitLines(content);
+
+    expect(result).toEqual(["# タイトル", "body"]);
+  });
+
+  it("BOM と CRLF の組み合わせでも分割できる", () => {
+    const content = "﻿# タイトル\r\nbody\r\n";
+
+    const result = splitLines(content);
+
+    expect(result).toEqual(["# タイトル", "body", ""]);
+  });
+
+  it("BOM が文字列途中にある場合は除去しない", () => {
+    const content = "head\n﻿middle\ntail";
+
+    const result = splitLines(content);
+
+    expect(result).toEqual(["head", "﻿middle", "tail"]);
+  });
+
+  it("空文字列に対しては空文字 1 要素の配列を返す", () => {
+    const result = splitLines("");
+
+    expect(result).toEqual([""]);
   });
 });

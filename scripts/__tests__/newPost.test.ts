@@ -143,7 +143,7 @@ describe("buildIgnitionComment: 火種 HTML コメントの構築", () => {
   it("siteOpeningElapsed (フォールバック) があるとサイト開設行を含む", () => {
     const result = buildIgnitionComment({
       coordinates: [],
-      siteOpeningElapsed: { label: "サイト開設", daysSince: 42 },
+      siteOpeningElapsed: { kind: "elapsed", label: "サイト開設", daysSince: 42 },
       previousPost: null,
       publishedAt: "2025-10-01T12:00:00+09:00",
     });

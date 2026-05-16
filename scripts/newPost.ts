@@ -37,6 +37,7 @@ import { basename, join } from "node:path";
 import {
   computeCoordinates,
   computeElapsed,
+  type Coordinate,
   type Elapsed,
   inferPublishedAt,
   type Milestone,
@@ -63,7 +64,7 @@ export interface PreviousPost {
  * - previousPost: 直近記事 (タイトル + 日付)。存在しない場合は null
  */
 export interface IgnitionInput {
-  readonly coordinates: readonly { label: string; tone: Milestone["tone"]; daysSince: number }[];
+  readonly coordinates: readonly Coordinate[];
   readonly siteOpeningElapsed: Elapsed | null;
   readonly previousPost: PreviousPost | null;
   readonly publishedAt: string;

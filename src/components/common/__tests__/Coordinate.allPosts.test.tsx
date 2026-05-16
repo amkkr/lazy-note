@@ -54,6 +54,24 @@ interface CoordinateExpectation {
  *
  * 記事を追加した場合は本 fixture も更新する。記事数と fixture 件数が
  * 一致するかは「fixture の網羅性」テストでアサートする。
+ *
+ * **fixture 検算スニペット (新規記事追加時)**:
+ * 新しい post.id (YYYYMMDDhhmmss 形式) に対する expectedRows を埋めるとき、
+ * 手計算ではなく以下を一時ファイル (例: scripts/_calcFixture.ts) として
+ * 書いて `node scripts/_calcFixture.ts` で実行し、値を写し取ると安全。
+ * Node v22+ はネイティブで `.ts` を実行できる (既存 scripts/ 配下と同方式)。
+ * 検算用途のみで本テストの期待値とはしない。
+ *
+ *   import { computeCoordinates, inferPublishedAt } from "../src/lib/anchors";
+ *   import milestones from "../datasources/milestones.json";
+ *   const id = "20260307120000"; // 追加した post.id
+ *   const publishedAt = inferPublishedAt(id);
+ *   const rows = computeCoordinates(publishedAt!, milestones as never)
+ *     .filter((c) => c.tone !== "heavy")
+ *     .map((c) => ({ label: c.label, daysSince: c.daysSince }));
+ *   console.log(JSON.stringify({ postId: id, publishedAt, expectedRows: rows }, null, 2));
+ *
+ * 出力された JSON を expectations 配列に追記すれば fixture が更新できる。
  */
 const expectations: readonly CoordinateExpectation[] = [
   {
@@ -194,6 +212,14 @@ const postIds = postFilePaths
  *
  * 本番 milestones.json を更新したら、`expectations` と本 `testMilestones` の
  * 両方を同時に書き直すこと (fixture の更新ルール)。
+ *
+ * **trade-off (両刃の性質)**:
+ * 本番 JSON との切り離しにより「本番 JSON 改変でテスト道連れ失敗を防ぐ」
+ * メリットがある一方で、「本番 milestone の label rename / tone 変更 /
+ * 日付変更などの意味的変更が本テスト上で silent pass する」リスクを孕む。
+ * 本番 milestones.json と本テスト fixture のずれは、本番 JSON を直接 import
+ * している `AnchorPage.allPosts.test.tsx` / `anchors.test.ts` および開発者の
+ * 意識的な fixture 更新 (上述「fixture の更新ルール」) で担保する設計とする。
  */
 const testMilestones: readonly Milestone[] = [
   { date: "2025-08-05", label: "休職開始", tone: "heavy" },

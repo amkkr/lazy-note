@@ -19,10 +19,14 @@ import {
  * Resurface (Issue #492 / N-5) で「節目記念日 (milestoneAnniversary)」の発火に
  * 使用する。Coordinate (Issue #491) / AnchorPage (Issue #493) と同じ JSON を
  * 共有しているが、Issue #546 の判断で **集約せず各 page で個別 import** する
- * 設計を採用している (撤退性 > DRY)。`src/lib/milestones.ts` のような集約点を
- * 作ると 1 行修正が 3 page に同時影響し、page 単位での段階的撤退 (例: index
- * だけ `[]` にして Resurface だけ止める等) が困難になるため。詳細は Issue #546
- * / docs/ANCHOR.md 「撤退性」節を参照。
+ * 設計を採用している (認知負荷の局所化を優先)。`src/lib/milestones.ts` のような
+ * 集約点を作ると、各 page を読む際に「この MILESTONES はどこから来てどう加工
+ * されたものか」を別ファイルまで追いかける必要が出るため、3 page で import 経路と
+ * narrowing キャストを揃え、各 page の責務 (Coordinate / Resurface / AnchorPage
+ * のどれに渡すか) をその場で完結して読めるようにする。撤退の単位は
+ * docs/ANCHOR.md 「撤退可能性」節のとおり **コンポーネント (Coordinate /
+ * Resurface) ごとの `show` フラグ** が一次手段であり、JSON の `[]` 化は 3 経路
+ * まとめての停止 = 二次手段である。
  *
  * `as readonly Milestone[]` キャストは tsconfig.json の resolveJsonModule:true で
  * 取得される widen された型 (例: `tone: string`) を `Milestone`

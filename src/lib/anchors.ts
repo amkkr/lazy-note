@@ -5,8 +5,9 @@
  *
  * - 純粋関数のみで構成し、モジュールスコープの可変状態を持たない
  * - publishedAt はファイル名 (`YYYYMMDDhhmmss.md`) から ISO 8601 (JST +09:00 固定)
- *   を推定する純粋関数で解決する。`meta.ts` (parseMetaSection/createDefaultMeta)
- *   は死蔵モジュール扱いで import しない (Anchor は meta.ts に一切触れない方針)
+ *   を推定する純粋関数 (inferPublishedAt) で解決する
+ *   (本番の日付抽出は `markdownParser.ts` の extractSectionContent 経由で
+ *    別系統運用しており、Anchor 機能はファイル名推定のみに依存する)
  * - 「座標」(層1=computeCoordinates) と「経過」(層2=computeElapsed) を
  *   別関数・別型として命名区別する
  * - status / tags / updatedAt は本モジュールの出力に露出させない

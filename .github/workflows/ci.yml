@@ -36,3 +36,6 @@ jobs:
 
       - name: Type check
         run: pnpm exec tsc --noEmit
+
+      - name: Type check (test)
+        run: pnpm exec tsc -p tsconfig.test.json --noEmit

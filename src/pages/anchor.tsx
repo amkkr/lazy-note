@@ -26,11 +26,35 @@ import {
  * Coordinate (Issue #491) / Resurface (Issue #492) と同じく
  * `datasources/milestones.json` を JSON import で読み込む。撤退方法も統一:
  * milestones.json の配列を `[]` にすれば AnchorPage の節目一覧が空状態になる。
+ *
+ * 表示順の責務 (Issue #543):
+ * - AnchorPage は受け取った `posts` / `milestones` の配列順をそのまま描画する
+ *   契約 (= 内部で再ソートしない)。本ファイルが「どの順で見せるか」を決める。
+ * - `posts`: `usePosts()` が返す `allPosts` は **本番経路 / 開発経路の双方で
+ *   id (= timestamp `YYYYMMDDhhmmss`) 降順にソート済み** だが、これは下記
+ *   経路ごとに別ファイルが担う **暗黙の前提** にすぎない。
+ *   - 本番経路 (`import.meta.env.DEV === false`): `src/lib/markdown.ts` の
+ *     `getStaticPostSummaries()` 内で `summaries.sort((a, b) => b.id.localeCompare(a.id))`
+ *   - 開発経路 (`import.meta.env.DEV === true`): `src/api/posts.ts` の
+ *     `createPostsMiddleware()` 内で `posts.sort((a, b) => b.id.localeCompare(a.id))`
+ *   暗黙前提への drift 防御として、本ファイルでも `AnchorPage` に渡す直前に
+ *   `[...allPosts].sort((a, b) => b.id.localeCompare(a.id))` を 1 行噛ませて
+ *   **id 降順を本ファイル側で明示的に強制する** (Issue #543 DA Counterpoint 1)。
+ *   コストは sort 1 回 (運用 16 件規模) で実質ゼロ。
+ * - `milestones`: `milestones.json` の配列順をそのまま渡す (= ファイル上の
+ *   記載順が画面の表示順になる)。日付順などで並び替えたい場合は、JSON 自体
+ *   を並び替えるか、本ファイルで sort を挟むこと。
  */
 const MILESTONES: readonly Milestone[] = milestonesData as readonly Milestone[];
 
 const Anchor = () => {
   const { allPosts, loading } = usePosts();
+
+  // id 降順 (= timestamp 降順 = 新しい記事が先頭) を本ファイル側で明示的に
+  // 強制する (Issue #543 DA Counterpoint 1)。usePosts → getAllPostSummaries →
+  // 本番 sort / 開発 API sort という 4 階層の暗黙前提に依存せず、AnchorPage の
+  // JSDoc 契約 (「呼び出し側が決めた順序をそのまま描画する」) をコードで担保する。
+  const orderedPosts = [...allPosts].sort((a, b) => b.id.localeCompare(a.id));
 
   return (
     <Layout postCount={loading ? undefined : allPosts.length}>
@@ -45,7 +69,7 @@ const Anchor = () => {
           enterFrom={fadeInEnterFrom}
           enterTo={fadeInEnterTo}
         >
-          <AnchorPage posts={allPosts} milestones={MILESTONES} />
+          <AnchorPage posts={orderedPosts} milestones={MILESTONES} />
         </Transition>
       )}
     </Layout>

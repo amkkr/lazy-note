@@ -13,11 +13,28 @@ interface AnchorPageProps {
    * 全期間の記事一覧 (ページング前)。親 (`pages/anchor.tsx`) で `usePosts` から
    * `allPosts` を受け取り、本コンポーネントはそれをそのまま「各記事の座標」リスト
    * に変換して描画する。
+   *
+   * **表示順契約 (Issue #543)**: 各記事の座標セクションでの表示順は、本配列の
+   * **入力順をそのまま保つ** (内部での再ソートや並び替えはしない)。したがって
+   * 「どの順で並べるか」は呼び出し側 (= `pages/anchor.tsx`) の責務であり、
+   * 現状の呼び出し側は **id 降順** (= timestamp 降順 = 最新が先頭) で渡してくる
+   * (`pages/anchor.tsx` 側で `localeCompare` による明示 sort を実施)。
+   *
+   * なお `id` は `YYYYMMDDhhmmss` の 14 桁 timestamp 形式を前提としており
+   * (`src/lib/anchors.ts` の `inferPublishedAt` が同正規表現で 14 桁を強制)、
+   * この前提のもとで `localeCompare` 降順は timestamp 降順と一致する。
+   * 並び順を変えたい場合は、呼び出し側でソート済み配列を渡すこと。
    */
   posts: readonly PostSummary[];
   /**
    * 全節目データ。AnchorPage は運用画面のため、tone:heavy を **含めて** 全件
    * 表示する (Coordinate / Resurface とは異なるポリシー)。
+   *
+   * **表示順契約 (Issue #543)**: 節目一覧セクションでの表示順は、本配列の
+   * **入力順をそのまま保つ** (date / tone での内部ソートはしない)。
+   * 現状の運用では `datasources/milestones.json` の配列順 (= ファイル上の
+   * 記載順) をそのまま画面に反映する。日付昇順 / 降順などで並び替えたい場合は、
+   * 呼び出し側でソート済み配列を渡すこと。
    */
   milestones: readonly Milestone[];
 }
@@ -34,6 +51,17 @@ interface AnchorPageProps {
  * - 投稿頻度・統計・グラフのような過剰可視化を一切しない
  * - 空状態は穏やかに表示する (「データなし」「エラー」のような断定的文言を
  *   避け、「まだ節目が記録されていません」のような寄り添う文言を採用する)
+ *
+ * 表示順契約 (Issue #543):
+ * - **節目一覧**: 入力 `milestones` 配列の順序をそのまま保持して描画する
+ *   (内部で date / tone でソートしない)。並び順は呼び出し側 = `milestones.json`
+ *   の記載順が決める。
+ * - **各記事の座標**: 入力 `posts` 配列の順序をそのまま保持して描画する
+ *   (内部で id / 日付でソートしない)。並び順は呼び出し側 (`pages/anchor.tsx`)
+ *   が明示的に行う `localeCompare` ベースの id 降順 sort (= timestamp 降順、
+ *   id は 14 桁 `YYYYMMDDhhmmss` 前提) に完全に依存する。
+ * - したがって表示順を変えたい場合は、本コンポーネントを変更するのではなく
+ *   呼び出し側でソート済み配列を渡すこと。
  *
  * Coordinate コンポーネントを再利用しない理由:
  * - Coordinate は tone:heavy を除外する (「静かに隠す」設計)

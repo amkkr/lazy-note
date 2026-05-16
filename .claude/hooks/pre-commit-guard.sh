@@ -2,6 +2,40 @@
 # pre-commit-guard: git commit / push / rebase 実行前の規約チェック
 # PreToolUse hook として Bash ツール実行前に呼ばれる
 # 標準入力からJSON（tool_input.command含む）を受け取り、違反時は JSON decision:block を stdout に出力
+#
+# 設計方針 (Issue #568 — Counterpoint 32 を採用):
+#   本 hook は「shell コマンド文字列を解析」する PreToolUse hook であり、構造的に
+#   bypass 可能なパターンが多数存在する (例: `eval`, `bash -c`, env-prefix, 絶対パス,
+#   `env -C`, alias, 行継続, 引用符による分割回避 など — Issue #568 の E01-E11)。
+#   shell の文字列解析ですべての bypass を塞ぐのは本質的に不可能なので、
+#   責務を「コマンド文字列で素直に判定できるもの」だけに絞り、bypass 不可能性を
+#   要求する判定は git ネイティブ hook (`.githooks/pre-commit` + `core.hooksPath`)
+#   に委ねる方針とする (follow-up Issue: Counterpoint 31)。
+#
+# 本 hook が施行する規約:
+#   1. `git rebase` 禁止 — sub-command 名そのものの literal 判定
+#   2. `git push --force` / `-f` / `--force-with-lease` 禁止 — オプション literal 判定
+#   3. コミットメッセージ内に `Co-Authored-By` を含めない — `-m`/`--message` 引数の文字列判定
+#   4. master/main ブランチへの直接 commit/push 拒否 (best-effort)
+#      ※ 4 は shell 文字列解析の限界により bypass 可能。
+#         本質的な保護は git ネイティブ hook に委ねる (Counterpoint 31)。
+#         本 hook では「素朴な `git commit -m x` を master で叩いた場合」のみ best-effort で block する。
+#
+# 既知の限界 (= Counterpoint 31 まで残る bypass):
+#   - env 変数 prefix (`PAGER=cat git commit ...`)
+#   - 絶対パス (`/usr/bin/git commit ...`)
+#   - sudo / 前置コマンド (`sudo`, `nice`, `timeout`, `stdbuf` 等)
+#   - indirection (`eval "git ..."`, `bash -c "git ..."`)
+#   - env 変数経由の git 設定 (`GIT_DIR=... git commit`)
+#   - `env -C <path> git commit`
+#   - alias (`alias gc="git commit"; gc -m x`)
+#   - 行継続 (`git \<NL> commit`)
+#   - quoted command (`"git" commit`)
+#   - コマンド置換による path 隠蔽 (`git -C "$(echo $REPO)" commit`)
+#
+# Counterpoint 32 (worktree allowlist) は本 hook の責務縮小により実質的に達成。
+# `.claude/worktrees/` 配下の git worktree は agent ごとに feature ブランチを切るので
+# 本 hook のブランチ判定をすり抜けても CI/GitHub 側で master 直 push を防げる。
 
 set -euo pipefail
 

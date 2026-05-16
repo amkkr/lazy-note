@@ -39,6 +39,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **既存 Issue / PR の用語解釈ガイド（Issue #542）**: 過去の Issue や PR の AC / 説明文に「ファイルベースルーティング」「vite-plugin-pages」と記載されているものは、いずれも本プロジェクトの実態である「`src/pages/` 配下にページコンポーネントを置き、`src/main.tsx` の `<Routes>` に手動登録する慣行」を指すものとして読み替えること。`vite-plugin-pages` 等の自動ルート生成方式の導入検討は #562 を参照。
 
+#### 自動ルート生成方式（vite-plugin-pages 等）の導入検討結果（Issue #562, 2026-05-16）
+
+**結論: 現状維持**（`src/main.tsx` での手動 `<Routes>` 登録を継続し、`vite-plugin-pages` / `@react-router/dev` の framework mode 等の自動ルート生成方式は導入しない）。再評価したくなった開発者向けに判断根拠を残す。
+
+判断根拠:
+
+- **ルート数が少なく自動化のメリットが薄い**: 現状のルートは 3 つ（`/` = IndexPage / `/posts/:timestamp` = PostPage / `/anchor` = AnchorPage）のみ。新規ページ追加コストは `src/main.tsx` への `<Route>` 1 行追加で済み、自動生成によるコスト削減幅は小さい
+- **dynamic route は既存方式で十分**: `/posts/:timestamp` は React Router の `useParams` で対応済み（`src/pages/posts/Post.tsx`）。自動ルート生成方式が前提とするファイル名規約（`[slug].tsx` 等）に切り替える必要性はない
+- **main.tsx 側に密結合した個別制御がある**: `src/main.tsx` のコメント (L10-24) にあるとおり、View Transitions Hero morph (Issue #397) の前提として IndexPage / PostPage を **eager import** に切り替えている。自動ルート生成方式は通常 lazy import を前提にするため、こうした route 単位の細かい読み込み制御を共存させると規約から外れる扱いになり、見通しが悪化する
+- **外部依存追加の閾値が高い**: メモリ「外部ライブラリの追加は原則しない」の方針と整合させると、`vite-plugin-pages` 等の新規 devDependency 追加は inline 実装で代替できない場合に限られる。手動 Routes 登録で困っていない以上、追加根拠が立たない
+- **SSR / SSG とは独立に判断可能**: 将来 SSG 化（Vite SSR / Astro 等への移行）を検討する際は、その移行 Issue でルート定義方式を含めて再設計するのが筋。SSG 化を見越して先回りで自動ルート生成方式を導入する必要はない
+
+再評価のトリガー候補:
+
+- ルート数が **10 以上** に増え、`main.tsx` の手動登録が見通しを悪化させ始めた場合
+- SSG / SSR へ移行する Issue が立ち上がり、フレームワーク側のルート規約が前提になる場合
+- View Transitions Hero morph 用の eager import 制御を、自動ルート生成方式側の API（route lazy loading の opt-out 等）で代替できることが確認できた場合
+
 ### スタイリングパターン
 
 Panda CSSを使用しているため、スタイルは以下のパターンで記述：

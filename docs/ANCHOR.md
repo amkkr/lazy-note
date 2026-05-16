@@ -67,6 +67,13 @@ Anchor は epic #487 で導入された「個人史座標」機能の総称。3 
 は静かに隠す」ポリシーとは **逆方向の意図的な選択** であり、本ドキュメントで
 ポリシーとして明文化する。
 
+> **注記 (本ポリシーの位置付け)**: 本ポリシーは、現状の AnchorPage 実装挙動と
+> 「`milestones.json` が公開リポジトリで管理されている」defensible 性に基づく
+> **暫定的判断** である (Issue #545 AC「運営者意図の確認」は、commit author =
+> 運営者本人による文書化合意で代替している)。将来の利用実態 (検索エンジン
+> クローラ経由の偶発到達、SNS シェア等) で再評価が必要になった場合は、
+> 後述「撤退戦略」のいずれかへ切り替える。
+
 **3 つの面の比較**:
 
 | 面                 | `heavy` の扱い                  | 設計意図                                       |
@@ -111,14 +118,20 @@ Anchor は epic #487 で導入された「個人史座標」機能の総称。3 
    `light` / `neutral` に降格するか、削除する。/anchor で出したくない節目を
    そもそも登録しない運用にすれば、表示の出し分けロジックは不要のまま
    AnchorPage のコード変更なしで完結する。コード変更が不要な点が利点。
-3. **AnchorPage に表示制御 prop / クエリパラメータを追加 (将来案)**:
-   `AnchorPage` に `showHeavy?: boolean` prop を追加し、デフォルト `true`
-   (= 現状維持) で、呼び出し側 (`pages/anchor.tsx`) または URL クエリ
+   ただし、heavy を意識した既存ロジック (`Coordinate.tsx` の `c.tone !== "heavy"`
+   フィルタ / `resurface.ts` 節目記念日経路の heavy 除外 / `scripts/newPost.ts` の
+   `[重い節目]` マーク / `src/lib/anchors.ts` の `MilestoneTone` 型の `"heavy"`
+   リテラル) は実質 dead code 化するため、これらを残すかコード整理するかは
+   別途判断が必要になる (= 「コード変更不要」は片面真実)。
+3. **AnchorPage に表示制御 prop / クエリパラメータを追加 (将来の選択肢、現時点では実装しない)**:
+   案 1 / 2 で網羅できないユースケース「heavy を持つ運用は続けたいが、URL を
+   共有するときだけ隠したい」が出てきた場合に検討する **将来の選択肢**
+   (= 現時点では撤退戦略として稼働しない、必要時に新 Issue を切る前提)。
+   実装イメージ: `AnchorPage` に `showHeavy?: boolean` prop (デフォルト `true`
+   = 現状維持) を追加し、呼び出し側 (`pages/anchor.tsx`) または URL クエリ
    (`/anchor?showHeavy=false`) で `false` に倒せるようにする。実装規模は
-   Coordinate / Resurface の `show` prop と同等。「heavy を持つ運用は続け
-   たいが、URL を共有するときだけ隠したい」というユースケースが出てきた
-   場合の選択肢。**現時点では実装しない** (= YAGNI)。必要性が出た時点で
-   新 Issue を切る。
+   Coordinate / Resurface の `show` prop と同等。**現時点では実装しない**
+   (= YAGNI)。
 
 なお、`milestones.json` 自体を空 (`[]`) にする全体撤退は本ドキュメント
 直下の「[撤退方法 (運用画面の停止)](#撤退方法-運用画面の停止)」で扱う

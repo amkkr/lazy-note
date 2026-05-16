@@ -56,20 +56,34 @@ jobs:
 
       - name: Run tests with hash:true
         id: tests
+        # continue-on-error を付与しないと test 失敗時に job が abort され、
+        # 後続の Report ステップ (アノテーション出力) に到達しない。
+        continue-on-error: true
         run: pnpm test:run
 
       - name: Report test regression
-        if: failure() && steps.tests.conclusion == 'failure'
+        # outcome は continue-on-error 適用前のステップ結果。conclusion は
+        # continue-on-error 適用後 (success 扱い) になるため outcome を使う。
+        if: steps.tests.outcome == 'failure'
         run: |
           echo "::error::Tripwire テストの hash 耐性に regression があります。data-* 属性が hash 化に追従していない可能性があります。詳細は Issue #496 / Issue #475 / CLAUDE.md の `Panda hash:true の運用判断` を参照してください。"
           exit 1
 
       - name: Build project with hash:true
         id: build
-        run: pnpm build
+        # test が失敗した場合は build を走らせない。test 通過時のみ build を
+        # 走らせて build regression を切り分ける。
+        if: steps.tests.outcome == 'success'
+        continue-on-error: true
+        # pnpm build は内部で `pnpm run lint && pnpm run test:run && pnpm run
+        # type-check && panda && tsc && vite build` を呼ぶため、上の test step
+        # と二重実行になる。さらに build 内 test 失敗が build regression として
+        # 通知されると原因切り分けが崩れるため、ここでは pnpm exec で生成 /
+        # 型チェック / バンドルだけを 1 回ずつ実行する。
+        run: pnpm exec panda && pnpm exec tsc && pnpm exec vite build
 
       - name: Report build regression
-        if: failure() && steps.build.conclusion == 'failure'
+        if: steps.tests.outcome == 'success' && steps.build.outcome == 'failure'
         run: |
-          echo "::error::hash:true でビルドが失敗しました。Panda 生成物または hook class との整合に regression があります。"
+          echo "::error::hash:true でビルドが失敗しました。Panda 生成物または hook class との整合に regression があります。hash 化された class 名と手書き hook class (index-row-*/copy-btn 等) の衝突可能性も確認してください。"
           exit 1

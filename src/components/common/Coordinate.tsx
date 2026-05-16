@@ -117,7 +117,9 @@ const buildCoordinateLabel = (coordinate: CoordinateData): string => {
  * Coordinate コンポーネント本体。
  *
  * - show=false または座標 0 件で何も描画しない (early return)
- * - 描画時は `<div role="group">` で意味付けし、内側に `<ul>` でリスト構造を作る
+ * - 描画時は `<ul role="list" aria-label="個人史座標">` でラベル付きリストとして
+ *   意味付けし、外側を `<div data-token-color="fg.muted">` (Tripwire 用 wrapper)
+ *   で wrap する
  */
 export const Coordinate = memo(
   ({ publishedAt, milestones, show = true }: CoordinateProps) => {
@@ -136,9 +138,7 @@ export const Coordinate = memo(
 
     return (
       <div className={containerStyles} data-token-color="fg.muted">
-        {/* role="list" は Safari/VoiceOver で list-style: none を当てた ul の
-            list セマンティクスが剥奪される既知の WebKit バグへの防御で明示する */}
-        {/* biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none の ul の list セマンティクスが剥奪される WebKit バグへの防御として明示する */}
+        {/* biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する */}
         <ul aria-label="個人史座標" role="list">
           {displayable.map((coordinate, index) => (
             // milestones.json に同じ label が誤って 2 行入っても React の

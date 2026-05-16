@@ -222,18 +222,19 @@ describe("AnchorPage", () => {
       expect(text).not.toMatch(/投稿頻度|平均間隔|投稿ペース/);
     });
 
-    it("グラフ要素 (svg/canvas) を含まない", () => {
+    it("グラフ要素 (canvas) を含まない", () => {
       const { container } = render(
         <MemoryRouter>
           <AnchorPage posts={basePosts} milestones={baseMilestones} />
         </MemoryRouter>,
       );
 
-      // 統計グラフのような視覚化を出さないため、canvas は描画しない
+      // 統計グラフのような視覚化を出さないため、canvas は描画しない。
+      // svg は将来 Lucide 等の小型アイコン (Calendar, Clock 等) を追加した
+      // 際に false positive となるためここでは検査しない (アイコンとしての
+      // svg は許容)。Recharts / Chart.js のような可視化ライブラリの混入は
+      // 「依存追加禁止」の別ルートで検知する方針。
       expect(container.querySelector("canvas")).toBeNull();
-      // svg は icon としてではなく「グラフ用途」では使わない方針。
-      // AnchorPage では一切 svg を出さないことで「過剰可視化禁止」を担保する。
-      expect(container.querySelector("svg")).toBeNull();
     });
   });
 

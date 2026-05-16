@@ -59,7 +59,7 @@ describe("Coordinate", () => {
 
       // region が描画されていること
       expect(
-        screen.getByRole("list", { name: "あれから N 日目" }),
+        screen.getByRole("list", { name: "個人史座標" }),
       ).toBeInTheDocument();
     });
   });
@@ -156,7 +156,7 @@ describe("Coordinate", () => {
         />,
       );
 
-      const group = screen.getByRole("list", { name: "あれから N 日目" });
+      const group = screen.getByRole("list", { name: "個人史座標" });
       expect(group.textContent).toContain("サイト開設");
       expect(group.textContent).toContain("364");
       expect(group.textContent).toContain("社会復帰");
@@ -167,7 +167,7 @@ describe("Coordinate", () => {
   });
 
   describe("a11y / 意味的構造", () => {
-    it("ul に aria-label='あれから N 日目' を付与し SR にラベルを伝える", () => {
+    it("ul に aria-label='個人史座標' を付与し SR にラベルを伝える", () => {
       render(
         <Coordinate
           publishedAt="2025-12-31T00:00:00+09:00"
@@ -178,8 +178,25 @@ describe("Coordinate", () => {
       );
 
       expect(
-        screen.getByRole("list", { name: "あれから N 日目" }),
+        screen.getByRole("list", { name: "個人史座標" }),
       ).toBeInTheDocument();
+    });
+
+    it("ul に role='list' を明示し Safari/VoiceOver の list セマンティクス剥奪を防ぐ", () => {
+      const { container } = render(
+        <Coordinate
+          publishedAt="2025-12-31T00:00:00+09:00"
+          milestones={[
+            { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+          ]}
+        />,
+      );
+
+      // list-style: none を当てた ul は Safari/VoiceOver で list セマンティクスが
+      // 剥奪される既知の WebKit バグへの防御として role='list' を明示する
+      const ul = container.querySelector("ul");
+      expect(ul).not.toBeNull();
+      expect(ul).toHaveAttribute("role", "list");
     });
 
     it("リスト構造 (ul/li) で座標群を並べる (SR の項目ナビゲーション)", () => {

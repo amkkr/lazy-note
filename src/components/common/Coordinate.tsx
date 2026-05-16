@@ -47,9 +47,11 @@ interface CoordinateProps {
  * - 表示 OFF フラグ (`show`) で独立に黙らせられる (Resurface と同じ命名)
  *
  * a11y:
- * - 内部の `<ul>` に `aria-label="あれから N 日目"` を付与し SR への意味付け
+ * - 内部の `<ul>` に `aria-label="個人史座標"` を付与し SR への意味付け
  *   (role=group は Biome a11y/useSemanticElements で fieldset 推奨警告となるため
  *    list role を持つ ul に直接ラベルする方式を採る)
+ * - `<ul>` に `role="list"` を明示する。`list-style: none` を当てた ul は
+ *   Safari/VoiceOver で list セマンティクスが剥奪される既知の WebKit バグへの防御
  * - `<ul>/<li>` のリスト構造で項目ナビゲーションを許容
  * - 色は `fg.muted` (補助情報) を採用。`bg.surface` 上に置かれる前提で
  *   1.4.3 / 1.4.6 の本文比 4.5:1 / 7:1 を満たす Editorial Citrus トークン
@@ -134,7 +136,9 @@ export const Coordinate = memo(
 
     return (
       <div className={containerStyles} data-token-color="fg.muted">
-        <ul aria-label="あれから N 日目">
+        {/* role="list" は Safari/VoiceOver で list-style: none を当てた ul の
+            list セマンティクスが剥奪される既知の WebKit バグへの防御で明示する */}
+        <ul aria-label="個人史座標" role="list">
           {displayable.map((coordinate, index) => (
             <li key={coordinate.label}>
               {index > 0 && (

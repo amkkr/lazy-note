@@ -367,7 +367,7 @@ describe("PostDetailPage", () => {
       );
 
       expect(
-        screen.getByRole("list", { name: "あれから N 日目" }),
+        screen.getByRole("list", { name: "個人史座標" }),
       ).toBeInTheDocument();
       expect(screen.getByText(/サイト開設/)).toBeInTheDocument();
     });
@@ -385,7 +385,7 @@ describe("PostDetailPage", () => {
 
       // milestones 未指定 (= 空配列扱い) で Coordinate は出ない
       expect(
-        screen.queryByRole("list", { name: "あれから N 日目" }),
+        screen.queryByRole("list", { name: "個人史座標" }),
       ).not.toBeInTheDocument();
     });
 
@@ -403,7 +403,7 @@ describe("PostDetailPage", () => {
       );
 
       expect(
-        screen.queryByRole("list", { name: "あれから N 日目" }),
+        screen.queryByRole("list", { name: "個人史座標" }),
       ).not.toBeInTheDocument();
     });
 
@@ -422,7 +422,7 @@ describe("PostDetailPage", () => {
       );
 
       expect(
-        screen.queryByRole("list", { name: "あれから N 日目" }),
+        screen.queryByRole("list", { name: "個人史座標" }),
       ).not.toBeInTheDocument();
     });
   });

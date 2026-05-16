@@ -105,12 +105,29 @@ jobs:
         if: steps.tests.outcome == 'success' && steps.build.outcome == 'success'
         run: |
           set -euo pipefail
+          # 空 glob ガード: `set -euo pipefail` 下で `for f in dist/assets/*.css`
+          # を直接書くと、CSS が 1 件も emit されないケースで glob がリテラル
+          # 文字列 `dist/assets/*.css` のまま 1 回ループし、`stat` が非 0 で
+          # 終了して job 自体が fail する。これは「pass/fail 判定に影響しない」
+          # という本 step の前提に反するため、nullglob で空配列に展開して
+          # スキップする。
+          shopt -s nullglob
+          files=(dist/assets/*.css)
+          shopt -u nullglob
+          if (( ${#files[@]} == 0 )); then
+            {
+              echo "## hash:true bundle size";
+              echo "";
+              echo "_(no CSS assets emitted under dist/assets/*.css)_";
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           {
             echo "## hash:true bundle size";
             echo "";
             echo "| File | raw (B) | gzip (B) |";
             echo "|------|---------|----------|";
-            for f in dist/assets/*.css; do
+            for f in "${files[@]}"; do
               raw=$(stat -c '%s' "$f")
               gz=$(gzip -c "$f" | wc -c)
               echo "| \`${f}\` | ${raw} | ${gz} |";

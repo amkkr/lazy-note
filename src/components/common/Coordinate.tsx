@@ -129,8 +129,28 @@ export const Coordinate = memo(
 
     // 過去の節目に絞った座標 (computeCoordinates が未来は除外する)
     const coordinates = computeCoordinates(publishedAt, milestones);
-    // tone: "heavy" は Coordinate に表示しない (重い節目は静かに隠す)
-    const displayable = coordinates.filter((c) => c.tone !== "heavy");
+    // tone: "heavy" は Coordinate に表示しない (重い節目は静かに隠す)。
+    //
+    // Issue #497 で `Coordinate` 型に discriminator field `kind: "coordinate"`
+    // を導入した狙いは、表示層 (#491 / 本ファイル) で `switch (x.kind)` /
+    // 型ガードによる discriminated union narrowing を効かせ、`tone` への
+    // アクセスをサイレント縮退から守ることだった。
+    //
+    // 現状 `computeCoordinates` の戻り値は `readonly Coordinate[]` で
+    // `kind === "coordinate"` に確定しているため `kind` の判定は冗長に見えるが、
+    // ここで discriminator を明示的に検査することで:
+    //   1. discriminator を表示層で本当に使う実装になり、#497 の意図が完成する
+    //   2. 将来 `computeCoordinates` の戻り値が `Coordinate | Elapsed` のような
+    //      mixed union に拡張されても、本フィルタが Coordinate のみを安全に
+    //      narrowing して `tone` を参照する形になっている (Elapsed には tone が
+    //      存在せず、現状のまま `c.tone` を触ると型エラーで早期検出される)
+    //
+    // → discriminator 由来の防御を表示層側で発火させるため、`kind` の判定を
+    //    型ガードとして残す。Issue #531 / DA Round 1 推奨。
+    const displayable = coordinates.filter(
+      (c): c is CoordinateData =>
+        c.kind === "coordinate" && c.tone !== "heavy",
+    );
 
     if (displayable.length === 0) {
       return null;

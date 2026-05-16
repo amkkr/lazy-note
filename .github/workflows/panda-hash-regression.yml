@@ -1,0 +1,75 @@
+name: Panda hash:true regression check
+
+# Issue #496 / Issue #475 の検証で、Tripwire テスト 647 件は `hash: true`
+# 有効化でも全 pass することが確認済み。ただし bundle size のメリットは
+# 小さい (gzip 後 +5.8%) ため本番は `hash: false` (デフォルト) で運用し、
+# regression 検知のため手動 (workflow_dispatch) でのみ実行する。
+#
+# このworkflowは既存 CI に影響を与えないよう push / pull_request トリガーは
+# 持たず、workflow_dispatch のみで起動する。panda.config.ts の書き換えは
+# CI の working tree 上のみで行い、リポジトリには commit / push しない。
+
+on:
+  workflow_dispatch:
+
+jobs:
+  hash-regression:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "24"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.0.5
+        with:
+          version: 11
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Enable Panda hash:true (temporary in-CI patch)
+        # panda.config.ts の defineConfig 内 `preflight: true,` 直下に
+        # `hash: true,` を 1 行挿入する。リポジトリへは push しない CI 内
+        # 一時パッチ。挿入後に grep で実在を確認し、未挿入なら即 fail する。
+        run: |
+          set -euo pipefail
+          if grep -qE '^\s*hash:\s*true' panda.config.ts; then
+            echo "panda.config.ts already has hash:true; skip patch."
+          else
+            sed -i 's/^\(\s*\)preflight: true,$/\1preflight: true,\n\1hash: true,/' panda.config.ts
+          fi
+          if ! grep -qE '^\s*hash:\s*true' panda.config.ts; then
+            echo "::error::panda.config.ts への hash:true 挿入に失敗しました。preflight: true, の行が想定どおり存在するか確認してください。"
+            exit 1
+          fi
+          echo "--- panda.config.ts (patched head) ---"
+          sed -n '20,35p' panda.config.ts
+
+      - name: Regenerate Panda CSS with hash:true
+        run: pnpm prepare
+
+      - name: Run tests with hash:true
+        id: tests
+        run: pnpm test:run
+
+      - name: Report test regression
+        if: failure() && steps.tests.conclusion == 'failure'
+        run: |
+          echo "::error::Tripwire テストの hash 耐性に regression があります。data-* 属性が hash 化に追従していない可能性があります。詳細は Issue #496 / Issue #475 / CLAUDE.md の `Panda hash:true の運用判断` を参照してください。"
+          exit 1
+
+      - name: Build project with hash:true
+        id: build
+        run: pnpm build
+
+      - name: Report build regression
+        if: failure() && steps.build.conclusion == 'failure'
+        run: |
+          echo "::error::hash:true でビルドが失敗しました。Panda 生成物または hook class との整合に regression があります。"
+          exit 1

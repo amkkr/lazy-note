@@ -8,7 +8,7 @@
  * - 層2=経過 (computeElapsed): フォールバックの暦上経過日数
  * - 型の nominal 化 (Coordinate / Elapsed の discriminator field `kind`)
  *
- * `meta.ts` には依存しない (death module 扱い、本 Issue の制約)
+ * 本ファイルは anchors.ts の純粋関数のみを検証する。
  */
 
 import { readdirSync } from "node:fs";
@@ -90,7 +90,7 @@ describe("inferPublishedAt: ファイル名からの ISO 8601 推定 (JST 固定
      * 設計上の意図: ファイル名推定は正規表現で年月日時分秒を抽出して
      * 文字列を組み立てる実装。Date.parse が非閏年の 2/29 をロールオーバー
      * させても文字列は再構築されないため、推定値はそのまま "2025-02-29T..."
-     * を返す。meta.test.ts の同じ境界値ケースと対称な振る舞いを保つ。
+     * を返す。anchors.ts 単独の境界値仕様としてここで固定する。
      *
      * 将来 isIso8601 側を厳密化する場合は本テストの期待値を null に反転する。
      */

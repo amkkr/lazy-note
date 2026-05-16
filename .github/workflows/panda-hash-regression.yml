@@ -12,6 +12,10 @@ name: Panda hash:true regression check
 on:
   workflow_dispatch:
 
+# 本 workflow は repo を読むだけで write は不要。明示的に最小権限へ縛る。
+permissions:
+  contents: read
+
 jobs:
   hash-regression:
     runs-on: ubuntu-latest

@@ -140,7 +140,10 @@ export const Coordinate = memo(
             list セマンティクスが剥奪される既知の WebKit バグへの防御で明示する */}
         <ul aria-label="個人史座標" role="list">
           {displayable.map((coordinate, index) => (
-            <li key={coordinate.label}>
+            // milestones.json に同じ label が誤って 2 行入っても React の
+            // duplicate key warning を起こさないよう、label と daysSince を
+            // 組み合わせた複合キーを採用する (DA Round 1 推奨修正)。
+            <li key={`${coordinate.label}-${coordinate.daysSince}`}>
               {index > 0 && (
                 <span aria-hidden="true" className={separatorStyles}>
                   ・

@@ -62,7 +62,7 @@ describe("Coordinate", () => {
 
       // region が描画されていること
       expect(
-        screen.getByRole("group", { name: "あれから N 日目" }),
+        screen.getByRole("list", { name: "あれから N 日目" }),
       ).toBeInTheDocument();
     });
   });
@@ -159,7 +159,7 @@ describe("Coordinate", () => {
         />,
       );
 
-      const group = screen.getByRole("group", { name: "あれから N 日目" });
+      const group = screen.getByRole("list", { name: "あれから N 日目" });
       expect(group.textContent).toContain("サイト開設");
       expect(group.textContent).toContain("364");
       expect(group.textContent).toContain("社会復帰");
@@ -170,7 +170,7 @@ describe("Coordinate", () => {
   });
 
   describe("a11y / 意味的構造", () => {
-    it("role=group と aria-label='あれから N 日目' を持つ (SR への意味付け)", () => {
+    it("ul に aria-label='あれから N 日目' を付与し SR にラベルを伝える", () => {
       render(
         <Coordinate
           publishedAt="2025-12-31T00:00:00+09:00"
@@ -181,7 +181,7 @@ describe("Coordinate", () => {
       );
 
       expect(
-        screen.getByRole("group", { name: "あれから N 日目" }),
+        screen.getByRole("list", { name: "あれから N 日目" }),
       ).toBeInTheDocument();
     });
 
@@ -203,8 +203,8 @@ describe("Coordinate", () => {
   });
 
   describe("Panda token 適用 (Tripwire)", () => {
-    it("コンテナが fg.muted 系の控えめな色を data-token-color 属性で宣言する", () => {
-      render(
+    it("コンテナ (ul の親要素) が fg.muted を data-token-color 属性で宣言する", () => {
+      const { container } = render(
         <Coordinate
           publishedAt="2025-12-31T00:00:00+09:00"
           milestones={[
@@ -213,9 +213,13 @@ describe("Coordinate", () => {
         />,
       );
 
-      const group = screen.getByRole("group", { name: "あれから N 日目" });
-      // 静かな補助情報として fg.muted を使う
-      expect(group).toHaveAttribute("data-token-color", "fg.muted");
+      // ul の親 div に data-token-color="fg.muted" が宣言される
+      const wrapper = container.querySelector(
+        '[data-token-color="fg.muted"]',
+      );
+      expect(wrapper).not.toBeNull();
+      // ul の親要素であることを確認 (Coordinate の wrapper は ul を内包する)
+      expect(wrapper?.querySelector("ul")).not.toBeNull();
     });
   });
 });

@@ -47,8 +47,10 @@ interface CoordinateProps {
  * - 表示 OFF フラグ (`show`) で独立に黙らせられる (Resurface と同じ命名)
  *
  * a11y:
- * - `role=group` + `aria-label="あれから N 日目"` で SR への意味付け
- * - 内部は `<ul>/<li>` のリスト構造で項目ナビゲーションを許容
+ * - 内部の `<ul>` に `aria-label="あれから N 日目"` を付与し SR への意味付け
+ *   (role=group は Biome a11y/useSemanticElements で fieldset 推奨警告となるため
+ *    list role を持つ ul に直接ラベルする方式を採る)
+ * - `<ul>/<li>` のリスト構造で項目ナビゲーションを許容
  * - 色は `fg.muted` (補助情報) を採用。`bg.surface` 上に置かれる前提で
  *   1.4.3 / 1.4.6 の本文比 4.5:1 / 7:1 を満たす Editorial Citrus トークン
  *
@@ -131,13 +133,8 @@ export const Coordinate = memo(
     }
 
     return (
-      <div
-        className={containerStyles}
-        role="group"
-        aria-label="あれから N 日目"
-        data-token-color="fg.muted"
-      >
-        <ul>
+      <div className={containerStyles} data-token-color="fg.muted">
+        <ul aria-label="あれから N 日目">
           {displayable.map((coordinate, index) => (
             <li key={coordinate.label}>
               {index > 0 && (

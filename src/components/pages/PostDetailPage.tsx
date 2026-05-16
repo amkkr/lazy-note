@@ -2,11 +2,13 @@ import { type CSSProperties, useRef } from "react";
 import { css } from "../../../styled-system/css";
 import { useCodeBlockCopy } from "../../hooks/useCodeBlockCopy";
 import { useImageLightbox } from "../../hooks/useImageLightbox";
+import { inferPublishedAt, type Milestone } from "../../lib/anchors";
 import type { Post, PostSummary } from "../../lib/markdown";
 import { sanitizePostHtml } from "../../lib/sanitize";
 import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { Link } from "../atoms/Link";
 import { Heading1 } from "../atoms/Typography";
+import { Coordinate } from "../common/Coordinate";
 import { ImageLightbox } from "../common/ImageLightbox";
 import { MetaInfo } from "../common/MetaInfo";
 import { PostNavigation } from "../common/PostNavigation";
@@ -16,12 +18,31 @@ interface PostDetailPageProps {
   post: Post;
   olderPost: PostSummary | null;
   newerPost: PostSummary | null;
+  /**
+   * Coordinate (Issue #491 / Anchor の3つの顔のひとつ「座標」) 用節目データ。
+   *
+   * 親 (`pages/posts/Post.tsx`) で `datasources/milestones.json` を JSON
+   * import して渡す。本コンポーネントは `inferPublishedAt(post.id)` で
+   * publishedAt を逆算し、Coordinate に渡す純粋な中継を行う。
+   *
+   * 既定 (省略) では空配列扱いで Coordinate は描画されない (= 既存テスト互換)。
+   */
+  milestones?: readonly Milestone[];
+  /**
+   * Coordinate の表示 OFF フラグ (撤退可能性 / epic #487)。
+   *
+   * Anchor 企画は「いつでも黙らせられる」設計要件。Resurface と同じ命名
+   * (`show*` 親側変数 + 子側 `show` prop) で揃える。既定 true。
+   */
+  showCoordinate?: boolean;
 }
 
 export const PostDetailPage = ({
   post,
   olderPost,
   newerPost,
+  milestones,
+  showCoordinate = true,
 }: PostDetailPageProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   useCodeBlockCopy(contentRef);
@@ -35,6 +56,12 @@ export const PostDetailPage = ({
   const heroNameStyle: CSSProperties = {
     viewTransitionName: buildPostHeroTransitionName(String(post.id)),
   };
+
+  // Coordinate (Issue #491): post.id (= ファイル名 YYYYMMDDhhmmss) から
+  // publishedAt を ISO 8601 (JST +09:00) として逆算する。タイムスタンプ形式に
+  // 適合しない id (例: テスト用 "test-post") の場合は null となり、Coordinate
+  // は何も描画しない (= 撤退可能性の一形態として無害な早期 return が成立する)。
+  const publishedAt = inferPublishedAt(post.id);
   return (
     <>
       {/* Navigation */}
@@ -135,6 +162,20 @@ export const PostDetailPage = ({
                 author={post.author}
                 variant="header"
               />
+              {/*
+               * Coordinate (Issue #491 / Anchor の3つの顔のひとつ「座標」):
+               * MetaInfo (公開日 / 著者) の直下に「{label} から N 日目」を
+               * 静かに一行で添える。publishedAt 推定不可・座標 0 件・
+               * milestones 空・showCoordinate=false のいずれかで何も描画
+               * しない (Coordinate 内部で early return)。
+               */}
+              {publishedAt !== null && (
+                <Coordinate
+                  publishedAt={publishedAt}
+                  milestones={milestones ?? []}
+                  show={showCoordinate}
+                />
+              )}
             </header>
 
             {/* Divider

@@ -125,58 +125,90 @@ fi
 # 値は git/シェルに対する有効な絶対/相対パスを想定。
 resolve_target_dir() {
   local cmd="$1"
-  python3 - "$cmd" <<'PY' 2>/dev/null || true
+  local base_cwd="$2"
+  python3 - "$cmd" "$base_cwd" <<'PY' 2>/dev/null || true
+import os
 import re
 import shlex
 import sys
 
 command = sys.argv[1]
+base_cwd = sys.argv[2] or os.getcwd()
 
 try:
     tokens = shlex.split(command, posix=True)
 except ValueError:
-    # クォート不整合等で分割不能な場合は諦める
+    # クォート不整合等で分割不能な場合は諦める (呼び出し側で cwd を使う)
     sys.exit(0)
 
 
-def find_git_subcommand_dir(tokens):
-    """tokens を走査して git commit/push 直前の -C <path> を探す。
+def find_git_target_dir(tokens):
+    """tokens を走査して git commit/push の作業ディレクトリ指定を抽出する。
+
+    優先順位 (git の実挙動に合わせる):
+        1. -C <path>            : 後続コマンドの cwd 相当
+        2. --work-tree=<path> / --work-tree <path>
+        3. --git-dir=<path> / --git-dir <path>
+            → 「親ディレクトリ」が worktree の作業ツリーである場合があるが、
+              .git そのものを指定されたケースは親、--git-dir=<path>/.git の
+              ようなケースも親を採用する (実用上、worktree の場合は
+              .git ファイル等が指している先と一致するため、ここでは親を採る)
+
     複数の git 呼び出しが && / ; で連結されているケースもあるが、
-    shlex は区切り文字を独立トークンとして残さないため、本処理では
-    「最初に commit/push を起こす git 呼び出しの -C」を採る。
+    shlex は区切り文字を独立トークンとして残さない。本処理では
+    「最初に commit/push を起こす git 呼び出しのターゲット」を採る。
     """
-    # 値を伴うグローバルオプション (次のトークンを引数として消費する)
     OPTS_WITH_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace",
                      "--super-prefix", "--exec-path"}
     n = len(tokens)
     i = 0
     while i < n:
         if tokens[i] == "git":
-            # `git -C <path> ... <subcmd>` をパースする
             j = i + 1
-            target_dir = None
+            dash_c = None
+            work_tree = None
+            git_dir = None
             while j < n:
                 tok = tokens[j]
                 if tok == "-C" and j + 1 < n:
-                    target_dir = tokens[j + 1]
+                    dash_c = tokens[j + 1]
                     j += 2
+                    continue
+                if tok == "--work-tree" and j + 1 < n:
+                    work_tree = tokens[j + 1]
+                    j += 2
+                    continue
+                if tok == "--git-dir" and j + 1 < n:
+                    git_dir = tokens[j + 1]
+                    j += 2
+                    continue
+                if tok.startswith("--work-tree=") :
+                    work_tree = tok.split("=", 1)[1]
+                    j += 1
+                    continue
+                if tok.startswith("--git-dir="):
+                    git_dir = tok.split("=", 1)[1]
+                    j += 1
                     continue
                 if tok in OPTS_WITH_ARG and j + 1 < n:
                     # -c key=val 等の値を持つオプションはペアで消費
                     j += 2
                     continue
-                # `--git-dir=<path>` のように = 連結された形は 1 トークン
                 if tok.startswith("--") and "=" in tok:
                     j += 1
                     continue
                 if tok.startswith("-"):
-                    # その他の単独オプション (--no-pager / --bare / -p 等)
+                    # 単独オプション (--no-pager / --bare / -p 等)
                     j += 1
                     continue
-                # サブコマンド
                 if tok in ("commit", "push"):
-                    return target_dir, True  # commit/push を含むので確定
-                # commit/push 以外の git 呼び出しはスキップして次の git を探す
+                    # 優先順: -C > --work-tree > --git-dir の親
+                    target = dash_c or work_tree
+                    if not target and git_dir:
+                        # `.../.git` を指された場合は親、それ以外でも親を取る
+                        # (worktree の場合 .git は親が作業ツリー)
+                        target = os.path.dirname(git_dir.rstrip("/")) or git_dir
+                    return target, True
                 break
             i = j + 1
             continue
@@ -184,47 +216,127 @@ def find_git_subcommand_dir(tokens):
     return None, False
 
 
-def find_cd_before_git(command_str):
-    """`cd <path> && ... git commit|push` パターンを ; / && / || / | で分割して検出する。
-    最後にマッチした cd 直後の同一セグメントを採用する (典型: cd X && git commit ...)。
+# シェル区切り (; && || |) をトークンとして残す split を自前で実装する。
+# `(` `)` `{` `}` `$(` `` ` `` はサブシェル/コマンド置換境界として扱う。
+# 既存実装は re.split で区切り文字を捨てていたため、cd と git の前後関係が
+# 失われていた。ここでは「セグメントごとに先頭トークンを見る」方式に変える。
+_SPLIT_RE = re.compile(r'(\|\||&&|;|\||\(|\)|\{|\}|`|\$\()')
+
+
+def split_segments(command_str):
+    """コマンド文字列をシェルの論理境界で分割する。
+    返り値は (segment_text, ...) のリスト。
     """
-    # シェルの区切り文字でセグメント分割 (簡易: ヒアドキュメント等は対象外)
-    segments = re.split(r"(?:&&|\|\||;|\|)", command_str)
-    target = None
+    parts = _SPLIT_RE.split(command_str)
+    segs = []
+    cur = []
+    for p in parts:
+        if p in ("||", "&&", ";", "|", "(", ")", "{", "}", "`", "$("):
+            segs.append("".join(cur))
+            cur = []
+        else:
+            cur.append(p)
+    segs.append("".join(cur))
+    return [s.strip() for s in segs if s and s.strip()]
+
+
+_CD_RE = re.compile(r'^(?:cd|pushd)\s+(.+?)\s*$')
+
+
+def collapse_cd_path(base_cwd, raw_path):
+    """raw_path を base_cwd 上で解決して絶対パスを返す。
+    `~` は HOME に展開する。`$(...)` や `$VAR` の展開は試みない (失敗扱い)。
+    解決不能ならば None を返す。
+    """
+    if not raw_path:
+        return None
+    p = raw_path
+    # ` ~` / `~/...` 展開
+    if p == "~":
+        p = os.path.expanduser("~")
+    elif p.startswith("~/"):
+        p = os.path.expanduser(p)
+    # コマンド置換や変数展開を含む場合は解決を諦める
+    if any(marker in p for marker in ("$(", "`", "${")):
+        return None
+    if "$" in p:
+        # 単純な $VAR も展開できないので諦める
+        return None
+    if not os.path.isabs(p):
+        p = os.path.join(base_cwd, p)
+    return os.path.normpath(p)
+
+
+def find_cwd_before_git_commit(command_str, base_cwd):
+    """cd / pushd を順に追って commit/push 直前の cwd を求める。
+
+    アルゴリズム:
+        - command を ; && || | ( ) { } 等で論理セグメントに分割し、
+          先頭から順に走査する
+        - `cd <path>` / `pushd <path>` が現れたら、現在の cwd 候補を更新
+        - `git commit` / `git push` を含む段に到達したら、その時点の cwd を返す
+        - 到達せずに走査が終われば None
+
+    サブシェル `(cd X && git commit)` の場合、( ) はセグメント境界として
+    扱うので、( と ) の間 (= サブシェル内) を独立に走査する。
+    本実装は厳密な構文解析ではなく「セグメント順走査」する近似だが、
+    現実的な利用パターン (cd 系の直後に git commit) はカバーできる。
+    """
+    segments = split_segments(command_str)
+    cwd = base_cwd
     for seg in segments:
-        seg = seg.strip()
-        # `cd <path>` で始まるセグメントから path を取得
-        m = re.match(r"^cd\s+(.+?)\s*$", seg)
-        if m:
-            try:
-                parsed = shlex.split(m.group(1), posix=True)
-            except ValueError:
-                continue
-            if parsed:
-                target = parsed[0]
+        try:
+            seg_tokens = shlex.split(seg, posix=True)
+        except ValueError:
+            seg_tokens = []
+        if not seg_tokens:
             continue
-        # `cd <path> && git commit ...` のような複合は && で分割されるので
-        # ここには到達しないが、念のため `cd X; git commit` のような同一セグメント内
-        # も拾えるよう簡易チェック
-    return target
+
+        # `cd <path>` または `pushd <path>` だけのセグメント
+        if seg_tokens[0] in ("cd", "pushd") and len(seg_tokens) >= 2:
+            new_cwd = collapse_cd_path(cwd, seg_tokens[1])
+            if new_cwd:
+                cwd = new_cwd
+            else:
+                # path 解決不能 (= コマンド置換等) の場合はそれ以上追えない
+                # 攻撃面を広げないため cwd は更新しない (= base_cwd のまま)
+                pass
+            continue
+
+        # git commit / git push (or git -C ... commit/push) を含む段に到達
+        # ここでは tokens の中に "commit" / "push" があれば cwd を返す
+        if seg_tokens[0] == "git":
+            # find_git_target_dir でこのセグメント単体の git 呼び出しを評価
+            target, has_cp = find_git_target_dir(seg_tokens)
+            if has_cp:
+                if target:
+                    # -C / --work-tree / --git-dir 由来の path は cwd 相対
+                    resolved = collapse_cd_path(cwd, target)
+                    return resolved or cwd
+                return cwd
+    return None
 
 
-# 1) git -C <path> commit|push を最優先
-dir_from_dashC, has_commit_push = find_git_subcommand_dir(tokens)
+# 1) git -C <path> / --work-tree / --git-dir を最優先
+dir_from_git_opts, has_commit_push = find_git_target_dir(tokens)
 
 # 2) commit/push が含まれていなければ何も出さない
 if not has_commit_push:
-    # commit/push 自体が無いなら呼び出し側でブランチチェックする必要は無い
     sys.exit(0)
 
-if dir_from_dashC:
-    print(dir_from_dashC)
+if dir_from_git_opts:
+    # 解決した path が相対なら base_cwd で絶対化
+    resolved = collapse_cd_path(base_cwd, dir_from_git_opts)
+    # コマンド置換等で解決できない場合は何も出さない (呼び出し側で cwd を使う)
+    if resolved is None:
+        sys.exit(0)
+    print(resolved)
     sys.exit(0)
 
-# 3) `cd <path>` を含むセグメントから推定
-cd_dir = find_cd_before_git(command)
-if cd_dir:
-    print(cd_dir)
+# 3) cd / pushd / subshell を辿って commit/push 直前の cwd を求める
+cwd = find_cwd_before_git_commit(command, base_cwd)
+if cwd:
+    print(cwd)
     sys.exit(0)
 
 # 4) なければ何も出さない (呼び出し側で cwd を使う)
@@ -233,22 +345,54 @@ PY
 
 # master/main への直接 commit / push 拒否
 if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+(commit|push)([[:space:]]|$)'; then
-  TARGET_DIR=$(resolve_target_dir "$COMMAND" || true)
+  # base_cwd は hook プロセスの cwd (= Bash ツール実行時の cwd)
+  BASE_CWD=$(pwd)
+  TARGET_DIR=$(resolve_target_dir "$COMMAND" "$BASE_CWD" || true)
+
+  # `--git-dir=` / `--work-tree=` が COMMAND 内に明示されているかを判定する
+  # (これらが指定されていてかつ path 解決に失敗した場合は攻撃の意図が強いため
+  #  block する。それ以外で TARGET_DIR が空になるのは cwd 相当で評価したい
+  #  典型ケース or 解析に失敗したケースなので、cwd で fallback 評価する。)
+  HAS_EXPLICIT_GIT_DIR_OPT=0
+  if printf '%s' "$COMMAND" | grep -Eq '(^|[[:space:]])--(git-dir|work-tree)([[:space:]=])'; then
+    HAS_EXPLICIT_GIT_DIR_OPT=1
+  fi
 
   if [ -n "${TARGET_DIR:-}" ]; then
-    # path 展開 (~ は通常 shell が展開するが、JSON 経由で渡される command は
-    # 未展開のまま到達しうるため、ここで bash 側でも tilde 展開を試みる)
-    case "$TARGET_DIR" in
-      "~"|"~/"*) TARGET_DIR="${HOME}${TARGET_DIR#\~}" ;;
-    esac
+    # まず TARGET_DIR 自身で rev-parse を試す
     CURRENT_BRANCH=$(git -C "$TARGET_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-    # 指定パスでブランチ取得に失敗した場合 (存在しないパス / git リポではない 等) は
-    # 攻撃面 (任意パス指定でガード bypass) を塞ぐため、保守的にブロックする。
-    # 実 git は同様の状況でエラー終了するため、ここでブロックしても誤検知は生まない。
+    # 存在しない subdir 等で失敗した場合は祖先ディレクトリを最大 8 階層辿る
+    # (実 git は cwd 配下から .git を探すので、これと挙動を合わせる)
     if [ -z "$CURRENT_BRANCH" ]; then
-      block "git -C / --git-dir 等で指定された path がリポジトリとして解決できません: $TARGET_DIR"
+      ANCESTOR="$TARGET_DIR"
+      for _ in 1 2 3 4 5 6 7 8; do
+        PARENT=$(dirname "$ANCESTOR")
+        if [ "$PARENT" = "$ANCESTOR" ] || [ "$PARENT" = "/" ]; then
+          break
+        fi
+        ANCESTOR="$PARENT"
+        CURRENT_BRANCH=$(git -C "$ANCESTOR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+        if [ -n "$CURRENT_BRANCH" ]; then
+          break
+        fi
+      done
+    fi
+    if [ -z "$CURRENT_BRANCH" ]; then
+      if [ "$HAS_EXPLICIT_GIT_DIR_OPT" = "1" ]; then
+        # 明示的に --git-dir / --work-tree で path 指定 → 解決失敗は block
+        block "--git-dir / --work-tree で指定された path がリポジトリとして解決できません: $TARGET_DIR"
+      fi
+      # それ以外は cwd にフォールバック (元実装の挙動と同等の安全側)
+      CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
     fi
   else
+    # TARGET_DIR が空 = resolve_target_dir が path 推定を諦めた
+    # この場合は元実装と同じく hook プロセスの cwd で評価する。
+    # ただし --git-dir / --work-tree が明示されているのに path が拾えなかった
+    # (コマンド置換等で解析不能) ケースは block する。
+    if [ "$HAS_EXPLICIT_GIT_DIR_OPT" = "1" ]; then
+      block "--git-dir / --work-tree の引数が解析できません。直接 path を指定してください。"
+    fi
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
   fi
 

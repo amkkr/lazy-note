@@ -75,6 +75,13 @@ interface AnchorPageProps {
  * - 各記事の座標 section に `aria-labelledby` で見出しを紐付け SR 読み上げを統一
  * - 節目の tone は `data-tone` 属性で表現する (色だけに依存させない)
  *
+ * publishedAt 推定不可なスキップ件数注記 (Issue #544):
+ * - `inferPublishedAt(post.id) === null` で除外された記事の件数を、各記事の座標
+ *   section 末尾に「publishedAt 推定不可でスキップした記事: N 件」と控えめに表示する
+ * - 0 件のときは注記そのものを出さない (= ノイズ削減 + 運用画面の静かなトーン維持)
+ * - `role="note"` で補助情報であることを意味的に示し、`data-skipped-count` を
+ *   Tripwire 用の構造属性として吐く
+ *
  * デザイン語彙:
  * - Resurface / Coordinate と同じ補助情報トーン (fg.muted / border.subtle)
  * - Editorial 雑誌風の小型見出し (uppercase + tracking) で章間を意識
@@ -210,6 +217,18 @@ const emptyStateStyles = css({
   paddingY: "md",
 });
 
+// publishedAt 推定不可でスキップした記事の件数注記。Issue #544 で追加。
+// 運用画面の透明性を優先するため、件数 N >= 1 のとき末尾に小さく出す。
+// emptyStateStyles と同じ補助情報トーン (fg.muted) に揃え、過剰可視化を避ける。
+// section の枠 (= border.subtle の境界) は重ねず、文章として控えめに添える。
+const skippedNoteStyles = css({
+  fontSize: "xs",
+  color: "fg.muted",
+  lineHeight: "relaxed",
+  paddingTop: "md",
+  fontVariantNumeric: "tabular-nums",
+});
+
 /**
  * 座標 1 件の表示文言を構築する純粋関数。
  *
@@ -257,10 +276,34 @@ const buildPostCoordinatesEntries = (
 };
 
 /**
+ * publishedAt 推定不可でスキップされた記事の件数を数える純粋関数 (Issue #544)。
+ *
+ * 「壊れた id を持つ記事」が無音で消える状況を運用画面の末尾に注記として
+ * 出すために使う。`buildPostCoordinatesEntries` と判定軸を揃え、`inferPublishedAt`
+ * が `null` を返す件数を素直にカウントする。
+ *
+ * 注: ここで件数算出を別関数に切り出しているのは、`buildPostCoordinatesEntries`
+ * の戻り値型を肥大化させずに「描画対象エントリ」と「注記の数値」という別関心を
+ * 分離するため。
+ */
+const countSkippedByPublishedAt = (posts: readonly PostSummary[]): number => {
+  let count = 0;
+  for (const post of posts) {
+    if (inferPublishedAt(post.id) === null) {
+      count += 1;
+    }
+  }
+  return count;
+};
+
+/**
  * AnchorPage コンポーネント本体。
  */
 export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
   const postEntries = buildPostCoordinatesEntries(posts, milestones);
+  // publishedAt 推定不可でスキップされた記事の件数 (Issue #544)
+  // 0 件のときは注記そのものを出さない (= ノイズ削減)。
+  const skippedCount = countSkippedByPublishedAt(posts);
 
   return (
     <div className={containerStyles}>
@@ -363,6 +406,19 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
                 </li>
               ))}
             </ul>
+            {/* publishedAt 推定不可な記事のスキップ件数注記 (Issue #544)
+                運用画面として「壊れた id がある事実」を画面に出すための添え書き。
+                0 件のときは注記そのものを出さない (= ノイズ削減 + 運用画面の
+                控えめなトーンを維持)。 */}
+            {skippedCount > 0 ? (
+              <p
+                className={skippedNoteStyles}
+                data-skipped-count={skippedCount}
+                role="note"
+              >
+                publishedAt 推定不可でスキップした記事: {skippedCount} 件
+              </p>
+            ) : null}
           </section>
         )}
       </div>

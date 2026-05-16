@@ -37,6 +37,7 @@ import { basename, join } from "node:path";
 import {
   computeCoordinates,
   computeElapsed,
+  type Elapsed,
   inferPublishedAt,
   type Milestone,
 } from "../src/lib/anchors.ts";
@@ -63,7 +64,7 @@ export interface PreviousPost {
  */
 export interface IgnitionInput {
   readonly coordinates: readonly { label: string; tone: Milestone["tone"]; daysSince: number }[];
-  readonly siteOpeningElapsed: { label: string; daysSince: number } | null;
+  readonly siteOpeningElapsed: Elapsed | null;
   readonly previousPost: PreviousPost | null;
   readonly publishedAt: string;
 }
@@ -284,7 +285,7 @@ export const findPreviousPost = (
 export const computeSiteOpeningFallback = (
   datasourcesDir: string,
   publishedAt: string,
-): { label: string; daysSince: number } | null => {
+): Elapsed | null => {
   const files = listPostFileNames(datasourcesDir);
   if (files.length === 0) {
     return null;

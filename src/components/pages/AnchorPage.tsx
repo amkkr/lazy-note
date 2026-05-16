@@ -79,8 +79,13 @@ interface AnchorPageProps {
  * - `inferPublishedAt(post.id) === null` で除外された記事の件数を、各記事の座標
  *   section 末尾に「publishedAt 推定不可でスキップした記事: N 件」と控えめに表示する
  * - 0 件のときは注記そのものを出さない (= ノイズ削減 + 運用画面の静かなトーン維持)
- * - `role="note"` で補助情報であることを意味的に示し、`data-skipped-count` を
- *   Tripwire 用の構造属性として吐く
+ * - `role="note"` で補助情報であることを意味的に示す。件数は注記テキスト本体に
+ *   埋め込まれるため、Tripwire 検証は `toHaveTextContent` で行う (= 数値メトリクス
+ *   用の data-* カテゴリが CLAUDE.md 規約未確定のため、テキストでの検証に統一)
+ * - 全記事が publishedAt 推定不可で `postEntries` が空になった場合は、「各記事の座標」
+ *   見出し配下に空 `<ul>` を出さず、穏やかな空状態テキスト
+ *   (「全記事が publishedAt 推定不可のためスキップしました (N 件)」) にフォールバック
+ *   する (= 不自然な空 list 表示を回避)
  *
  * デザイン語彙:
  * - Resurface / Coordinate と同じ補助情報トーン (fg.muted / border.subtle)
@@ -258,6 +263,11 @@ interface PostCoordinatesEntry {
  * publishedAt 推定不可な id を持つ記事 (例: テスト用 "test-post") は素直に
  * スキップする (= 結果配列に含めない)。これは「壊れた id の記事はそもそも
  * 座標を計算できない」という anchors.ts の責務境界に整合させた仕様。
+ *
+ * スキップ件数 (= 注記用) は、本関数の呼び出し側で
+ * `posts.length - entries.length` として算出する (Issue #544)。これにより
+ * 「publishedAt 推定不可」の判定軸を本関数 1 箇所に集約し、二重定義による
+ * 将来の乖離リスクを排除する。
  */
 const buildPostCoordinatesEntries = (
   posts: readonly PostSummary[],
@@ -276,34 +286,15 @@ const buildPostCoordinatesEntries = (
 };
 
 /**
- * publishedAt 推定不可でスキップされた記事の件数を数える純粋関数 (Issue #544)。
- *
- * 「壊れた id を持つ記事」が無音で消える状況を運用画面の末尾に注記として
- * 出すために使う。`buildPostCoordinatesEntries` と判定軸を揃え、`inferPublishedAt`
- * が `null` を返す件数を素直にカウントする。
- *
- * 注: ここで件数算出を別関数に切り出しているのは、`buildPostCoordinatesEntries`
- * の戻り値型を肥大化させずに「描画対象エントリ」と「注記の数値」という別関心を
- * 分離するため。
- */
-const countSkippedByPublishedAt = (posts: readonly PostSummary[]): number => {
-  let count = 0;
-  for (const post of posts) {
-    if (inferPublishedAt(post.id) === null) {
-      count += 1;
-    }
-  }
-  return count;
-};
-
-/**
  * AnchorPage コンポーネント本体。
  */
 export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
   const postEntries = buildPostCoordinatesEntries(posts, milestones);
-  // publishedAt 推定不可でスキップされた記事の件数 (Issue #544)
-  // 0 件のときは注記そのものを出さない (= ノイズ削減)。
-  const skippedCount = countSkippedByPublishedAt(posts);
+  // publishedAt 推定不可でスキップされた記事の件数 (Issue #544)。
+  // 「publishedAt 推定不可」の判定軸は `buildPostCoordinatesEntries` 内に集約
+  // されており、ここでは入力件数と描画対象件数の差分で算出する (= 二重定義の
+  // 乖離リスクを排除)。0 件のときは注記そのものを出さない (= ノイズ削減)。
+  const skippedCount = posts.length - postEntries.length;
 
   return (
     <div className={containerStyles}>
@@ -376,49 +367,58 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
             <h2 id="anchor-posts-heading" className={sectionHeadingStyles}>
               各記事の座標
             </h2>
-            {/* biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する */}
-            <ul className={postListStyles} role="list">
-              {postEntries.map((entry) => (
-                <li
-                  key={entry.post.id}
-                  className={postItemStyles}
-                  data-token-border="border.subtle"
-                >
-                  <span className={postTitleStyles}>
-                    {entry.post.title || "無題の記事"}
-                  </span>
-                  {entry.coordinates.length === 0 ? (
-                    <span className={emptyStateStyles}>
-                      まだ通過した節目はありません
-                    </span>
-                  ) : (
-                    <div className={postCoordinatesStyles}>
-                      {entry.coordinates.map((coordinate) => (
-                        <span
-                          key={`${coordinate.label}-${coordinate.daysSince}`}
-                          data-tone={coordinate.tone}
-                        >
-                          {buildCoordinateLabel(coordinate)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-            {/* publishedAt 推定不可な記事のスキップ件数注記 (Issue #544)
-                運用画面として「壊れた id がある事実」を画面に出すための添え書き。
-                0 件のときは注記そのものを出さない (= ノイズ削減 + 運用画面の
-                控えめなトーンを維持)。 */}
-            {skippedCount > 0 ? (
-              <p
-                className={skippedNoteStyles}
-                data-skipped-count={skippedCount}
-                role="note"
-              >
-                publishedAt 推定不可でスキップした記事: {skippedCount} 件
+            {postEntries.length === 0 ? (
+              // 全記事が publishedAt 推定不可だった場合のフォールバック (Issue #544)。
+              // 空 `<ul>` を出すと「各記事の座標」見出し + 空 list + 注記という
+              // 不自然な画面になるため、穏やかな空状態テキストにまとめる。
+              // i18n: Issue #534 で定数化候補
+              <p className={emptyStateStyles} role="note">
+                {`全記事が publishedAt 推定不可のためスキップしました (${skippedCount} 件)`}
               </p>
-            ) : null}
+            ) : (
+              <>
+                {/* biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する */}
+                <ul className={postListStyles} role="list">
+                  {postEntries.map((entry) => (
+                    <li
+                      key={entry.post.id}
+                      className={postItemStyles}
+                      data-token-border="border.subtle"
+                    >
+                      <span className={postTitleStyles}>
+                        {entry.post.title || "無題の記事"}
+                      </span>
+                      {entry.coordinates.length === 0 ? (
+                        <span className={emptyStateStyles}>
+                          まだ通過した節目はありません
+                        </span>
+                      ) : (
+                        <div className={postCoordinatesStyles}>
+                          {entry.coordinates.map((coordinate) => (
+                            <span
+                              key={`${coordinate.label}-${coordinate.daysSince}`}
+                              data-tone={coordinate.tone}
+                            >
+                              {buildCoordinateLabel(coordinate)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {/* publishedAt 推定不可な記事のスキップ件数注記 (Issue #544)
+                    運用画面として「壊れた id がある事実」を画面に出すための添え書き。
+                    0 件のときは注記そのものを出さない (= ノイズ削減 + 運用画面の
+                    控えめなトーンを維持)。
+                    i18n: Issue #534 で定数化候補 */}
+                {skippedCount > 0 ? (
+                  <p className={skippedNoteStyles} role="note">
+                    publishedAt 推定不可でスキップした記事: {skippedCount} 件
+                  </p>
+                ) : null}
+              </>
+            )}
           </section>
         )}
       </div>

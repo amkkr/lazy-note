@@ -295,7 +295,11 @@ describe("AnchorPage", () => {
       );
     });
 
-    it("全記事が publishedAt 推定不可のとき全件をスキップ件数として注記する", () => {
+    it("全記事が publishedAt 推定不可のとき空 list を出さず穏やかな空状態テキストにフォールバックする", () => {
+      // 全 posts が壊れた id の場合、`postEntries.length === 0` となる。
+      // ここで空 `<ul>` を描画すると「各記事の座標」見出し + 空 list + 注記の
+      // 不自然な画面になるため、フォールバックとして 1 行の空状態テキスト
+      // (= 全件スキップである事実を件数とともに伝える) のみを出す。
       const invalidPosts: PostSummary[] = [
         {
           id: "test-invalid-1",
@@ -326,11 +330,20 @@ describe("AnchorPage", () => {
         name: "各記事の座標",
       });
       expect(postSection).toBeInTheDocument();
-      // 注記は posts 全件 (= 2 件) を反映する
-      const note = screen.getByRole("note");
+      // フォールバックテキストが描画される
+      const note = within(postSection).getByRole("note");
       expect(note).toHaveTextContent(
-        "publishedAt 推定不可でスキップした記事: 2 件",
+        "全記事が publishedAt 推定不可のためスキップしました (2 件)",
       );
+      // 空 `<ul>` (= 各記事を並べる list) は出さない
+      expect(within(postSection).queryByRole("list")).not.toBeInTheDocument();
+      // 通常の件数注記 (「publishedAt 推定不可でスキップした記事: N 件」) は出さない
+      // (= フォールバックテキストに件数を埋め込んでいるため二重表示を避ける)
+      expect(
+        within(postSection).queryByText(
+          /publishedAt 推定不可でスキップした記事:/,
+        ),
+      ).not.toBeInTheDocument();
     });
 
     it("posts が 0 件のとき注記そのものを出さない (各記事の座標 section ごと非表示のため)", () => {
@@ -345,29 +358,6 @@ describe("AnchorPage", () => {
       expect(
         screen.queryByText(/publishedAt 推定不可でスキップした記事/),
       ).not.toBeInTheDocument();
-    });
-
-    it("スキップ件数注記の Tripwire 属性 (data-skipped-count) が件数と一致する", () => {
-      const invalidPost: PostSummary = {
-        id: "broken-id",
-        title: "壊れた id",
-        createdAt: "2025-09-05",
-        author: "amkkr",
-        excerpt: "テスト",
-        readingTimeMinutes: 1,
-      };
-
-      render(
-        <MemoryRouter>
-          <AnchorPage
-            posts={[invalidPost, ...basePosts]}
-            milestones={baseMilestones}
-          />
-        </MemoryRouter>,
-      );
-
-      const note = screen.getByRole("note");
-      expect(note).toHaveAttribute("data-skipped-count", "1");
     });
   });
 

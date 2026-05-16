@@ -43,12 +43,14 @@ jobs:
         # 一時パッチ。挿入後に grep で実在を確認し、未挿入なら即 fail する。
         run: |
           set -euo pipefail
-          if grep -qE '^\s*hash:\s*true' panda.config.ts; then
+          # 末尾カンマまで含めて厳格に判定する。`hash: true` 単独行のような
+          # 部分一致 / 別箇所での hash: true 出現を誤検知しないようにする。
+          if grep -qE '^\s*hash:\s*true,' panda.config.ts; then
             echo "panda.config.ts already has hash:true; skip patch."
           else
             sed -i 's/^\(\s*\)preflight: true,$/\1preflight: true,\n\1hash: true,/' panda.config.ts
           fi
-          if ! grep -qE '^\s*hash:\s*true' panda.config.ts; then
+          if ! grep -qE '^\s*hash:\s*true,' panda.config.ts; then
             echo "::error::panda.config.ts への hash:true 挿入に失敗しました。preflight: true, の行が想定どおり存在するか確認してください。"
             exit 1
           fi

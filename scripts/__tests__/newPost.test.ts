@@ -37,14 +37,19 @@ import {
   buildIgnitionComment,
   buildPostMarkdown,
   computeSiteOpeningFallback,
+  type EnforceAnchorDiscriminatorField_ForTest,
+  type EnforceAnchorDiscriminatorFields_ForTest,
   escapeHtmlCommentLabel,
   extractMarkdownTitle,
   findPreviousPost,
   formatMilestonesSummary,
+  type HasAnchorDiscriminator_ForTest,
   type IgnitionInput,
+  type IsAnchorShape_ForTest,
   listPostFileNames,
   loadMilestones,
 } from "../newPost.ts";
+import type { Coordinate, Elapsed } from "../../src/lib/anchors.ts";
 
 // =============================================================================
 // 一時ディレクトリ用ヘルパ
@@ -728,5 +733,191 @@ describe("型レベル: IgnitionInput.coordinates の discriminator 化 (Issue #
     };
 
     void input;
+  });
+});
+
+// =============================================================================
+// 型レベル: Anchor field 構造的縮退の予防ガード (Issue #556)
+// =============================================================================
+//
+// 目的: PR #555 (Issue #523) の DA レビュー F2 で指摘された follow-up を
+// 解決する。`IgnitionInput` に「将来 Coordinate / Elapsed を含む新フィールド
+// (例: `resurfaceCoordinates: readonly Coordinate[]`) を追加するとき」に、
+// `kind` discriminator を欠いた構造的リテラル型で書いてしまうと型エラーに
+// なる仕組みを `EnforceAnchorDiscriminatorFields_ForTest` として持っている
+// ことを、型レベルで回帰固定する。
+//
+// 検証手段: Issue #523 と同じ `@ts-expect-error` パターン。ガードロジックの
+// Conditional Type が「Anchor 型らしい (label + daysSince) のに kind を
+// 欠いている」フィールドを `never` に潰すことで、`IgnitionInput` への代入が
+// 不可能になることを利用する。
+//
+// 本 Issue で導入したヘルパ (`IsAnchorShape_ForTest` 等) はテスト専用 export
+// として扱い、本体 `IgnitionInput` の interface 定義はそのまま維持する。
+// これにより既存呼び出し側 (scripts/newPost.ts 自身および 12 ヶ所のテスト)
+// との完全な後方互換を保つ。
+describe("型レベル: Anchor field 構造的縮退の予防ガード (Issue #556)", () => {
+  it("正規の Coordinate / Elapsed を含む shape は `EnforceAnchorDiscriminatorFields_ForTest` を通過する (= IgnitionInput と互換)", () => {
+    // 現行の `IgnitionInput` 自身が、ガードを通したあとの型と互換である
+    // ことを `extends` で確認する。
+    // (ガードが壊れて余分なフィールドを `never` に潰すと、この代入が
+    //  unused @ts-expect-error 化されて type-check:test が失敗する)
+    type GuardedIgnitionInput =
+      EnforceAnchorDiscriminatorFields_ForTest<IgnitionInput>;
+    const guarded: GuardedIgnitionInput = {
+      coordinates: [
+        { kind: "coordinate", label: "x", tone: "neutral", daysSince: 1 },
+      ],
+      siteOpeningElapsed: { kind: "elapsed", label: "y", daysSince: 2 },
+      previousPost: null,
+      publishedAt: "2025-01-01T12:00:00+09:00",
+    };
+
+    // 現行 IgnitionInput をそのまま代入できる ≒ ガードが既存 shape を
+    // 何ら壊していないこと。
+    const input: IgnitionInput = guarded;
+    void input;
+  });
+
+  it("Coordinate 単独要素は `kind` discriminator を持つため `IsAnchorShape_ForTest` + `HasAnchorDiscriminator_ForTest` の両方を通過する", () => {
+    // 「Anchor 型らしい (label + daysSince)」かつ「discriminator を持つ」=
+    // ガード判定上 ESCAPABLE な要素であることを型レベルで固定。
+    type IsShape = IsAnchorShape_ForTest<Coordinate>;
+    type HasKind = HasAnchorDiscriminator_ForTest<Coordinate>;
+    const isShape: IsShape = true;
+    const hasKind: HasKind = true;
+    void isShape;
+    void hasKind;
+  });
+
+  it("Elapsed 単独要素も同様に `IsAnchorShape_ForTest` + `HasAnchorDiscriminator_ForTest` の両方を通過する", () => {
+    type IsShape = IsAnchorShape_ForTest<Elapsed>;
+    type HasKind = HasAnchorDiscriminator_ForTest<Elapsed>;
+    const isShape: IsShape = true;
+    const hasKind: HasKind = true;
+    void isShape;
+    void hasKind;
+  });
+
+  it("構造的リテラル `{ label, tone, daysSince }` (Anchor 型らしいが kind 欠落) は `HasAnchorDiscriminator_ForTest` で false 判定される", () => {
+    type LooseCoord = {
+      readonly label: string;
+      readonly tone: "neutral";
+      readonly daysSince: number;
+    };
+    type IsShape = IsAnchorShape_ForTest<LooseCoord>;
+    type HasKind = HasAnchorDiscriminator_ForTest<LooseCoord>;
+    // Anchor 型らしい (label + daysSince を持つ) と判定される
+    const isShape: IsShape = true;
+    // しかし kind discriminator が無いため false
+    const hasKind: HasKind = false;
+    void isShape;
+    void hasKind;
+  });
+
+  it("`kind: string` (wide string) では `HasAnchorDiscriminator_ForTest` が false を返す (string literal narrowing 必須)", () => {
+    // `kind: string` を許容してしまうと「kind 必須」のはずが any string で
+    // 通ってしまい構造的縮退に逆戻りする。string literal narrowing が
+    // 必須であることをガードロジックの仕様として固定する。
+    type WideKindCoord = {
+      readonly kind: string;
+      readonly label: string;
+      readonly tone: "neutral";
+      readonly daysSince: number;
+    };
+    type HasKind = HasAnchorDiscriminator_ForTest<WideKindCoord>;
+    const hasKind: HasKind = false;
+    void hasKind;
+  });
+
+  it("Anchor 型と無関係なフィールド型 (`string` / `PreviousPost`) には何も制約を課さない", () => {
+    // ガードは「Anchor 型らしい」フィールドにのみ作用する。Anchor 型と
+    // 構造が違うフィールド (publishedAt: string / previousPost: object) は
+    // そのまま通過する。これにより `IgnitionInput` 拡張時に Anchor 型と
+    // 無関係な新フィールド (例: `siteVersion: string`) を追加する自由は
+    // 維持される。
+    type PassThroughString =
+      EnforceAnchorDiscriminatorField_ForTest<string>;
+    type PassThroughPreviousPost = EnforceAnchorDiscriminatorField_ForTest<{
+      readonly fileName: string;
+      readonly title: string;
+      readonly publishedAt: string;
+    }>;
+    const s: PassThroughString = "x";
+    const p: PassThroughPreviousPost = {
+      fileName: "a.md",
+      title: "t",
+      publishedAt: "2025-01-01T12:00:00+09:00",
+    };
+    void s;
+    void p;
+  });
+
+  it("新フィールド (例: `resurfaceCoordinates`) を `IgnitionInput` 風の interface に追加する想定で、Anchor 型を import すれば通過する", () => {
+    // Issue #556 の想定シナリオ:
+    //   IgnitionInput に `resurfaceCoordinates: readonly Coordinate[]` を
+    //   追加する場合、`Coordinate` 型を import していればガードを通る。
+    interface FutureIgnitionInput {
+      readonly coordinates: readonly Coordinate[];
+      readonly resurfaceCoordinates: readonly Coordinate[];
+      readonly siteOpeningElapsed: Elapsed | null;
+      readonly publishedAt: string;
+    }
+    // ガードを通した結果が元と一致する = 構造的に Anchor 型らしいフィールド
+    // がすべて kind 必須を満たしている。
+    type Guarded = EnforceAnchorDiscriminatorFields_ForTest<FutureIgnitionInput>;
+    const ok: Guarded = {
+      coordinates: [
+        { kind: "coordinate", label: "x", tone: "neutral", daysSince: 1 },
+      ],
+      resurfaceCoordinates: [
+        { kind: "coordinate", label: "y", tone: "light", daysSince: 2 },
+      ],
+      siteOpeningElapsed: null,
+      publishedAt: "2025-01-01T12:00:00+09:00",
+    };
+    void ok;
+  });
+
+  it("新フィールドを `Coordinate` を import せず構造的リテラル `{ label, tone, daysSince }[]` で宣言した場合、ガードはそのフィールド型を `never` に潰す", () => {
+    // Issue #556 の中心 AC:
+    //   新フィールド追加時に Anchor 型を import せず構造的リテラルで
+    //   書いてしまうと、ガードがそのフィールドを `never` に潰す。
+    //   never[] への代入は不可能なので、開発者は型エラーで気付ける。
+    interface BadFutureIgnitionInput {
+      readonly resurfaceCoordinates: readonly {
+        label: string;
+        tone: "neutral";
+        daysSince: number;
+      }[];
+    }
+    type Guarded =
+      EnforceAnchorDiscriminatorFields_ForTest<BadFutureIgnitionInput>;
+    // ガード適用後 `resurfaceCoordinates` は `readonly never[]` に潰される
+    // ため、構造的リテラル値の代入は失敗する。
+    const bad: Guarded = {
+      // @ts-expect-error - kind 欠落の構造的リテラル型は never[] に
+      // 潰されるためここに代入できない (Issue #556 回帰防止: ガードが
+      // 弱まり Anchor field が素通しに戻ると unused @ts-expect-error
+      // になって type-check:test が失敗する)
+      resurfaceCoordinates: [{ label: "x", tone: "neutral", daysSince: 1 }],
+    };
+    void bad;
+  });
+
+  it("新フィールドを `kind: \"elapsed\"` (Elapsed 由来) で宣言した場合は discriminator を持つため通過する (Coordinate / Elapsed 横断対応)", () => {
+    // ガードは特定の discriminator 値 (例: `\"coordinate\"`) ではなく
+    // 「kind が string literal で存在すること」を判定する。これにより
+    // 将来 `Resurface` 等の新しい Anchor 系 layer (`kind: \"resurface\"` 等)
+    // が追加されても破綻しない。
+    interface ElapsedFieldIgnitionInput {
+      readonly secondaryElapsed: Elapsed | null;
+    }
+    type Guarded =
+      EnforceAnchorDiscriminatorFields_ForTest<ElapsedFieldIgnitionInput>;
+    const ok: Guarded = {
+      secondaryElapsed: { kind: "elapsed", label: "x", daysSince: 1 },
+    };
+    void ok;
   });
 });

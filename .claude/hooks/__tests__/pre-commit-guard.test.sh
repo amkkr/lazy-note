@@ -14,14 +14,19 @@
 #   pass             - hook が素通り (decision:block を出さない) ことを期待
 #   block            - hook が block を出すことを期待
 #   known-limitation - 現状の実装の限界。block でも pass でも fail にはしない
-#                      (shell 文字列解析の本質的限界 → Counterpoint 31:
+#                      (shell 文字列解析の本質的限界 → Issue #592 (Counterpoint 31):
 #                      git ネイティブ pre-commit hook 化で塞ぐ予定の項目)
 #
 # Issue #568 (Counterpoint 32 採用) で、本 hook の責務は
 # 「shell コマンド文字列で素直に判定できるもの」だけに絞ることが確定した。
-# これにより E01-E11 / R06 は known-limitation のまま放置でよい (本 hook の
+# これにより E01-E11 は known-limitation のまま放置でよい (本 hook の
 # 責任範囲外) と整理された。本ハーネスにこれらのケースを残すのは
-# Counterpoint 31 導入時に「block」昇格を検知する regression trail として。
+# Issue #592 (Counterpoint 31) 導入時に「block」昇格を検知する regression trail として。
+#
+# R06 (`cd worktree && (git commit)` nested subshell) は known-limitation ではなく
+# 「block」期待値で固定する。元実装でも cwd が main-repo のまま評価されて master と
+# 判定され block されており、これが現状の安全側挙動として正しい。Issue #592
+# 完了時に R06 が「pass」に変化したら regression として検出される構造を保つ。
 #
 # 本テストは Bash ツールの PreToolUse hook (pre-commit-guard.sh) と
 # 同じスクリプトを呼び出すため、テスト実行コマンド自身に
@@ -146,11 +151,14 @@ add_case "R05" "pass" "fix-required" \
   "$MAIN_REPO" "cd $WORKTREE && cd src && $GIT commit -m x" \
   "consecutive cd: cd worktree && cd subdir && commit"
 
-# 既知の限界: cd 後に subshell が始まると cwd 継承ができない (shell 文字列解析の限界)
-# Counterpoint 31 (git native pre-commit hook) で本質的に塞ぐ予定
-add_case "R06" "known-limitation" "out-of-scope (Counterpoint 31)" \
+# cd 後に subshell が始まると cwd 継承ができないため、現状の resolve_target_dir は
+# main-repo (= master) を判定対象として block する (= 安全側 fallback)。これは
+# best-effort としての適切な挙動であり、Issue #592 (Counterpoint 31 = git native
+# pre-commit hook) 完了後に「正しく worktree を解決した上で pass」へ変化すべき
+# regression trail として block 期待値で固定する。
+add_case "R06" "block" "fix-required" \
   "$MAIN_REPO" "cd $WORKTREE && ($GIT commit -m x)" \
-  "cd worktree && (commit) nested subshell — git native hook で塞ぐ"
+  "cd worktree && (commit) nested subshell — safe-side block (Issue #592 で pass 化予定)"
 
 # --- --git-dir / --work-tree 系 (Critical 19-20) -----------------------------
 add_case "X01" "pass" "fix-required" \
@@ -187,61 +195,61 @@ add_case "FP02" "block" "sanity" \
   "$WORKTREE" "$GIT push -f origin feat/test" \
   "git push -f is blocked"
 
-# --- 構造的 bypass (Issue #568 で範囲外と確定、Counterpoint 31 に委譲) -----
+# --- 構造的 bypass (Issue #568 で範囲外と確定、Issue #592 / Counterpoint 31 に委譲) -----
 # Issue #568 (Counterpoint 32 採用) で本 hook の責務を「shell コマンド文字列で
 # 素直に判定できるもの」に絞る方針が確立した。以下 E01-E11 は shell 文字列解析の
 # 本質的限界に起因する bypass であり、本 hook では塞がない。
 #
 # 真の保護は git ネイティブ pre-commit hook (`.githooks/pre-commit` +
-# `core.hooksPath`) で行う想定 (Counterpoint 31 — follow-up Issue 候補)。
+# `core.hooksPath`) で行う想定 (Issue #592 — Counterpoint 31 follow-up)。
 # git ネイティブ hook 側であれば、どんな経路 (eval / bash -c / 絶対パス /
 # env -C 等) から git commit を呼んでも必ず実行されるため、bypass は不可能となる。
 #
 # 本ハーネスでは「regression テスト」として E01-E11 をリストに残し、
-# Counterpoint 31 が将来導入されたタイミングで「block」期待値へ昇格させる
+# Issue #592 が将来導入されたタイミングで「block」期待値へ昇格させる
 # trail を保つ。known-limitation のままなので pass/block どちらでも fail にしない。
-add_case "E01_BY13" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E01_BY13" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "PAGER=cat $GIT commit -m x" \
   "PAGER=cat g..it commit (env-prefix) — git native hook で塞ぐ"
 
-add_case "E02_BY17" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E02_BY17" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "/usr/bin/$GIT commit -m x" \
   "absolute path /usr/bin/g..it — git native hook で塞ぐ"
 
-add_case "E03_BY9" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E03_BY9" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "sudo $GIT commit -m x" \
   "sudo g..it commit — git native hook で塞ぐ"
 
-add_case "E04_T8" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E04_T8" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "eval \"$GIT commit -m bypass\"" \
   "eval \"g..it commit\" — git native hook で塞ぐ"
 
-add_case "E05_T9" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E05_T9" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "bash -c \"$GIT commit -m x\"" \
   "bash -c \"g..it commit\" — git native hook で塞ぐ"
 
-add_case "E06_T29" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E06_T29" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "GIT_DIR=$MAIN_REPO/.git $GIT commit -m x" \
   "GIT_DIR=... g..it commit — git native hook で塞ぐ"
 
-add_case "E07_T38" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E07_T38" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "env -C $MAIN_REPO $GIT commit -m x" \
   "env -C ... g..it commit — git native hook で塞ぐ"
 
-add_case "E08_T30" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E08_T30" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "alias gc=\"$GIT commit\"; gc -m x" \
   "alias gc=...; gc -m — git native hook で塞ぐ"
 
-add_case "E09_BY4" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E09_BY4" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "$GIT \\\\
  commit -m x" \
   "g..it <newline> commit — git native hook で塞ぐ"
 
-add_case "E10_BY16" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E10_BY16" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "\"$GIT\" commit -m x" \
   "\"g..it\" commit (quoted) — git native hook で塞ぐ"
 
-add_case "E11_INJ1" "known-limitation" "out-of-scope (Counterpoint 31)" \
+add_case "E11_INJ1" "known-limitation" "out-of-scope (Issue #592, Counterpoint 31)" \
   "$MAIN_REPO" "$GIT -C \"\$(echo $MAIN_REPO)\" commit -m x" \
   "g..it -C \$(echo MAIN) commit — git native hook で塞ぐ"
 

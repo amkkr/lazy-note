@@ -10,7 +10,7 @@
 #   shell の文字列解析ですべての bypass を塞ぐのは本質的に不可能なので、
 #   責務を「コマンド文字列で素直に判定できるもの」だけに絞り、bypass 不可能性を
 #   要求する判定は git ネイティブ hook (`.githooks/pre-commit` + `core.hooksPath`)
-#   に委ねる方針とする (follow-up Issue: Counterpoint 31)。
+#   に委ねる方針とする (follow-up Issue: #592 — Counterpoint 31)。
 #
 # 本 hook が施行する規約:
 #   1. `git rebase` 禁止 — sub-command 名そのものの literal 判定
@@ -18,10 +18,10 @@
 #   3. コミットメッセージ内に `Co-Authored-By` を含めない — `-m`/`--message` 引数の文字列判定
 #   4. master/main ブランチへの直接 commit/push 拒否 (best-effort)
 #      ※ 4 は shell 文字列解析の限界により bypass 可能。
-#         本質的な保護は git ネイティブ hook に委ねる (Counterpoint 31)。
+#         本質的な保護は git ネイティブ hook に委ねる (#592 — Counterpoint 31)。
 #         本 hook では「素朴な `git commit -m x` を master で叩いた場合」のみ best-effort で block する。
 #
-# 既知の限界 (= Counterpoint 31 まで残る bypass):
+# 既知の限界 (= Counterpoint 31 / Issue #592 まで残る bypass):
 #   - env 変数 prefix (`PAGER=cat git commit ...`)
 #   - 絶対パス (`/usr/bin/git commit ...`)
 #   - sudo / 前置コマンド (`sudo`, `nice`, `timeout`, `stdbuf` 等)
@@ -33,9 +33,17 @@
 #   - quoted command (`"git" commit`)
 #   - コマンド置換による path 隠蔽 (`git -C "$(echo $REPO)" commit`)
 #
-# Counterpoint 32 (worktree allowlist) は本 hook の責務縮小により実質的に達成。
-# `.claude/worktrees/` 配下の git worktree は agent ごとに feature ブランチを切るので
-# 本 hook のブランチ判定をすり抜けても CI/GitHub 側で master 直 push を防げる。
+# Counterpoint 32 (worktree allowlist) について:
+#   本 PR では allowlist を実装しない。理由は以下:
+#     - 「literal な `cd <path>` / `git -C <path>` の path 抽出」は既存実装
+#       (resolve_target_dir) でカバー済みで、worktree 経由のブランチ判定は正しく
+#       動作する (Issue #550 / Issue #567 の対応範囲)。
+#     - 動的に決まる path (コマンド置換・変数展開) は shell 文字列解析の限界により
+#       allowlist でも本質的に防げないため、ここで追加実装する価値が薄い。
+#     - 上記の構造的 bypass は #592 (Counterpoint 31 = git ネイティブ pre-commit hook)
+#       で塞ぐ計画であり、それまでは本 hook は best-effort に留める。
+#   よって、固定 path 列の allowlist 実装は #592 の完了後に再評価することとし、
+#   本 hook では追加実装しない。
 
 set -euo pipefail
 

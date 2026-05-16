@@ -73,7 +73,10 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
 - **Tripwire テストは `hash:true` 耐性あり**: PR #474 で導入した `data-*` 属性方式により、`hash:true` を一時有効化しても Tripwire テスト 647 件は全 pass（Issue #475 にて master `d609ef0` で実機検証、2026-05-15）。Issue #422 の構造的耐性は実機で担保された
 - **bundle size はトレードオフ**: 生 CSS は `-25.6%` だが、hash 化で class 名のエントロピーが上がり gzip 圧縮率が低下するため、**gzip 後は `+5.8%`**。実環境は gzip 配信が標準なので、転送量で見るとほぼ等価
 - **手書き hook class（`index-row-*` / `copy-btn` 等）は Panda hash 化対象外**: `hash:true` を有効化しても影響を受けない
-- **再評価したい場合**: 別 Issue として切り出すこと。CI で `hash:true` 実機検証を回すための workflow_dispatch トリガーは Issue #496 で検討中
+- **再評価したい場合**: 別 Issue として切り出すこと
+  - CI で `hash:true` 実機検証を回すための workflow は `.github/workflows/panda-hash-regression.yml`（Issue #496 で追加済み）
+  - GitHub Actions の "Panda hash:true regression check" workflow から手動 (workflow_dispatch) で実行できる
+  - 実行内容: `pnpm test:run` と `panda + tsc + vite build` を `hash: true` で 1 回ずつ実行し、Tripwire 耐性の regression を検知する
 
 ### 設定ファイル
 

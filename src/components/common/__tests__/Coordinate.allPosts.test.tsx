@@ -71,9 +71,9 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
         // 0 件記事 (= 全節目が未来 or 全節目が heavy) は非表示
         expect(container.firstChild).toBeNull();
       } else {
-        // 1 件以上ある記事は ul (aria-label="あれから N 日目") が描画される
+        // 1 件以上ある記事は ul (aria-label="個人史座標") が描画される
         const list = screen.getByRole("list", {
-          name: "あれから N 日目",
+          name: "個人史座標",
         });
         expect(list).toBeInTheDocument();
         // 期待件数の li が並ぶ

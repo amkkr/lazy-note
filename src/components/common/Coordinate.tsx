@@ -138,6 +138,7 @@ export const Coordinate = memo(
       <div className={containerStyles} data-token-color="fg.muted">
         {/* role="list" は Safari/VoiceOver で list-style: none を当てた ul の
             list セマンティクスが剥奪される既知の WebKit バグへの防御で明示する */}
+        {/* biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none の ul の list セマンティクスが剥奪される WebKit バグへの防御として明示する */}
         <ul aria-label="個人史座標" role="list">
           {displayable.map((coordinate, index) => (
             // milestones.json に同じ label が誤って 2 行入っても React の

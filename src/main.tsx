@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ScrollToTop } from "./components/common/ScrollToTop";
+import AnchorPage from "./pages/anchor";
 import IndexPage from "./pages/index";
 import PostPage from "./pages/posts/Post";
 import "./index.css";
@@ -28,6 +29,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<IndexPage />} />
         <Route path="/posts/:timestamp" element={<PostPage />} />
+        <Route path="/anchor" element={<AnchorPage />} />
       </Routes>
     </>
   );

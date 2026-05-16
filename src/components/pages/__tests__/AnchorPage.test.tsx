@@ -127,8 +127,10 @@ describe("AnchorPage", () => {
         name: "各記事の座標",
       });
       // heavy を含む節目ラベルが両記事に現れる (休職開始: 2 記事に登場)
+      // - 最初の記事 (2025-08-26 公開): 「休職開始 から 21 日目」
+      // - 復帰の記事 (2025-09-05 公開): 「休職開始 から 31 日目」
       const heavyMatches = within(postSection).getAllByText(/休職開始/);
-      expect(heavyMatches.length).toBeGreaterThanOrEqual(1);
+      expect(heavyMatches).toHaveLength(2);
       // 復帰記事のみ 2025-09-05 当日に到達するため、社会復帰は 1 記事に出る
       expect(within(postSection).getByText(/社会復帰/)).toBeInTheDocument();
       // 復帰記事には「31 日目」が出る (休職開始から 31 日)

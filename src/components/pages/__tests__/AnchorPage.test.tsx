@@ -166,9 +166,7 @@ describe("AnchorPage", () => {
       );
 
       // 「記事がありません」のような断定ではなく、寄り添う文言にする
-      expect(
-        screen.getByText(/まだ記事が登録されていません/),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/まだ記事がありません/)).toBeInTheDocument();
       // 各記事の座標 region 自体は出さない
       expect(
         screen.queryByRole("region", { name: "各記事の座標" }),

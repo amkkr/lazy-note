@@ -257,10 +257,7 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
             節目一覧
           </h2>
           {milestones.length === 0 ? (
-            <p className={emptyStateStyles}>
-              まだ節目が記録されていません。datasources/milestones.json
-              に節目を追記すると、ここに一覧表示されます。
-            </p>
+            <p className={emptyStateStyles}>まだ節目が記録されていません。</p>
           ) : (
             <ul
               aria-label="節目一覧"
@@ -297,10 +294,7 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
             (= テスト用 id) は素直にスキップする。 */}
         {posts.length === 0 ? (
           <div className={sectionBlockStyles} data-token-border="border.subtle">
-            <p className={emptyStateStyles}>
-              まだ記事が登録されていません。datasources/ に記事を追加すると、
-              ここに各記事の座標が一覧表示されます。
-            </p>
+            <p className={emptyStateStyles}>まだ記事がありません。</p>
           </div>
         ) : (
           <section

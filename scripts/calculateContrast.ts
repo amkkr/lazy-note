@@ -333,25 +333,15 @@ const getContrastPairs = (): readonly ContrastPair[] => {
 // =============================================================================
 
 /**
- * OKLCH 文字列から sRGB の WCAG 相対輝度を取得する。
- *
- * culori の `wcagLuminance` が内部で sRGB → linear (gamma 補正) →
- * 0.2126 R + 0.7152 G + 0.0722 B を行う WCAG 2.x 規定の実装。
- * これは Lighthouse の値ではなく WCAG 仕様を直接実装したもの。
- */
-const luminance = (oklchString: string): number => {
-  const color = parse(oklchString);
-  if (!color) {
-    throw new Error(`Failed to parse OKLCH: ${oklchString}`);
-  }
-  return wcagLuminance(color);
-};
-
-/**
  * 単一ペアのコントラスト比を WCAG 2.x 仕様で計算する。
  *
  * 実体は culori の `wcagContrast` で、(L1 + 0.05) / (L2 + 0.05)
  * (L1, L2 は明度の高い方・低い方の sRGB 相対輝度)。
+ *
+ * 内部で利用する `wcagLuminance` は culori が提供する WCAG 2.x 規定の
+ * 相対輝度計算 (sRGB → linear (gamma 補正) →
+ * 0.2126 R + 0.7152 G + 0.0722 B)。Lighthouse の値ではなく WCAG 仕様
+ * を直接実装したもの。
  */
 const computeContrast = (pair: ContrastPair): ContrastResult => {
   const fgColor = parse(pair.fg);

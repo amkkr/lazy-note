@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import { axe } from "jest-axe";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { Milestone } from "../../../lib/anchors";
@@ -424,6 +425,41 @@ describe("PostDetailPage", () => {
       expect(
         screen.queryByRole("list", { name: "個人史座標" }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  // ==========================================================================
+  // axe a11y 違反検証 (Issue #491 AC: 「axe で PostDetailPage に新規違反が
+  // 出ないこと」)
+  //
+  // Coordinate を組み込んだ PostDetailPage の描画結果に axe-core の検出する
+  // a11y 違反が含まれないことを保証する。Coordinate 単体のテストと別に
+  // PostDetailPage 全体での違反 0 件を確認することで、ページ統合時の
+  // ARIA 構造 (heading 階層 / landmark / list 等) 整合性を検証する。
+  // ==========================================================================
+  describe("axe a11y 違反検証", () => {
+    const baseMilestones: readonly Milestone[] = [
+      { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+    ];
+    const mockPostWithTimestamp: Post = {
+      ...mockPost,
+      id: "20260307120000",
+    };
+
+    it("Coordinate を含む PostDetailPage 全体で axe a11y 違反が 0 件である", async () => {
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPostWithTimestamp}
+            olderPost={null}
+            newerPost={null}
+            milestones={baseMilestones}
+          />
+        </MemoryRouter>,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
     });
   });
 });

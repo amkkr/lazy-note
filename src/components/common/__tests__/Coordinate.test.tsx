@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import { axe } from "jest-axe";
 import { describe, expect, it } from "vitest";
 import type { Milestone } from "../../../lib/anchors";
 import { Coordinate } from "../Coordinate";
@@ -232,6 +233,31 @@ describe("Coordinate", () => {
       expect(wrapper).not.toBeNull();
       // ul の親要素であることを確認 (Coordinate の wrapper は ul を内包する)
       expect(wrapper?.querySelector("ul")).not.toBeNull();
+    });
+  });
+
+  // ==========================================================================
+  // axe a11y 違反検証 (Issue #491 AC: 「axe で新規違反が出ないこと」)
+  //
+  // jest-axe を Vitest + jsdom で利用し、Coordinate の描画結果に axe-core の
+  // 検出する a11y 違反が含まれないことを保証する。Tripwire テストでは
+  // 拾い切れない自動検証可能な a11y ルール (role / label / コントラスト等の
+  // axe ルール群) のセーフティネットとして機能する。
+  // ==========================================================================
+  describe("axe a11y 違反検証", () => {
+    it("座標を描画した状態で axe a11y 違反が 0 件である", async () => {
+      const { container } = render(
+        <Coordinate
+          publishedAt="2025-12-31T00:00:00+09:00"
+          milestones={[
+            { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+            { date: "2025-02-01", label: "社会復帰", tone: "light" },
+          ]}
+        />,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
     });
   });
 });

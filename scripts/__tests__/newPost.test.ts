@@ -41,6 +41,7 @@ import {
   extractMarkdownTitle,
   findPreviousPost,
   formatMilestonesSummary,
+  type IgnitionInput,
   listPostFileNames,
   loadMilestones,
 } from "../newPost.ts";
@@ -652,5 +653,80 @@ describe("buildPostMarkdown: 完全な .md 出力", () => {
     expect(result).toContain("-->\n\n## 本文");
     expect(result).not.toContain("-->## 本文");
     expect(result).not.toContain("-->\n## 本文");
+  });
+});
+
+// =============================================================================
+// 型レベルテスト: IgnitionInput.coordinates の discriminator 化 (Issue #523)
+// =============================================================================
+//
+// 目的: PR #499 で `Coordinate` / `Elapsed` 自体に `kind` discriminator を導入
+// した nominal 化 (Issue #497) と、Issue #523 で `IgnitionInput.coordinates`
+// を `readonly Coordinate[]` に統一した変更の両方を、型レベルで回帰固定する。
+//
+// 背景: Issue #523 以前は `coordinates: { label, tone, daysSince }[]` という
+// 構造的リテラル型で受けていたため、(1) `kind` 欠落リテラルが通る、(2)
+// `kind: "elapsed"` の Elapsed と取り違えても気付けない、という抜けがあった。
+// 本テスト群はこれらの回帰を `@ts-expect-error` で固定する。
+//
+// 検証手段: `// @ts-expect-error` ディレクティブは型エラーが発生しなければ
+// 「Unused @ts-expect-error directive」として `pnpm type-check:test` が失敗
+// するため、回帰テストとして機能する (`anchors.test.ts` の Issue #497 型レベル
+// テストと同様の方式)。実行時アサーションは行わない。
+describe("型レベル: IgnitionInput.coordinates の discriminator 化 (Issue #523)", () => {
+  it("kind を持たないリテラル要素を coordinates に渡すとコンパイルエラーになる", () => {
+    const input: IgnitionInput = {
+      coordinates: [
+        // @ts-expect-error - discriminator `kind` が欠落しているため
+        // Coordinate として代入できない (Issue #523 で readonly Coordinate[]
+        // に統一した回帰防止: 構造的 { label, tone, daysSince }[] に戻ると
+        // このディレクティブが unused になり type-check:test が失敗する)
+        { label: "x", tone: "neutral", daysSince: 1 },
+      ],
+      siteOpeningElapsed: null,
+      previousPost: null,
+      publishedAt: "2025-01-01T12:00:00+09:00",
+    };
+
+    void input;
+  });
+
+  it("kind: \"elapsed\" の要素を coordinates に渡すとコンパイルエラーになる (Coordinate / Elapsed の取り違え検出)", () => {
+    const input: IgnitionInput = {
+      coordinates: [
+        // @ts-expect-error - kind: "elapsed" は Elapsed であり Coordinate
+        // (kind: "coordinate") とは discriminator が一致しないため
+        // coordinates 要素には代入できない (Issue #523)
+        { kind: "elapsed", label: "x", daysSince: 1 },
+      ],
+      siteOpeningElapsed: null,
+      previousPost: null,
+      publishedAt: "2025-01-01T12:00:00+09:00",
+    };
+
+    void input;
+  });
+
+  it("構造的 { label, tone, daysSince }[] 配列リテラルを coordinates に代入できない", () => {
+    // Issue #523 以前の形 (`readonly { label, tone, daysSince }[]`) に再構築
+    // した配列を一旦変数で受け、`IgnitionInput` への代入で弾かれることを確認。
+    // これにより「coordinates の型を構造的リテラルへ戻す」リファクタを
+    // ピンポイントで検出できる。
+    const looseCoordinates: readonly {
+      label: string;
+      tone: "neutral";
+      daysSince: number;
+    }[] = [{ label: "x", tone: "neutral", daysSince: 1 }];
+
+    const input: IgnitionInput = {
+      // @ts-expect-error - 構造的リテラル型は discriminator `kind` を持たない
+      // ため readonly Coordinate[] には代入できない (Issue #523 回帰防止)
+      coordinates: looseCoordinates,
+      siteOpeningElapsed: null,
+      previousPost: null,
+      publishedAt: "2025-01-01T12:00:00+09:00",
+    };
+
+    void input;
   });
 });

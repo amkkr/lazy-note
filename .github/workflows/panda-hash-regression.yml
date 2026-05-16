@@ -93,3 +93,26 @@ jobs:
         run: |
           echo "::error::hash:true でビルドが失敗しました。Panda 生成物または hook class との整合に regression があります。hash 化された class 名と手書き hook class (index-row-*/copy-btn 等) の衝突可能性も確認してください。"
           exit 1
+
+      - name: Report bundle size (raw / gzip)
+        # CLAUDE.md L75 の「gzip 後 +5.8%」トレードオフを CI 上で追跡可能に
+        # する。本 step は GITHUB_STEP_SUMMARY に Markdown 表として書き出す
+        # のみで、pass/fail 判定には影響しない。閾値での自動 fail は導入せず、
+        # 数値の経時変化は手動 (workflow_dispatch) 実行時に Actions UI 上の
+        # Summary から目視で確認する運用とする。
+        # build が成功した時のみ実行する。test / build いずれかが失敗した
+        # 場合は dist/assets が信頼できないため report をスキップする。
+        if: steps.tests.outcome == 'success' && steps.build.outcome == 'success'
+        run: |
+          set -euo pipefail
+          {
+            echo "## hash:true bundle size";
+            echo "";
+            echo "| File | raw (B) | gzip (B) |";
+            echo "|------|---------|----------|";
+            for f in dist/assets/*.css; do
+              raw=$(stat -c '%s' "$f")
+              gz=$(gzip -c "$f" | wc -c)
+              echo "| \`${f}\` | ${raw} | ${gz} |";
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

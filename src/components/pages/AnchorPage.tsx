@@ -262,7 +262,12 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
               に節目を追記すると、ここに一覧表示されます。
             </p>
           ) : (
-            <ul aria-label="節目一覧" className={milestoneListStyles}>
+            <ul
+              aria-label="節目一覧"
+              className={milestoneListStyles}
+              // biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する
+              role="list"
+            >
               {milestones.map((milestone) => (
                 <li
                   // 同 date + 同 label の節目は意味的に重複であるため、
@@ -306,7 +311,8 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
             <h2 id="anchor-posts-heading" className={sectionHeadingStyles}>
               各記事の座標
             </h2>
-            <ul className={postListStyles}>
+            {/* biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する */}
+            <ul className={postListStyles} role="list">
               {postEntries.map((entry) => (
                 <li
                   key={entry.post.id}

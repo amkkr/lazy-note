@@ -129,8 +129,14 @@ export const Coordinate = memo(
 
     // 過去の節目に絞った座標 (computeCoordinates が未来は除外する)
     const coordinates = computeCoordinates(publishedAt, milestones);
-    // tone: "heavy" は Coordinate に表示しない (重い節目は静かに隠す)
-    const displayable = coordinates.filter((c) => c.tone !== "heavy");
+    // `heavy` を除外して表示候補に絞る。
+    // `Coordinate` は現状単型のため `kind` 判定は型レベルで tautology だが、
+    // 将来 `Coordinate | Elapsed` mixed union に拡張された際の narrowing 防御として
+    // 型ガード形式を採用する (Issue #497 の discriminator 設計意図に対応)。
+    const displayable = coordinates.filter(
+      (c): c is CoordinateData =>
+        c.kind === "coordinate" && c.tone !== "heavy",
+    );
 
     if (displayable.length === 0) {
       return null;

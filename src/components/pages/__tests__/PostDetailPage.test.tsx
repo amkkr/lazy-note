@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
+import { axe } from "jest-axe";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
+import type { Milestone } from "../../../lib/anchors";
 import type { Post } from "../../../lib/markdown";
 import { PostDetailPage } from "../PostDetailPage";
 
@@ -215,7 +217,11 @@ describe("PostDetailPage", () => {
 
       render(
         <MemoryRouter>
-          <PostDetailPage post={postWithList} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={postWithList}
+            olderPost={null}
+            newerPost={null}
+          />
         </MemoryRouter>,
       );
 
@@ -275,7 +281,9 @@ describe("PostDetailPage", () => {
         </MemoryRouter>,
       );
 
-      const nav = container.querySelector('nav[aria-label="ページナビゲーション"]');
+      const nav = container.querySelector(
+        'nav[aria-label="ページナビゲーション"]',
+      );
       expect(nav).toBeInTheDocument();
       expect(nav).toHaveAttribute("data-token-border", "border.subtle");
     });
@@ -320,6 +328,138 @@ describe("PostDetailPage", () => {
         level: 1,
       });
       expect(heading.style.viewTransitionName).toBe("post-test-post");
+    });
+  });
+
+  // ==========================================================================
+  // Coordinate 表示 (Issue #491 / Anchor の3つの顔のひとつ「座標」)
+  //
+  // 記事詳細の MetaInfo 近傍に「{label} から N 日目」を静かに一行で並べる。
+  // - post.id (YYYYMMDDhhmmss) から publishedAt を逆算する
+  // - milestones prop と showCoordinate prop は optional (既定で非表示)
+  // - 不正な id (タイムスタンプ形式でない) は publishedAt 推定不可で非表示
+  // ==========================================================================
+  describe("Coordinate 表示", () => {
+    /**
+     * publishedAt 推定可能なタイムスタンプ形式の id を持つ Post fixture。
+     *
+     * 2026-03-07 12:00:00 JST 公開を想定し、節目 (2025-01-01 サイト開設) との
+     * 差分を Coordinate が「サイト開設 から N 日目」として描画することを検証する。
+     */
+    const mockPostWithTimestamp: Post = {
+      ...mockPost,
+      id: "20260307120000",
+    };
+
+    const baseMilestones: readonly Milestone[] = [
+      { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+    ];
+
+    it("milestones を渡すと過去の節目の Coordinate を描画する", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPostWithTimestamp}
+            olderPost={null}
+            newerPost={null}
+            milestones={baseMilestones}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.getByRole("list", { name: "個人史座標" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/サイト開設/)).toBeInTheDocument();
+    });
+
+    it("milestones を渡さない (既定) と Coordinate を描画しない", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPostWithTimestamp}
+            olderPost={null}
+            newerPost={null}
+          />
+        </MemoryRouter>,
+      );
+
+      // milestones 未指定 (= 空配列扱い) で Coordinate は出ない
+      expect(
+        screen.queryByRole("list", { name: "個人史座標" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("showCoordinate=false で milestones が渡っていても非表示にできる", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPostWithTimestamp}
+            olderPost={null}
+            newerPost={null}
+            milestones={baseMilestones}
+            showCoordinate={false}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("list", { name: "個人史座標" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("post.id がタイムスタンプ形式でない (publishedAt 推定不可) ときは Coordinate を描画しない", () => {
+      // mockPost.id="test-post" は YYYYMMDDhhmmss にマッチしないため
+      // inferPublishedAt が null を返し、Coordinate は描画されない
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={baseMilestones}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByRole("list", { name: "個人史座標" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  // ==========================================================================
+  // axe a11y 違反検証 (Issue #491 AC: 「axe で PostDetailPage に新規違反が
+  // 出ないこと」)
+  //
+  // Coordinate を組み込んだ PostDetailPage の描画結果に axe-core の検出する
+  // a11y 違反が含まれないことを保証する。Coordinate 単体のテストと別に
+  // PostDetailPage 全体での違反 0 件を確認することで、ページ統合時の
+  // ARIA 構造 (heading 階層 / landmark / list 等) 整合性を検証する。
+  // ==========================================================================
+  describe("axe a11y 違反検証", () => {
+    const baseMilestones: readonly Milestone[] = [
+      { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+    ];
+    const mockPostWithTimestamp: Post = {
+      ...mockPost,
+      id: "20260307120000",
+    };
+
+    it("Coordinate を含む PostDetailPage 全体で axe a11y 違反が 0 件である", async () => {
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPostWithTimestamp}
+            olderPost={null}
+            newerPost={null}
+            milestones={baseMilestones}
+          />
+        </MemoryRouter>,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
     });
   });
 });

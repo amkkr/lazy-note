@@ -1,0 +1,110 @@
+name: pre-commit-guard tests
+
+# Issue #569: PR #567 (Issue #550) で追加した pre-commit-guard.sh のテスト
+# ハーネスを CI に統合し、regression を検出可能にする。
+#
+# 実行対象は `.claude/hooks/__tests__/pre-commit-guard.test.sh` のみで、
+# pnpm install や Panda CSS 生成といった重い手順は不要。shell だけで動くため
+# 既存の lint / test workflow とは分離して短時間で完結させる。
+#
+# harness exit code contract (テスト側と共有):
+#   - FAIL > 0  -> harness が exit 1 を返し、本 workflow も即時 fail させる
+#   - FAIL == 0 -> harness は exit 0。SKIP 件数は exit code に影響しないため、
+#                  別途 TOTAL 行の literal 一致 grep で SKIP 件数 (known-limitation)
+#                  の regression を検知する (Issue #569 AC: SKIP 件数を CI 上で固定化)。
+#
+# トリガーは pull_request のみ。CLAUDE.md で master への直接 commit / push は
+# 禁止されており、既存の lint / test workflow (ci.yml / test.yml / a11y.yml /
+# playwright.yml) もすべて pull_request トリガーで統一されているため、本
+# workflow もそれに揃える。
+
+on:
+  pull_request:
+    branches: [master]
+
+# 本 workflow は repo を読むだけで write は不要。明示的に最小権限へ縛る。
+permissions:
+  contents: read
+
+jobs:
+  precommit-guard-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run pre-commit-guard test harness
+        id: harness
+        # harness は失敗時に exit 1 を返す。CI を即時 fail させるため
+        # continue-on-error は付けない。
+        # 出力は GITHUB_STEP_SUMMARY 用に保存しつつ、ログにも tee する。
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/precommit-guard"
+          out_file="$RUNNER_TEMP/precommit-guard/output.txt"
+          bash .claude/hooks/__tests__/pre-commit-guard.test.sh \
+            | tee "$out_file"
+          harness_exit=${PIPESTATUS[0]}
+          echo "out_file=$out_file" >> "$GITHUB_OUTPUT"
+          echo "harness_exit=$harness_exit" >> "$GITHUB_OUTPUT"
+          exit "$harness_exit"
+
+      - name: Assert SKIP count (known-limitation) is fixed at expected value
+        # Issue #569 AC: 「FAIL 0 / SKIP 件数が期待値であることを確認」を
+        # 字義通り満たすため、SKIP 件数 (= known-limitation 件数) を CI 上で
+        # literal 一致 grep で固定化する。
+        #
+        # harness の TOTAL 行例:
+        #   TOTAL: 27  OK: 15  FAIL: 0  SKIP(known-limitation): 12
+        #
+        # 期待値は現状 12 (Issue #550 の DA レビューで指摘された既存 bypass 11
+        # + R06 nested subshell 1)。新たに known-limitation が追加された
+        # (= SKIP が増えた) regression を CI 上で検知し、harness 側と本
+        # workflow 側を同 PR で更新する運用に倒す。
+        run: |
+          set -uo pipefail
+          out_file="${{ steps.harness.outputs.out_file }}"
+          if [ -z "$out_file" ] || [ ! -f "$out_file" ]; then
+            echo "::error::harness output file not found: $out_file"
+            exit 1
+          fi
+          if ! grep -qE 'SKIP\(known-limitation\): 12$' "$out_file"; then
+            echo "::error::Expected 'SKIP(known-limitation): 12' but harness output diverged."
+            echo "::error::Check harness output below and update either the harness or this workflow in the same PR."
+            grep -E '^TOTAL:' "$out_file" || echo "(TOTAL line not found in harness output)"
+            exit 1
+          fi
+
+      - name: Write summary to GITHUB_STEP_SUMMARY
+        # harness の成否に関係なく Summary を残す。失敗時は前段で exit 1
+        # 済みだが、`if: always()` で実行することで GitHub Actions UI 上に
+        # 集計行 (OK / FAIL / SKIP) を表示でき、原因切り分けがしやすい。
+        if: always()
+        run: |
+          set -uo pipefail
+          out_file="${{ steps.harness.outputs.out_file }}"
+          {
+            echo "## pre-commit-guard test harness";
+            echo "";
+            if [ -n "$out_file" ] && [ -f "$out_file" ]; then
+              # TOTAL 行 (例: "TOTAL: 27  OK: 15  FAIL: 0  SKIP(known-limitation): 12")
+              # を抽出して目立つ位置に置く。grep が一致しない場合に備えて || true。
+              total_line=$(grep -E '^TOTAL:' "$out_file" || true)
+              if [ -n "$total_line" ]; then
+                echo "### Summary";
+                echo "";
+                echo "\`\`\`";
+                echo "$total_line";
+                echo "\`\`\`";
+                echo "";
+              fi
+              echo "### Full output";
+              echo "";
+              echo "\`\`\`";
+              cat "$out_file";
+              echo "\`\`\`";
+            else
+              echo "_(harness output not captured)_";
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

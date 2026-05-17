@@ -16,6 +16,12 @@
 #   known-limitation - 現状の実装の限界。block でも pass でも fail にはしない
 #                      (DA レビューで指摘された既存 bypass / follow-up Issue 候補)
 #
+# harness exit code contract (CI 側と共有):
+#   - FAIL > 0       -> exit 1 (CI を fail させる)
+#   - FAIL == 0      -> exit 0 (SKIP 件数は exit code に影響しない)
+#   SKIP 件数の regression 検知は CI (precommit-guard-tests.yml) 側で
+#   TOTAL 行の literal 一致 grep により担保する。
+#
 # 本テストは Bash ツールの PreToolUse hook (pre-commit-guard.sh) と
 # 同じスクリプトを呼び出すため、テスト実行コマンド自身に
 # 'git commit' などの literal を含めないこと。コマンド文字列は配列に

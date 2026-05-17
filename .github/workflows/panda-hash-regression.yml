@@ -37,6 +37,37 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build baseline (hash:false) for bundle size comparison
+        # Issue #553: baseline (hash:false) との bundle size 対比のため、先に
+        # hash:false 状態でビルドして dist/assets/*.css のサイズを退避する。
+        # 本 step は後段の bundle size report 用のデータ収集が目的で、
+        # 失敗しても既存の pass/fail 判定 (tests / build with hash:true) には
+        # 影響させない (continue-on-error: true)。退避先が空のままでも、
+        # 後段の report step が baseline 列を欠落表示するだけで規程通り動作する。
+        id: baseline_build
+        continue-on-error: true
+        # 既存 hash:true build step (L116) と同じく test を二重実行しないため
+        # pnpm exec で panda / tsc / vite build を 1 回ずつ呼ぶ。Issue #528 で
+        # 議論中の package.json build スクリプトとの drift 問題は本 issue の
+        # スコープ外。両 step で同じコマンド列を使うことで本 workflow 内では
+        # 一貫性を保つ。
+        run: |
+          set -euo pipefail
+          pnpm exec panda
+          pnpm exec tsc
+          pnpm exec vite build
+          # baseline CSS を退避。後段で hash:true ビルド成果物と並べて
+          # 合計サイズで比較する (hash 化でファイル名が変わるため個別ファイル
+          # 名比較ではなく合計値で見る)。dist/assets が無いケースに備えて
+          # nullglob で空ガード。
+          mkdir -p /tmp/baseline-css
+          shopt -s nullglob
+          baseline_files=(dist/assets/*.css)
+          shopt -u nullglob
+          if (( ${#baseline_files[@]} > 0 )); then
+            cp "${baseline_files[@]}" /tmp/baseline-css/
+          fi
+
       - name: Enable Panda hash:true (temporary in-CI patch)
         # panda.config.ts の defineConfig 内 `preflight: true` 行 (末尾カンマ
         # 任意) 直下に `hash: true,` を 1 行挿入する。リポジトリへは push
@@ -121,7 +152,7 @@ jobs:
           echo "::error::hash:true でビルドが失敗しました。Panda 生成物または hook class との整合に regression があります。hash 化された class 名と手書き hook class (index-row-*/copy-btn 等) の衝突可能性も確認してください。"
           exit 1
 
-      - name: Report bundle size (raw / gzip)
+      - name: Report bundle size (raw / gzip, baseline vs hash:true)
         # CLAUDE.md L75 の「gzip 後 +5.8%」トレードオフを CI 上で追跡可能に
         # する。本 step は GITHUB_STEP_SUMMARY に Markdown 表として書き出す
         # のみで、pass/fail 判定には影響しない。閾値での自動 fail は導入せず、
@@ -129,6 +160,13 @@ jobs:
         # Summary から目視で確認する運用とする。
         # build が成功した時のみ実行する。test / build いずれかが失敗した
         # 場合は dist/assets が信頼できないため report をスキップする。
+        #
+        # Issue #553: baseline (hash:false) で先にビルドした CSS が
+        # /tmp/baseline-css/ に退避されているので、合計サイズで対比して
+        # `+X.X% (gzip) / -Y.Y% (raw)` の差分を表に追加する。hash 化でファイル
+        # 名が変わるため、個別ファイル単位ではなく合計バイト数で比較する。
+        # baseline build が失敗 (steps.baseline_build.outcome == 'failure') した
+        # 場合は baseline 列を欠落させ、hash:true 単独の表示に縮退する。
         if: steps.tests.outcome == 'success' && steps.build.outcome == 'success'
         run: |
           set -euo pipefail
@@ -140,6 +178,7 @@ jobs:
           # スキップする。
           shopt -s nullglob
           files=(dist/assets/*.css)
+          baseline_files=(/tmp/baseline-css/*.css)
           shopt -u nullglob
           if (( ${#files[@]} == 0 )); then
             {
@@ -149,8 +188,32 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+
+          # hash:true 側の合計サイズ算出
+          hash_raw_total=0
+          hash_gz_total=0
+          for f in "${files[@]}"; do
+            raw=$(stat -c '%s' "$f")
+            gz=$(gzip -c "$f" | wc -c)
+            hash_raw_total=$(( hash_raw_total + raw ))
+            hash_gz_total=$(( hash_gz_total + gz ))
+          done
+
+          # baseline 側の合計サイズ算出 (退避ファイルが無ければ 0 のまま)
+          base_raw_total=0
+          base_gz_total=0
+          for f in "${baseline_files[@]}"; do
+            raw=$(stat -c '%s' "$f")
+            gz=$(gzip -c "$f" | wc -c)
+            base_raw_total=$(( base_raw_total + raw ))
+            base_gz_total=$(( base_gz_total + gz ))
+          done
+
+          # 個別ファイル明細 (hash:true 側)
           {
             echo "## hash:true bundle size";
+            echo "";
+            echo "### Per-file (hash:true)";
             echo "";
             echo "| File | raw (B) | gzip (B) |";
             echo "|------|---------|----------|";
@@ -159,4 +222,29 @@ jobs:
               gz=$(gzip -c "$f" | wc -c)
               echo "| \`${f}\` | ${raw} | ${gz} |";
             done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # baseline 対比サマリ
+          # baseline が取得できなかった場合 (build 失敗 / CSS 0 件) は差分列を
+          # `n/a` 表示にして縮退する。awk で小数1桁の % を出す
+          # (bash は整数演算のみのため)。
+          {
+            echo "";
+            echo "### Baseline (hash:false) vs hash:true (total)";
+            echo "";
+            echo "| Metric | baseline (hash:false) | hash:true | diff |";
+            echo "|--------|----------------------:|----------:|-----:|";
+            if (( base_raw_total > 0 )); then
+              raw_diff=$(awk -v b="$base_raw_total" -v h="$hash_raw_total" \
+                'BEGIN { printf "%+.1f%%", (h - b) * 100.0 / b }')
+              gz_diff=$(awk -v b="$base_gz_total" -v h="$hash_gz_total" \
+                'BEGIN { printf "%+.1f%%", (h - b) * 100.0 / b }')
+              echo "| raw  (B) | ${base_raw_total} | ${hash_raw_total} | ${raw_diff} |";
+              echo "| gzip (B) | ${base_gz_total} | ${hash_gz_total} | ${gz_diff} |";
+            else
+              echo "| raw  (B) | n/a | ${hash_raw_total} | n/a |";
+              echo "| gzip (B) | n/a | ${hash_gz_total} | n/a |";
+              echo "";
+              echo "_(baseline build did not produce CSS assets; baseline columns are unavailable)_";
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

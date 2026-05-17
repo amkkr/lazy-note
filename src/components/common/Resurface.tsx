@@ -177,11 +177,11 @@ const stretchedLinkStyles = css({
 // Issue #534: 表示文言テンプレート / 固定文言を定数として外出し。将来の i18n
 // 化や文言調整の影響範囲をファイル内 1 箇所に局所化する。
 // (i18n フレームワークは導入しない方針 — 単純な template リテラル / 文字列定数)
-const RESURFACE_SECTION_HEADING = "過去の記事";
-const RESURFACE_SECTION_ARIA_LABEL = "過去の記事";
-const RESURFACE_UNTITLED_POST = "無題の記事";
-const RESURFACE_REASON_LABEL_SILENCE_YEAR_AGO = "1 年前のあなたの声";
-const RESURFACE_REASON_LABEL_SILENCE_OLDEST = "もう一度";
+const RESURFACE_SECTION_HEADING = "過去の記事" as const;
+const RESURFACE_SECTION_ARIA_LABEL = "過去の記事" as const;
+const RESURFACE_UNTITLED_POST = "無題の記事" as const;
+const RESURFACE_REASON_LABEL_SILENCE_YEAR_AGO = "1 年前のあなたの声" as const;
+const RESURFACE_REASON_LABEL_SILENCE_OLDEST = "もう一度" as const;
 const RESURFACE_REASON_LABEL_CALENDAR_TEMPLATE = (yearsAgo: number): string =>
   `${yearsAgo} 年前の今日`;
 const RESURFACE_REASON_LABEL_MILESTONE_ANNIVERSARY_TEMPLATE = (

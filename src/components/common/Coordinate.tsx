@@ -111,7 +111,7 @@ const separatorStyles = css({
 // Issue #534: 表示文言テンプレートを定数として外出し。将来の i18n 化や
 // 文言調整の影響範囲をファイル内 1 箇所に局所化する。
 // (i18n フレームワークは導入しない方針 — 単純な template リテラルに留める)
-const COORDINATE_LIST_ARIA_LABEL = "個人史座標";
+const COORDINATE_LIST_ARIA_LABEL = "個人史座標" as const;
 const COORDINATE_LABEL_TEMPLATE = (label: string, daysSince: number): string =>
   `${label} から ${daysSince} 日目`;
 

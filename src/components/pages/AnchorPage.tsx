@@ -242,16 +242,16 @@ const skippedNoteStyles = css({
 // 二重定義する (= Coordinate と AnchorPage は表示ポリシーが異なるため共通化
 // しない / CLAUDE.md の「過度に抽象化しない」方針)。書式変更時は両ファイルを
 // 同時更新する運用責任は Tripwire テスト (出力文字列の正規表現マッチ) が担う。
-const ANCHOR_PAGE_HEADING = "Anchor";
+const ANCHOR_PAGE_HEADING = "Anchor" as const;
 const ANCHOR_PAGE_DESCRIPTION =
-  "登録された節目と、各記事の座標を一覧表示します。";
-const ANCHOR_MILESTONES_SECTION_HEADING = "節目一覧";
-const ANCHOR_MILESTONES_LIST_ARIA_LABEL = "節目一覧";
-const ANCHOR_POSTS_SECTION_HEADING = "各記事の座標";
-const ANCHOR_EMPTY_MILESTONES_MESSAGE = "まだ節目が記録されていません。";
-const ANCHOR_EMPTY_POSTS_MESSAGE = "まだ記事がありません。";
-const ANCHOR_EMPTY_COORDINATES_MESSAGE = "まだ通過した節目はありません";
-const ANCHOR_UNTITLED_POST = "無題の記事";
+  "登録された節目と、各記事の座標を一覧表示します。" as const;
+const ANCHOR_MILESTONES_SECTION_HEADING = "節目一覧" as const;
+const ANCHOR_MILESTONES_LIST_ARIA_LABEL = "節目一覧" as const;
+const ANCHOR_POSTS_SECTION_HEADING = "各記事の座標" as const;
+const ANCHOR_EMPTY_MILESTONES_MESSAGE = "まだ節目が記録されていません。" as const;
+const ANCHOR_EMPTY_POSTS_MESSAGE = "まだ記事がありません。" as const;
+const ANCHOR_EMPTY_COORDINATES_MESSAGE = "まだ通過した節目はありません" as const;
+const ANCHOR_UNTITLED_POST = "無題の記事" as const;
 const ANCHOR_SKIPPED_NOTE_TEMPLATE = (skippedCount: number): string =>
   `publishedAt 推定不可でスキップした記事: ${skippedCount} 件`;
 const ANCHOR_ALL_SKIPPED_FALLBACK_TEMPLATE = (skippedCount: number): string =>

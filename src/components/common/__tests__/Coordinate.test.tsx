@@ -334,5 +334,60 @@ describe("Coordinate", () => {
       const results = await axe(container);
       expect(results).toHaveNoViolations();
     });
+
+    // Issue #538: 境界パターン (heavy 除外 / 0 件 / 非表示) を axe 違反検出網に
+    // 追加する。既存の「複数座標 + 1 パターン」のみでは、heavy 除外で表示件数
+    // が縮んだ状態 (separator が出ない 1 件描画) や、early return で
+    // `container.firstChild` が null になるケースで生じうる axe 違反 (= 例えば
+    // 将来 wrapper 構造が変わって aria-label を持たない空 ul が残る等) を
+    // 検出できない。境界 3 パターンを最小コストで axe 通過保証する。
+    it("heavy 除外で表示件数が縮んだ状態でも axe a11y 違反が 0 件である", async () => {
+      // 全節目が過去だが heavy (休職開始) は除外され、表示は neutral / light の
+      // 2 件に縮む構成。Coordinate 内部で `excludeHeavy: true` が効くため
+      // separator は 1 件のみ描画される (境界: 「heavy あり入力」 vs 「heavy なし出力」)
+      const { container } = render(
+        <Coordinate
+          publishedAt="2026-01-01T00:00:00+09:00"
+          milestones={baseMilestones}
+        />,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    it("座標 0 件で非描画になった状態で axe a11y 違反が 0 件である", async () => {
+      // 全節目が publishedAt より未来のため early return で何も描画しない。
+      // 描画ノードが空 (container.firstChild === null) の境界でも axe が
+      // 違反を検出しないこと (= 空 DOM が axe 違反として誤検出されないこと) を
+      // 保証する。Issue #538 補足の「DOM が空のケースに axe は不要」観点も
+      // あるが、将来 wrapper を残す形に変えた際に違反が出る可能性を構造的に
+      // 抑える価値があるため境界として網に入れる。
+      const { container } = render(
+        <Coordinate
+          publishedAt="2024-12-31T00:00:00+09:00"
+          milestones={baseMilestones}
+        />,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    it("show=false で非描画になった状態で axe a11y 違反が 0 件である", async () => {
+      // 表示 OFF フラグ (撤退可能性) で early return される境界。0 件 early
+      // return と同じく描画ノードが空になるが、判定経路が異なる (show 判定が
+      // milestones フィルタより前に走る) ため独立した境界として網に入れる。
+      const { container } = render(
+        <Coordinate
+          publishedAt="2026-01-01T00:00:00+09:00"
+          milestones={baseMilestones}
+          show={false}
+        />,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
   });
 });

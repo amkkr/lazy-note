@@ -248,7 +248,10 @@ const expectations: readonly PostCoordinatesExpectation[] = [
  * メリットがある一方で、「本番 milestone の label rename / tone 変更 /
  * 日付変更などの意味的変更が本テスト上で silent pass する」リスクを孕む。
  * 本番 milestones.json と本テスト fixture のずれは、本番 JSON を直接 import
- * している `anchors.test.ts`、本ファイル末尾の「Pulse 思想禁則語彙が現れない」
+ * している `anchors.test.ts` および `milestones.semantic.test.ts` (Issue #615
+ * で追加した意味的スナップショット: 本番 JSON の date / label / tone 全件を
+ * 固定 fixture と toEqual 比較し rename / 日付変更 / tone 変更 / 追加 / 削除 /
+ * 並び替えを失敗として検知)、本ファイル末尾の「Pulse 思想禁則語彙が現れない」
  * Tripwire テスト (後述 `milestones` 定数を限定的に使用)、および開発者の
  * 意識的な fixture 更新 (上述「fixture の更新ルール」) で担保する設計とする。
  */

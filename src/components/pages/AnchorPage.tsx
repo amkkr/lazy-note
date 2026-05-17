@@ -234,6 +234,33 @@ const skippedNoteStyles = css({
   fontVariantNumeric: "tabular-nums",
 });
 
+// Issue #534: 表示文言テンプレート / 固定文言を定数として外出し。将来の i18n
+// 化や文言調整の影響範囲をファイル内 1 箇所に局所化する。
+// (i18n フレームワークは導入しない方針 — 単純な template リテラル / 文字列定数)
+//
+// Coordinate.tsx 側の COORDINATE_LABEL_TEMPLATE と書式が一致する事実は意図的に
+// 二重定義する (= Coordinate と AnchorPage は表示ポリシーが異なるため共通化
+// しない / CLAUDE.md の「過度に抽象化しない」方針)。書式変更時は両ファイルを
+// 同時更新する運用責任は Tripwire テスト (出力文字列の正規表現マッチ) が担う。
+const ANCHOR_PAGE_HEADING = "Anchor" as const;
+const ANCHOR_PAGE_DESCRIPTION =
+  "登録された節目と、各記事の座標を一覧表示します。" as const;
+const ANCHOR_MILESTONES_SECTION_HEADING = "節目一覧" as const;
+const ANCHOR_MILESTONES_LIST_ARIA_LABEL = "節目一覧" as const;
+const ANCHOR_POSTS_SECTION_HEADING = "各記事の座標" as const;
+const ANCHOR_EMPTY_MILESTONES_MESSAGE = "まだ節目が記録されていません。" as const;
+const ANCHOR_EMPTY_POSTS_MESSAGE = "まだ記事がありません。" as const;
+const ANCHOR_EMPTY_COORDINATES_MESSAGE = "まだ通過した節目はありません" as const;
+const ANCHOR_UNTITLED_POST = "無題の記事" as const;
+const ANCHOR_SKIPPED_NOTE_TEMPLATE = (skippedCount: number): string =>
+  `publishedAt 推定不可でスキップした記事: ${skippedCount} 件`;
+const ANCHOR_ALL_SKIPPED_FALLBACK_TEMPLATE = (skippedCount: number): string =>
+  `全記事が publishedAt 推定不可のためスキップしました (${skippedCount} 件)`;
+const ANCHOR_COORDINATE_LABEL_TEMPLATE = (
+  label: string,
+  daysSince: number,
+): string => `${label} から ${daysSince} 日目`;
+
 /**
  * 座標 1 件の表示文言を構築する純粋関数。
  *
@@ -242,7 +269,10 @@ const skippedNoteStyles = css({
  * しない (= 隠さない)。
  */
 const buildCoordinateLabel = (coordinate: Coordinate): string => {
-  return `${coordinate.label} から ${coordinate.daysSince} 日目`;
+  return ANCHOR_COORDINATE_LABEL_TEMPLATE(
+    coordinate.label,
+    coordinate.daysSince,
+  );
 };
 
 /**
@@ -300,10 +330,8 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
     <div className={containerStyles}>
       <div className={sectionGapStyles}>
         <div>
-          <h1 className={pageHeadingStyles}>Anchor</h1>
-          <p className={pageDescriptionStyles}>
-            登録された節目と、各記事の座標を一覧表示します。
-          </p>
+          <h1 className={pageHeadingStyles}>{ANCHOR_PAGE_HEADING}</h1>
+          <p className={pageDescriptionStyles}>{ANCHOR_PAGE_DESCRIPTION}</p>
         </div>
 
         {/* 節目一覧 (heavy を含む全件)
@@ -316,13 +344,15 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
           data-token-border="border.subtle"
         >
           <h2 id="anchor-milestones-heading" className={sectionHeadingStyles}>
-            節目一覧
+            {ANCHOR_MILESTONES_SECTION_HEADING}
           </h2>
           {milestones.length === 0 ? (
-            <p className={emptyStateStyles}>まだ節目が記録されていません。</p>
+            <p className={emptyStateStyles}>
+              {ANCHOR_EMPTY_MILESTONES_MESSAGE}
+            </p>
           ) : (
             <ul
-              aria-label="節目一覧"
+              aria-label={ANCHOR_MILESTONES_LIST_ARIA_LABEL}
               className={milestoneListStyles}
               // biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する
               role="list"
@@ -356,7 +386,7 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
             (= テスト用 id) は素直にスキップする。 */}
         {posts.length === 0 ? (
           <div className={sectionBlockStyles} data-token-border="border.subtle">
-            <p className={emptyStateStyles}>まだ記事がありません。</p>
+            <p className={emptyStateStyles}>{ANCHOR_EMPTY_POSTS_MESSAGE}</p>
           </div>
         ) : (
           <section
@@ -365,15 +395,14 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
             data-token-border="border.subtle"
           >
             <h2 id="anchor-posts-heading" className={sectionHeadingStyles}>
-              各記事の座標
+              {ANCHOR_POSTS_SECTION_HEADING}
             </h2>
             {postEntries.length === 0 ? (
               // 全記事が publishedAt 推定不可だった場合のフォールバック (Issue #544)。
               // 空 `<ul>` を出すと「各記事の座標」見出し + 空 list + 注記という
               // 不自然な画面になるため、穏やかな空状態テキストにまとめる。
-              // i18n: Issue #534 で定数化候補
               <p className={emptyStateStyles} role="note">
-                {`全記事が publishedAt 推定不可のためスキップしました (${skippedCount} 件)`}
+                {ANCHOR_ALL_SKIPPED_FALLBACK_TEMPLATE(skippedCount)}
               </p>
             ) : (
               <>
@@ -386,11 +415,11 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
                       data-token-border="border.subtle"
                     >
                       <span className={postTitleStyles}>
-                        {entry.post.title || "無題の記事"}
+                        {entry.post.title || ANCHOR_UNTITLED_POST}
                       </span>
                       {entry.coordinates.length === 0 ? (
                         <span className={emptyStateStyles}>
-                          まだ通過した節目はありません
+                          {ANCHOR_EMPTY_COORDINATES_MESSAGE}
                         </span>
                       ) : (
                         <div className={postCoordinatesStyles}>
@@ -410,11 +439,10 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
                 {/* publishedAt 推定不可な記事のスキップ件数注記 (Issue #544)
                     運用画面として「壊れた id がある事実」を画面に出すための添え書き。
                     0 件のときは注記そのものを出さない (= ノイズ削減 + 運用画面の
-                    控えめなトーンを維持)。
-                    i18n: Issue #534 で定数化候補 */}
+                    控えめなトーンを維持)。 */}
                 {skippedCount > 0 ? (
                   <p className={skippedNoteStyles} role="note">
-                    publishedAt 推定不可でスキップした記事: {skippedCount} 件
+                    {ANCHOR_SKIPPED_NOTE_TEMPLATE(skippedCount)}
                   </p>
                 ) : null}
               </>

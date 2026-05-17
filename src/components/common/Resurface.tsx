@@ -174,6 +174,21 @@ const stretchedLinkStyles = css({
   },
 });
 
+// Issue #534: 表示文言テンプレート / 固定文言を定数として外出し。将来の i18n
+// 化や文言調整の影響範囲をファイル内 1 箇所に局所化する。
+// (i18n フレームワークは導入しない方針 — 単純な template リテラル / 文字列定数)
+const RESURFACE_SECTION_HEADING = "過去の記事" as const;
+const RESURFACE_SECTION_ARIA_LABEL = "過去の記事" as const;
+const RESURFACE_UNTITLED_POST = "無題の記事" as const;
+const RESURFACE_REASON_LABEL_SILENCE_YEAR_AGO = "1 年前のあなたの声" as const;
+const RESURFACE_REASON_LABEL_SILENCE_OLDEST = "もう一度" as const;
+const RESURFACE_REASON_LABEL_CALENDAR_TEMPLATE = (yearsAgo: number): string =>
+  `${yearsAgo} 年前の今日`;
+const RESURFACE_REASON_LABEL_MILESTONE_ANNIVERSARY_TEMPLATE = (
+  label: string,
+  yearsSinceMilestone: number,
+): string => `${label}から ${yearsSinceMilestone} 年経った日`;
+
 /**
  * reason に応じた文脈ラベル文字列を返す純粋関数。
  *
@@ -186,11 +201,16 @@ const stretchedLinkStyles = css({
 const buildReasonLabel = (reason: ResurfaceReason): string => {
   switch (reason.kind) {
     case "silence":
-      return reason.sub === "yearAgo" ? "1 年前のあなたの声" : "もう一度";
+      return reason.sub === "yearAgo"
+        ? RESURFACE_REASON_LABEL_SILENCE_YEAR_AGO
+        : RESURFACE_REASON_LABEL_SILENCE_OLDEST;
     case "calendar":
-      return `${reason.yearsAgo} 年前の今日`;
+      return RESURFACE_REASON_LABEL_CALENDAR_TEMPLATE(reason.yearsAgo);
     case "milestoneAnniversary":
-      return `${reason.label}から ${reason.yearsSinceMilestone} 年経った日`;
+      return RESURFACE_REASON_LABEL_MILESTONE_ANNIVERSARY_TEMPLATE(
+        reason.label,
+        reason.yearsSinceMilestone,
+      );
   }
 };
 
@@ -230,10 +250,10 @@ export const Resurface = memo(({ entry, show = true }: ResurfaceProps) => {
     <section
       className={sectionStyles}
       aria-labelledby="resurface-section-heading"
-      aria-label="過去の記事"
+      aria-label={RESURFACE_SECTION_ARIA_LABEL}
     >
       <h3 id="resurface-section-heading" className={headingStyles}>
-        過去の記事
+        {RESURFACE_SECTION_HEADING}
       </h3>
       <article
         className={cardStyles}
@@ -248,7 +268,7 @@ export const Resurface = memo(({ entry, show = true }: ResurfaceProps) => {
             className={stretchedLinkStyles}
             viewTransition
           >
-            {post.title || "無題の記事"}
+            {post.title || RESURFACE_UNTITLED_POST}
           </Link>
         </h3>
         {post.excerpt && <p className={excerptStyles}>{post.excerpt}</p>}

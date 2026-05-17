@@ -132,15 +132,19 @@ export const Coordinate = memo(
       return null;
     }
 
-    // 過去の節目に絞った座標 (computeCoordinates が未来は除外する)
-    const coordinates = computeCoordinates(publishedAt, milestones);
-    // `heavy` を除外して表示候補に絞る。
-    // `Coordinate` は現状単型のため `kind` 判定は型レベルで tautology だが、
-    // 将来 `Coordinate | Elapsed` mixed union に拡張された際の narrowing 防御として
-    // 型ガード形式を採用する (Issue #497 の discriminator 設計意図に対応)。
-    const displayable = coordinates.filter(
-      (c): c is CoordinateData =>
-        c.kind === "coordinate" && c.tone !== "heavy",
+    // 過去かつ heavy 以外の節目に絞った座標。
+    // - 「publishedAt 以降の節目は除外」と「heavy 除外」はいずれも
+    //   `computeCoordinates` の責務に集約済み (Issue #532 / 案A)。
+    //   表示層で `c.tone !== "heavy"` の filter を書くと、別の表示層
+    //   (e.g. /anchor ページ = #493) で語彙が分散するリスクがあるため、
+    //   表示ポリシーをエンジン引数 (`excludeHeavy`) で表現する設計を採る。
+    // - 戻り値は `readonly Coordinate[]` (現状単型) のため、`kind` の narrowing は
+    //   ここでは不要。将来 `Coordinate | Elapsed` mixed union に拡張された場合は
+    //   再度 narrowing を入れる (Issue #497 の discriminator 設計意図に対応)。
+    const displayable: readonly CoordinateData[] = computeCoordinates(
+      publishedAt,
+      milestones,
+      { excludeHeavy: true },
     );
 
     if (displayable.length === 0) {

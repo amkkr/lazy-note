@@ -194,6 +194,34 @@ const diffInDays = (origin: Date, target: Date): number => {
 };
 
 /**
+ * `computeCoordinates` の動作オプション
+ *
+ * - `excludeHeavy`: true のとき、tone === "heavy" の節目を結果から **除外** する。
+ *   未指定または false のときは heavy を含めて全 tone を返す (既存挙動)
+ *
+ * 設計判断 (Issue #532):
+ * - 「表示ポリシーをエンジン引数で表現する」案A を採用
+ * - 採用理由:
+ *   1. **表示層ごとの再実装リスクを排除する**: heavy 除外を `Coordinate.tsx`
+ *      側 (`c.tone !== "heavy"` の filter) で行うと、`/anchor` ページ (#493) など
+ *      別の表示層で「heavy も含めて出したい」「heavy だけ除外したい」を分岐したい
+ *      ときに `tone !== "heavy"` の語彙を表示層ごとに書き直すリスクがある
+ *   2. **責務集約**: 「どの tone を除外するか」は表示ポリシーだが、`MilestoneTone`
+ *      を知るのは anchors モジュールであり、表示層に enum 比較を漏らしたくない
+ *   3. **API 互換性維持**: options は省略可能で、既存呼び出し
+ *      (`AnchorPage.tsx` の heavy 含む呼び出し / 全テストケース) は無変更で動作する
+ * - 案B (ラッパー関数 `computeCoordinatesForDisplay` 追加) との比較: 同じ
+ *   モジュールに似た名前の関数を2つ並べると「どちらを呼ぶべきか」の意思決定コストが
+ *   表示層側に残る。options による単一関数化の方が API 表面が小さい
+ * - 案C (現状維持) との比較: ドキュメントだけでは「呼び出し忘れ」「filter の語彙
+ *   揺れ」を防げない (受け入れ基準は「いずれかを選択し判断根拠を明文化」なので
+ *   案C も選択肢だが、構造的に再発防止できる案A を採用する)
+ */
+export interface ComputeCoordinatesOptions {
+  readonly excludeHeavy?: boolean;
+}
+
+/**
  * 層1=座標: publishedAt と登録節目の差分日数を計算する
  *
  * - publishedAt より後 (未来) の節目は結果から **除外 (filter)** する
@@ -205,19 +233,29 @@ const diffInDays = (origin: Date, target: Date): number => {
  * - 空配列が渡されたら空配列を返す
  * - Milestone.date の値範囲は検証せず、`Date.UTC` のロールオーバーを許容する
  *   (`toMilestoneCalendarDate` の JSDoc / テスト「Milestone.date 不正値の仕様」参照)
+ * - `options.excludeHeavy` が true のとき、tone === "heavy" の節目を結果から
+ *   除外する。未指定または false のときは heavy を含めて返す (Issue #532)
  *
  * @param publishedAt - 記事の公開日時 (ISO 8601 文字列)
  * @param milestones - 登録された節目の配列
- * @returns 各節目に対応する Coordinate の配列 (publishedAt より後の節目は除外)
+ * @param options - 表示ポリシーオプション (省略可能。詳細は
+ *   `ComputeCoordinatesOptions` の JSDoc を参照)
+ * @returns 各節目に対応する Coordinate の配列 (publishedAt より後の節目は除外。
+ *   `excludeHeavy: true` 指定時はさらに heavy も除外)
  */
 export const computeCoordinates = (
   publishedAt: string,
   milestones: readonly Milestone[],
+  options?: ComputeCoordinatesOptions,
 ): readonly Coordinate[] => {
   const publishedDate = toJstCalendarDate(publishedAt);
+  const excludeHeavy = options?.excludeHeavy ?? false;
 
   const coordinates: Coordinate[] = [];
   for (const milestone of milestones) {
+    if (excludeHeavy && milestone.tone === "heavy") {
+      continue;
+    }
     const milestoneDate = toMilestoneCalendarDate(milestone.date);
     if (milestoneDate === null) {
       continue;

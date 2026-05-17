@@ -363,20 +363,36 @@ const handleBlockComment = (
 };
 
 /**
+ * 文字列リテラルの種類 (シングル / ダブル / バッククォート) と、
+ * 対応する `ScanState` のフラグキーを束ねる対応表。
+ *
+ * `handleStringLiteral` から閉じクォート文字を直接フィールドキーへ変換できる
+ * ようにし、呼び出し側で都度 `closer` クロージャを生成していた micro-allocation
+ * を排除する (Issue #621 / M2, M3)。
+ */
+type QuoteChar = "'" | '"' | "`";
+type QuoteStateField = "inSingle" | "inDouble" | "inBacktick";
+
+const QUOTE_FIELD: Readonly<Record<QuoteChar, QuoteStateField>> = {
+  "'": "inSingle",
+  '"': "inDouble",
+  "`": "inBacktick",
+};
+
+/**
  * 文字列リテラル内 (シングル / ダブル / バッククォート) の 1 文字を処理する。
  * - エスケープシーケンス (`\\x`) は次の文字も維持する。
- * - 終端クォートを検出したら該当フラグを下ろす。
+ * - 終端クォートを検出したら `QUOTE_FIELD` で引いた `ScanState` フラグを下ろす。
  *
- * `quote` 引数で文字列リテラルの種類を切り替える。
- * `closer` は ScanState のどのフラグを下ろすかを示す関数。
+ * `quote` 引数のみで文字列リテラルの種類とフラグキーの双方を表現する
+ * (旧 `closer` クロージャの責務を `QUOTE_FIELD` 表に集約)。
  */
 const handleStringLiteral = (
   ch: string,
   next: string,
   out: string[],
   state: ScanState,
-  quote: string,
-  closer: (s: ScanState) => void,
+  quote: QuoteChar,
 ): StepResult => {
   out.push(ch);
   if (ch === "\\" && next !== "") {
@@ -384,7 +400,7 @@ const handleStringLiteral = (
     return { advance: 1, terminated: false };
   }
   if (ch === quote) {
-    closer(state);
+    state[QUOTE_FIELD[quote]] = false;
   }
   return NO_ADVANCE;
 };
@@ -448,19 +464,13 @@ const processChar = (
     return handleBlockComment(ch, next, out, state);
   }
   if (state.inSingle) {
-    return handleStringLiteral(ch, next, out, state, "'", (s) => {
-      s.inSingle = false;
-    });
+    return handleStringLiteral(ch, next, out, state, "'");
   }
   if (state.inDouble) {
-    return handleStringLiteral(ch, next, out, state, '"', (s) => {
-      s.inDouble = false;
-    });
+    return handleStringLiteral(ch, next, out, state, '"');
   }
   if (state.inBacktick) {
-    return handleStringLiteral(ch, next, out, state, "`", (s) => {
-      s.inBacktick = false;
-    });
+    return handleStringLiteral(ch, next, out, state, "`");
   }
   return handleDefault(ch, next, out, state, remainingLength);
 };

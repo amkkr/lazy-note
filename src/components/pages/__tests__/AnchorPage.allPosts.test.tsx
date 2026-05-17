@@ -272,7 +272,10 @@ const testMilestones: readonly Milestone[] = [
  * (Issue #546) と同じ: resolveJsonModule で widen された `tone: string` を
  * `Milestone["tone"]` の literal union に narrowing する。
  * 設計判断の正本 (集約せず各 page で個別 import / 撤退方法 / 不正値時の挙動
- * など) は `src/pages/index.tsx` の MILESTONES JSDoc を参照 (Issue #546)。
+ * など) は `src/pages/anchor.tsx` の MILESTONES JSDoc を参照 (Issue #546)。
+ * AnchorPage ドメインにおける不正 `tone` / 不正 `date` 時の具体挙動
+ * (`data-tone` への素通し / 座標一覧から静かに落ちる) も同 JSDoc に記述あり
+ * (`anchors.test.ts` の同等キャストコメントも同じ参照先に揃えてある)。
  *
  * **副次効果 (Tripwire 強化)**: 本定数を導入することで、末尾の Pulse 禁則語彙
  * Tripwire テストが runtime で必ず実行されるようになる (Issue #618 案A)。

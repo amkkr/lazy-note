@@ -14,6 +14,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Incremental build (Issue #580): CI の type-check を高速化するため
+       .tsbuildinfo を出力し、actions/cache で再利用する。 */
+    "incremental": true,
+    "tsBuildInfoFile": "./.tsbuildinfo/tsconfig.tsbuildinfo",
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

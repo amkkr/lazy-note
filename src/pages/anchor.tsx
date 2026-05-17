@@ -5,6 +5,7 @@ import { Layout } from "../components/layouts/Layout";
 import { AnchorPage } from "../components/pages/AnchorPage";
 import { usePosts } from "../hooks/usePosts";
 import type { Milestone } from "../lib/anchors";
+import { parseMilestones } from "../lib/milestonesSchema";
 import {
   fadeInEnter,
   fadeInEnterFrom,
@@ -61,27 +62,26 @@ import {
  * Resurface) ごとの `show` フラグ** が一次手段であり、JSON の `[]` 化は 3 経路
  * まとめての停止 = 二次手段である。
  *
- * `as readonly Milestone[]` キャストは tsconfig.json の resolveJsonModule:true で
- * 取得される widen された型 (例: `tone: string`) を `Milestone`
- * (`tone: "neutral" | "light" | "heavy"`) に narrowing するため。
- * JSON データの妥当性は datasources 側で人手担保しており (`docs/MILESTONES.md`)、
- * `anchors.ts` 側にランタイム検証はない (将来 Issue #547 で Zod 等の導入を検討中)。
+ * ランタイム検証 (Issue #547):
+ * - `as readonly Milestone[]` の型キャスト**ではなく**、`parseMilestones`
+ *   (`src/lib/milestonesSchema.ts`) で lenient 検証する。これにより JSON 編集者が
+ *   `tone: "happy"` のような値域外を入れた場合に、ランタイムでサイレントに
+ *   その要素を除外できる (= 本番のページが壊れない fail-soft)。
+ * - 全件不正で配列が空になった場合も、AnchorPage 側で穏やかな 0 件文言を表示する
+ *   既存ロジックがそのまま機能する。
+ * - 厳密な検出 (CI で PR をブロック) は `src/lib/__tests__/milestonesSchema.test.ts`
+ *   の `validateMilestonesStrict` 経由で別途担保する。
+ *
  * 値域から外れた場合の実害は AnchorPage の責務範囲では以下に帰着する:
- * - 不正 `tone` (`"neutral" | "light" | "heavy"` 以外の文字列): 節目一覧の
- *   `<li data-tone="...">` および各記事の座標の `<span data-tone="...">` に
- *   未知 string がそのまま `data-tone` として出る (描画は破綻しない)。色分けは
- *   していないため (AnchorPage は「過剰可視化を避ける」設計で tone を色に
- *   写像しない)、視覚的にも気付きにくいが破綻もしない
- * - 不正 `date` (`YYYY-MM-DD` 形式違反): 節目一覧ではその不正文字列がそのまま
- *   日付列に表示される (= 運用画面の透明性を優先し、フィルタしない) 一方、
- *   各記事の座標計算では `anchors.ts` の `toMilestoneCalendarDate` が `null` を
- *   返し、`computeCoordinates` が当該節目を `continue` でスキップするため、
- *   座標一覧からは静かに落ちる
+ * - 不正 `tone` (`"neutral" | "light" | "heavy"` 以外の文字列): `parseMilestones`
+ *   が当該要素を除外するため、節目一覧にも各記事の座標にも一切現れない
+ * - 不正 `date` (`YYYY-MM-DD` 形式違反): 同様に `parseMilestones` が当該要素を
+ *   除外する (Issue #547 以前は表示と座標計算で挙動が非対称だったが、本検証で統一)
  *
  * 撤退方法: `datasources/milestones.json` の配列を `[]` にすれば AnchorPage の
  * 節目一覧が空状態になる (AnchorPage 側で穏やかな 0 件文言を表示)。
  */
-const MILESTONES: readonly Milestone[] = milestonesData as readonly Milestone[];
+const MILESTONES: readonly Milestone[] = parseMilestones(milestonesData);
 
 const Anchor = () => {
   const { allPosts, loading } = usePosts();

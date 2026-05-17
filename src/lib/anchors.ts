@@ -43,6 +43,13 @@ export type MilestoneTone = "neutral" | "light" | "heavy";
  * - date: YYYY-MM-DD (JST 想定)
  * - label: 表示用ラベル (例: "社会復帰" / "サイト開設")
  * - tone: 表示時の扱いを切り替えるための感情タグ
+ *
+ * **フィールド追加時の責務** (Issue #547):
+ * 本インターフェースにフィールドを追加・変更したら、必ず
+ * `src/lib/milestonesSchema.ts` の `validateOne` も更新すること。
+ * ランタイム検証は型定義から自動生成されない (Zod 等の外部依存を
+ * 入れない判断のため) ので、追加フィールドの検証規則を明示的に
+ * 書き足す必要がある。忘れると JSON 編集者の入力ミスを検出できない。
  */
 export interface Milestone {
   readonly date: string;

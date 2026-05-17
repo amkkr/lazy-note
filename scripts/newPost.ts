@@ -42,6 +42,7 @@ import {
   inferPublishedAt,
   type Milestone,
 } from "../src/lib/anchors.ts";
+import { parseMilestones } from "../src/lib/milestonesSchema.ts";
 
 // =============================================================================
 // 型定義
@@ -339,16 +340,19 @@ export const buildIgnitionComment = (input: IgnitionInput): string => {
  * milestones.json をロードする
  *
  * - ファイルが存在しない場合は null を返す (フォールバック判定用)。
- * - 期待スキーマは `Milestone[]`。値検証はゆるく行う:
- *   - 配列でない場合は null
- *   - 各要素の date / label / tone が文字列でない、または tone が
- *     許容値 (neutral / light / heavy) 外の場合は除外する
- * - 厳密な値範囲検証 (#489 で導入予定) は将来差し替える。
+ * - 期待スキーマは `Milestone[]`。値検証は `src/lib/milestonesSchema.ts` の
+ *   `parseMilestones` (lenient) に委譲する (Issue #547)。
+ *   - JSON parse 失敗 / 配列でない / 各要素の date / label / tone が型違反 /
+ *     tone が許容値 (neutral / light / heavy) 外、のいずれも除外して有効分のみ返す
+ *   - 全件不正で空配列になる場合と、JSON parse 失敗で空配列になる場合は区別しない
+ *     (どちらも「節目情報無し」として Cast 経路は静かに進む)
  *
  * @param filePath - milestones.json の絶対パス
  * @returns 読み込んだ Milestone 配列。ファイル不在時は null
  */
-export const loadMilestones = (filePath: string): Milestone[] | null => {
+export const loadMilestones = (
+  filePath: string,
+): readonly Milestone[] | null => {
   if (!existsSync(filePath)) {
     return null;
   }
@@ -359,33 +363,7 @@ export const loadMilestones = (filePath: string): Milestone[] | null => {
   } catch {
     return [];
   }
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-  const validTones = new Set<Milestone["tone"]>(["neutral", "light", "heavy"]);
-  const result: Milestone[] = [];
-  for (const item of parsed) {
-    if (typeof item !== "object" || item === null) {
-      continue;
-    }
-    const record = item as Record<string, unknown>;
-    if (
-      typeof record.date !== "string" ||
-      typeof record.label !== "string" ||
-      typeof record.tone !== "string"
-    ) {
-      continue;
-    }
-    if (!validTones.has(record.tone as Milestone["tone"])) {
-      continue;
-    }
-    result.push({
-      date: record.date,
-      label: record.label,
-      tone: record.tone as Milestone["tone"],
-    });
-  }
-  return result;
+  return parseMilestones(parsed);
 };
 
 /**
@@ -516,7 +494,7 @@ ${params.ignitionComment}## 本文
  * - tone:heavy は明示マークを付け、執筆者の意識喚起を狙う。
  */
 export const formatMilestonesSummary = (
-  milestones: Milestone[] | null,
+  milestones: readonly Milestone[] | null,
 ): string => {
   if (milestones === null) {
     return [

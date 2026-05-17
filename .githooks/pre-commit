@@ -24,20 +24,31 @@
 
 set -euo pipefail
 
+# 規約 SSOT を読み込む (Issue #649 / Moderate 4)
+# - PROTECTED_BRANCHES の定義は .githooks/_lib.sh に集約されている
+# - 本 hook は always `.githooks/` 配下に置かれるため、$0 基点の相対 source で
+#   core.hooksPath / worktree / 隔離リポ等の実行コンテキストに依存しない
+_LIB="$(cd "$(dirname "$0")" && pwd)/_lib.sh"
+if [ ! -f "$_LIB" ]; then
+  echo "[pre-commit] FATAL: .githooks/_lib.sh が見つかりません: $_LIB" >&2
+  exit 1
+fi
+# shellcheck source=./_lib.sh
+. "$_LIB"
+
 # 現在のブランチ名を取得する。
 # - 通常コミット: `git symbolic-ref --short HEAD` で feat/xxx / master 等が取れる
 # - detached HEAD (rebase / cherry-pick 中等): symbolic-ref は失敗するので skip
 # - merge commit や revert 中も symbolic-ref は有効なので通常通り判定する
 
 if ! current_branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
-  # detached HEAD の場合は master/main 判定不能なので素通し
+  # detached HEAD の場合は保護ブランチ判定不能なので素通し
   exit 0
 fi
 
-case "$current_branch" in
-  master|main)
-    cat <<EOF >&2
-[pre-commit] master/main ブランチへの直接 commit は禁止されています。
+if is_protected_branch "$current_branch"; then
+  cat <<EOF >&2
+[pre-commit] 保護ブランチ (${PROTECTED_BRANCHES_RE}) への直接 commit は禁止されています。
 作業ブランチを切ってから commit してください。
 
   git switch -c feat/your-branch-name
@@ -45,8 +56,7 @@ case "$current_branch" in
 (本 hook は .githooks/pre-commit で実装されています。
  ローカル設定: git config core.hooksPath .githooks)
 EOF
-    exit 1
-    ;;
-esac
+  exit 1
+fi
 
 exit 0

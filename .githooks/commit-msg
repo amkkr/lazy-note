@@ -35,14 +35,40 @@ if [ ! -f "$msg_file" ]; then
   exit 1
 fi
 
-# コメント行 (# で始まる行) を除外したメッセージ本文を作る。
-# git は commit-msg hook の段階ではコメント行を含むファイルを渡してくる
-# ことがあるため、本文のみを抽出してから判定する。
-body=$(grep -v '^#' "$msg_file" || true)
+# 規約 SSOT を読み込む (Issue #649 / Moderate 4)
+# - COAUTHOR_PATTERN / body_contains_coauthor は .githooks/_lib.sh に定義
+_LIB="$(cd "$(dirname "$0")" && pwd)/_lib.sh"
+if [ ! -f "$_LIB" ]; then
+  echo "[commit-msg] FATAL: .githooks/_lib.sh が見つかりません: $_LIB" >&2
+  exit 1
+fi
+# shellcheck source=./_lib.sh
+. "$_LIB"
 
-# 大文字小文字を区別せずに Co-Authored-By を検出する。
+# コミットメッセージ本文を抽出する (Issue #649 / Moderate 5 + scissors line 厳密除外)。
+#
+# git 公式の cleanup ロジックに揃える:
+#   - `git commit --verbose` は scissors line `# ------------------------ >8 ------------------------`
+#     以降に staged diff を出力する。生のメッセージファイルにこれが含まれていると、
+#     コメント行除去後でも diff 内に `Co-Authored-By:` のような literal が
+#     含まれていた場合に誤検知する余地がある (= 不当 block の原因になる)。
+#   - そのため、まず awk で scissors line (`^# ` 以下の任意 `>8` mark を含む行) を
+#     検出して、それ以降を完全に切り落とす。`git cat-file` 内部の `mailinfo` も
+#     scissors line を本文の終端として扱う運用 (Documentation/git-commit.txt 参照)。
+#   - 続いて `git stripspace --strip-comments` で全コメント行 / 末尾空行を除去する。
+#     これは git 自体が `commit.cleanup=strip|default` で実行する cleanup と同等の
+#     ロジックなので、独自実装の `grep -v '^#'` よりも将来仕様変更へ追随しやすい。
+#
+# 注意:
+#   - `git stripspace` は stdin/stdout のフィルタ。awk で scissors 除去した
+#     ストリームをそのまま pipe する。
+#   - `set -e` 下では pipe 中の途中 fail で停止しうるが、stripspace は通常 fail
+#     しないため許容する (fail 時は body が空になり、誤検知は出ない安全側)。
+body=$(awk '/^# -+ >8 -+$/{exit} {print}' "$msg_file" | git stripspace --strip-comments)
+
+# 大文字小文字を区別せずに Co-Authored-By を検出する (COAUTHOR_PATTERN は SSOT)。
 # (Co-authored-by / co-authored-by などの揺れも捕捉)
-if printf '%s' "$body" | grep -qiE '(^|[[:space:]])co-authored-by[[:space:]]*:'; then
+if printf '%s' "$body" | body_contains_coauthor; then
   cat <<EOF >&2
 [commit-msg] コミットメッセージに Co-Authored-By を含めることは禁止されています。
 該当行を削除してから再度コミットしてください。

@@ -83,11 +83,13 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
 - **`data-token-*`**: Panda token 名を吐く（`accent.link` / `border.subtle` 等）。**Panda token 名のみ**を吐くスキーマに統一済み（Issue #477 / PR #481）。CSS キーワード `inherit` 等は `data-color-inherit="true"` のような bool 属性に分離する。border 参照は `data-token-border` に統一済み（旧 `data-divider` は同 PR で `data-token-border` へ統合）
 - **`data-variant`**: 各コンポーネントの `variant` prop 値をそのまま反映する Tripwire 属性。コンポーネント横断で語彙が異なってよい（例: `BrandName` = 配置種、`Link` / `Button` = スタイル種）。prop 名と属性値が一致していれば一貫とみなす
 - **`data-focus-ring`**: focus 状態（`default` / `on-accent` 等）の Tripwire 属性
-- **ドメイン固有 enum 属性（`data-tone` 等）**: 特定ドメインの enum 値（`MilestoneTone` 等）をそのまま反映する Tripwire 属性。`data-variant` がコンポーネントの**スタイル variant**（見た目の切替軸）を表現するのに対し、こちらは**ドメインモデル上の分類タグ**を表現する（例: `data-tone="neutral" | "light" | "heavy"` は節目の感情トーン）。命名規約は以下:
+- **ドメイン固有 enum 属性（`data-tone` 等）**: 特定ドメインの enum 値（`MilestoneTone` 等）をそのまま反映する Tripwire 属性。`data-variant` がコンポーネントの**スタイル variant**（見た目の切替軸）を表現するのに対し、こちらは**ドメインモデル上の分類タグ**を表現する（例: `data-tone="neutral" | "light" | "heavy"` は節目の感情トーン）。`data-variant` との切り分けは「**コンポーネント固有の prop（スタイル variant）かどうか**」を機械的基準にする: prop ベースなら `data-variant`、ドメイン側 enum を吐くなら `data-*`（ドメイン enum が将来視覚差分を持っても、分類軸としての性質が一次なので `data-*` のまま）。命名規約は以下:
   - **属性名はドメイン語彙そのまま**（`data-tone`, 将来追加されるなら `data-status` 等）。`data-domain-*` のような名前空間化はしない（`data-token-*` と意味が衝突しないため不要）
+  - **同名 attr は単一ドメインに固定する**: 短い汎用語（`data-status` 等）を複数ドメインで取り合うのを避けるため、**先に採用したドメインで属性名を占有する**。後発ドメインが同じ enum 軸を必要とする場合は、ドメイン語彙を含む名前（`data-post-status` / `data-form-status` 等の prefix）を後発側に付けて衝突回避する
   - **属性値は prop 値（= enum 値）をそのまま反映する**。色やラベルの加工はしない
   - **色だけに依存させないための構造表現**として使う（aria-hidden な視覚タグや色分けと併用する場合も、機械可読な構造は data-* に出す）
-  - 採用例: `AnchorPage` の節目一覧 / 各記事の座標で `data-tone={milestone.tone}` / `data-tone={coordinate.tone}` を吐く（Issue #493 で導入、Issue #541 で規約化）
+  - **出すか出さないかの判断基準**: ドメイン enum を `data-*` に出すのは「表示文脈でその enum 区別が観測可能な意味を持つ」場合に限る。enum 区別がそもそも表示に出ない（= 表示前にフィルタで落ちる）なら出さない。例: `Coordinate` コンポーネントは `tone:heavy` を表示前に除外する（「静かに隠す」設計）ため、残った座標で tone 区別を観測する意味がなく `data-tone` を吐かない。一方 `AnchorPage` は全 tone 透明性が目的なので `data-tone` を吐く
+  - 採用例: `AnchorPage` の節目一覧（`<li data-tone={milestone.tone}>`）と各記事の座標一覧（`<span data-tone={coordinate.tone}>`、**`Coordinate` コンポーネント経由ではなく `AnchorPage` 内に直接書かれた `<span>`** が吐く）（Issue #493 で導入、Issue #541 で規約化、Issue #571 で判断基準を補強）
 
 #### Panda `hash:true` の運用判断（2026-05-15 時点）
 

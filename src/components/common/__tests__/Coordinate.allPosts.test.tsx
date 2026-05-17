@@ -217,10 +217,13 @@ const postIds = postFilePaths
  * メリットがある一方で、「本番 milestone の label rename / tone 変更 /
  * 日付変更などの意味的変更が本テスト上で silent pass する」リスクを孕む。
  * 本番 milestones.json と本テスト fixture のずれは、本番 JSON を直接 import
- * している `anchors.test.ts` および開発者の意識的な fixture 更新
+ * している `anchors.test.ts` および `milestones.semantic.test.ts` (Issue #615
+ * で追加した意味的スナップショット: 本番 JSON の date / label / tone 全件を
+ * 固定 fixture と toEqual 比較し rename / 日付変更 / tone 変更 / 追加 / 削除 /
+ * 並び替えを失敗として検知)、および開発者の意識的な fixture 更新
  * (上述「fixture の更新ルール」) で担保する設計とする。
  * (PR #612 で `AnchorPage.allPosts.test.tsx` も本テストと同様 fixture 化されたため、
- * 本番 JSON 直接 import は `anchors.test.ts` のみとなった)
+ * 本番 JSON 直接 import は `anchors.test.ts` と `milestones.semantic.test.ts` のみとなった)
  */
 const testMilestones: readonly Milestone[] = [
   { date: "2025-08-05", label: "休職開始", tone: "heavy" },

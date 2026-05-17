@@ -549,3 +549,86 @@ describe("マージン僅少警告ライン", () => {
     }
   });
 });
+
+describe("Issue #537: fg.muted 補助情報の WCAG 1.4.3 AA (4.5:1) 検証", () => {
+  // Issue #491 (Coordinate) / Issue #492 (Resurface) の DA レビュー軽微指摘
+  // (Issue #537) への対応。Coordinate は `fg.muted` を bg.surface 上に置く前提で
+  // 「WCAG 1.4.3 AA (4.5:1) を満たす」と JSDoc に書かれているが、数値検証が
+  // 未追加だった。本 describe で fg.muted を補助情報文字色として使うパターン
+  // (Coordinate / Resurface の見出し等) を全 bg 階層について Tripwire 化する。
+  //
+  // 留意点 (実測値の事実):
+  //   - light の fg.muted (sumi-600) は **AA pass / AAA 未達** (bg.surface 上 6.17:1)。
+  //     fg.muted は本文ではなく「補助情報のみ」用途に限定するルール (panda.config.ts
+  //     §accent ガイドライン参照)。本文として転用する場合は fg.secondary に振り直す。
+  //   - dark の fg.muted (bone-100) は全 bg 階層で AA 以上 (bg.surface 上 7.91:1 で AAA)。
+
+  it("fg.muted × bg.surface (light) が WCAG 1.4.3 AA 4.5:1 を満たす", () => {
+    // Coordinate / Resurface 見出しが想定する主要配置。
+    // 実測 6.17:1: AA pass / AAA (7.0:1) 未達。
+    const r = ratio(
+      semanticColorTokens.fgMuted.light,
+      semanticColorTokens.bgSurface.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("fg.muted × bg.surface (dark) が WCAG 1.4.3 AA 4.5:1 を満たす", () => {
+    // 実測 7.91:1: AAA pass。
+    const r = ratio(
+      semanticColorTokens.fgMuted.dark,
+      semanticColorTokens.bgSurface.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("fg.muted × bg.canvas (light) が WCAG 1.4.3 AA 4.5:1 を満たす", () => {
+    // Coordinate を bg.canvas 直上に置くページ (記事詳細 MetaInfo 近傍など) の保険。
+    // 実測 6.54:1: AA pass / AAA 未達。
+    const r = ratio(
+      semanticColorTokens.fgMuted.light,
+      semanticColorTokens.bgCanvas.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("fg.muted × bg.canvas (dark) が WCAG 1.4.3 AA 4.5:1 を満たす", () => {
+    // 実測 14.84:1: AAA pass。
+    const r = ratio(
+      semanticColorTokens.fgMuted.dark,
+      semanticColorTokens.bgCanvas.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("fg.muted × bg.muted (light) が WCAG 1.4.3 AA 4.5:1 を満たす", () => {
+    // 注釈ブロック内に fg.muted の補助情報を置く場合の保険 (Issue #409 で
+    // bg.muted を新設したため検証対象に加える)。実測 6.35:1: AA pass / AAA 未達。
+    const r = ratio(
+      semanticColorTokens.fgMuted.light,
+      semanticColorTokens.bgMuted.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("fg.muted × bg.muted (dark) が WCAG 1.4.3 AA 4.5:1 を満たす", () => {
+    // 実測 11.87:1: AAA pass。
+    const r = ratio(
+      semanticColorTokens.fgMuted.dark,
+      semanticColorTokens.bgMuted.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("fg.muted (light) は本文 AAA 7.20:1 を満たさない (補助情報のみ運用 Tripwire)", () => {
+    // negative test: fg.muted は補助情報専用 token で、本文として転用すると AAA
+    // 未達。Coordinate JSDoc の「7:1 を満たす」記述は実態と乖離していたため、
+    // Issue #537 で実測ベースに修正済み (commit 1)。値が将来改善された場合は
+    // このテストが落ちて、本文転用解禁の意思決定をレビューで促す。
+    const r = ratio(
+      semanticColorTokens.fgMuted.light,
+      semanticColorTokens.bgSurface.light,
+    );
+    expect(r).toBeLessThan(contrastThresholds.bodyText);
+  });
+});

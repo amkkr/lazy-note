@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# .githooks/commit-msg
+# git ネイティブ commit-msg hook (Issue #592 / Counterpoint 31)
+#
+# 設計方針:
+#   コミットメッセージ本文に `Co-Authored-By` を含めることは CLAUDE.md の
+#   グローバルルールで禁止されている。Bash の PreToolUse hook
+#   (`.claude/hooks/pre-commit-guard.sh`) では `-m "..."` 内の文字列までは
+#   検出できるが、`-F message.txt` / `git commit` (エディタ起動) /
+#   commit message template / heredoc 経由など、コマンド文字列に
+#   "Co-Authored-By" が現れない経路は塞げない。
+#
+#   commit-msg hook は git が **コミットメッセージ確定直前** に呼び出すため、
+#   どの経路でメッセージが組み立てられても本 hook を bypass することは
+#   git の動作上不可能になる。
+#
+# 引数:
+#   $1: コミットメッセージファイルへのパス (.git/COMMIT_EDITMSG 等)
+#
+# 適用方法:
+#   git config core.hooksPath .githooks
+#   (README.md 参照)
+
+set -euo pipefail
+
+if [ "$#" -lt 1 ]; then
+  echo "[commit-msg] commit message file が引数として渡されていません" >&2
+  exit 1
+fi
+
+msg_file="$1"
+
+if [ ! -f "$msg_file" ]; then
+  echo "[commit-msg] commit message file が存在しません: $msg_file" >&2
+  exit 1
+fi
+
+# コメント行 (# で始まる行) を除外したメッセージ本文を作る。
+# git は commit-msg hook の段階ではコメント行を含むファイルを渡してくる
+# ことがあるため、本文のみを抽出してから判定する。
+body=$(grep -v '^#' "$msg_file" || true)
+
+# 大文字小文字を区別せずに Co-Authored-By を検出する。
+# (Co-authored-by / co-authored-by などの揺れも捕捉)
+if printf '%s' "$body" | grep -qiE '(^|[[:space:]])co-authored-by[[:space:]]*:'; then
+  cat <<EOF >&2
+[commit-msg] コミットメッセージに Co-Authored-By を含めることは禁止されています。
+該当行を削除してから再度コミットしてください。
+
+(本 hook は .githooks/commit-msg で実装されています。
+ ローカル設定: git config core.hooksPath .githooks)
+EOF
+  exit 1
+fi
+
+exit 0

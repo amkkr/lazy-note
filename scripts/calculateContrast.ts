@@ -21,8 +21,23 @@
  *   pnpm contrast:matrix               # docs/contrast-matrix.csv を生成
  *   node scripts/calculateContrast.ts --strict
  *     # マージン僅少 (1.05 倍以内) も fail にする
+ *
+ * Biome 厳格化耐性 (Issue #623 で実機検証、2026-05-17):
+ *   - 本ファイルは biome を以下条件で厳格化しても違反 0 を維持する:
+ *     * `complexity.noExcessiveCognitiveComplexity`: error, `maxAllowedComplexity: 8`
+ *     * `correctness.noUnusedVariables`: error
+ *     * `suspicious.noImplicitAnyLet`: error
+ *   - 再現手順 (任意の検証ブランチで):
+ *     1. biome.json の上記 3 ルールを `"error"` + `maxAllowedComplexity: 8` に上げる
+ *     2. `pnpm lint` を実行し、scripts/calculateContrast.ts の違反 0 を確認
+ *     3. `pnpm test:run` で挙動の regression がないことを確認
+ *     4. `node scripts/calculateContrast.ts --csv` の出力が master HEAD と
+ *        完全一致することを `md5sum` で確認
+ *   - 維持コストを避けるため CI workflow としては常設化しない (Issue #623 で判断)。
+ *     再評価が必要になった場合は別 Issue を切ること。
  */
 
+import { basename } from "node:path";
 import { parse, wcagContrast, wcagLuminance } from "culori";
 import {
   contrastThresholds,
@@ -34,7 +49,7 @@ import {
 // 型定義
 // =============================================================================
 
-interface ContrastPair {
+export interface ContrastPair {
   readonly name: string;
   readonly fg: string;
   readonly bg: string;
@@ -44,7 +59,7 @@ interface ContrastPair {
   readonly category: ContrastCategory;
 }
 
-type ContrastCategory =
+export type ContrastCategory =
   | "body"
   | "ui-large"
   | "link"
@@ -52,7 +67,7 @@ type ContrastCategory =
   | "status"
   | "decorative";
 
-interface ContrastResult {
+export interface ContrastResult {
   readonly pair: ContrastPair;
   readonly ratio: number;
   readonly fgLuminance: number;
@@ -369,7 +384,7 @@ const computeContrast = (pair: ContrastPair): ContrastResult => {
 // CSV (surface × fg 全組合せ)
 // =============================================================================
 
-interface NamedColor {
+export interface NamedColor {
   readonly label: string;
   readonly value: string;
   readonly role: "surface" | "fg";
@@ -462,38 +477,57 @@ const verdict = (ratio: number): string => {
   return "FAIL";
 };
 
+const CSV_HEADER =
+  "surface,fg,surface_oklch,fg_oklch,ratio,verdict,aaa,aa" as const;
+
+const formatCsvRow = (
+  surface: NamedColor,
+  fg: NamedColor,
+  ratio: number,
+): string => {
+  const aaa = ratio >= 7.0 ? "yes" : "no";
+  const aa = ratio >= 4.5 ? "yes" : "no";
+  return [
+    surface.label,
+    fg.label,
+    `"${surface.value}"`,
+    `"${fg.value}"`,
+    ratio.toFixed(2),
+    verdict(ratio),
+    aaa,
+    aa,
+  ].join(",");
+};
+
+/**
+ * 単一の surface × fg ペアから CSV 1 行を組み立てる。
+ *
+ * culori `parse()` が `undefined` を返すケース (= 不正な OKLCH 文字列等)
+ * では sentinel として `undefined` を返し、行をスキップさせる。
+ *
+ * テストから import するため export する (S-2 / Issue #623)。
+ */
+export const buildCsvRow = (
+  surface: NamedColor,
+  fg: NamedColor,
+): string | undefined => {
+  const fgColor = parse(fg.value);
+  const bgColor = parse(surface.value);
+  if (!fgColor || !bgColor) {
+    return undefined;
+  }
+  const ratio = wcagContrast(fgColor, bgColor);
+  return formatCsvRow(surface, fg, ratio);
+};
+
 const renderCsv = (): string => {
   const { surfaces, fgs } = collectMatrixColors();
-  const lines: string[] = [
-    "surface,fg,surface_oklch,fg_oklch,ratio,verdict,aaa,aa",
-  ];
-
-  for (const surface of surfaces) {
-    for (const fg of fgs) {
-      const fgColor = parse(fg.value);
-      const bgColor = parse(surface.value);
-      if (!fgColor || !bgColor) {
-        continue;
-      }
-      const ratio = wcagContrast(fgColor, bgColor);
-      const aaa = ratio >= 7.0 ? "yes" : "no";
-      const aa = ratio >= 4.5 ? "yes" : "no";
-      lines.push(
-        [
-          surface.label,
-          fg.label,
-          `"${surface.value}"`,
-          `"${fg.value}"`,
-          ratio.toFixed(2),
-          verdict(ratio),
-          aaa,
-          aa,
-        ].join(","),
-      );
-    }
-  }
-
-  return `${lines.join("\n")}\n`;
+  const rows = surfaces.flatMap((surface) =>
+    fgs
+      .map((fg) => buildCsvRow(surface, fg))
+      .filter((row): row is string => row !== undefined),
+  );
+  return `${[CSV_HEADER, ...rows].join("\n")}\n`;
 };
 
 // =============================================================================
@@ -655,20 +689,10 @@ const formatRow = (result: ContrastResult): string => {
   return `  ${marker}[${verdictTag}] ${ratioStr}:1 (>= ${minStr}) ${result.pair.name}${marginalTag}`;
 };
 
-const main = (): void => {
-  const args = process.argv.slice(2);
-  const outputCsv = args.includes("--csv");
-  const strict = args.includes("--strict");
-
-  if (outputCsv) {
-    process.stdout.write(renderCsv());
-    return;
-  }
-
-  const pairs = getContrastPairs();
-  const results = pairs.map(computeContrast);
-  const semanticResults = verifySemanticPairs();
-
+const printReport = (
+  results: readonly ContrastResult[],
+  semanticResults: readonly ContrastResult[],
+): void => {
   console.log("== Editorial Citrus AAA コントラスト実測 ==");
   console.log(
     `本文閾値: ${contrastThresholds.bodyText} / 大文字: ${contrastThresholds.largeText}`,
@@ -683,6 +707,36 @@ const main = (): void => {
   for (const result of semanticResults) {
     console.log(formatRow(result));
   }
+};
+
+/**
+ * `GITHUB_ACTIONS=true` 環境下でのみ、マージン僅少ペアを
+ * GitHub Actions の `::warning::` 形式で出力する。
+ *
+ * - `GITHUB_ACTIONS` 未設定 / `"true"` 以外: 何も出力しない (= ローカル実行で副作用なし)
+ * - `marginal.length === 0`: 早期 return (出力すべき行がない)
+ *
+ * テストから import するため export する (S-2 / Issue #623)。
+ * 環境変数で挙動分岐するため、両ケース (true / false) を単体テストで担保し
+ * 環境変数判定の dead code 化を防ぐ。
+ */
+export const emitGithubActionsWarnings = (
+  marginal: readonly ContrastResult[],
+): void => {
+  if (process.env.GITHUB_ACTIONS !== "true" || marginal.length === 0) {
+    return;
+  }
+  for (const result of marginal) {
+    console.log(
+      `::warning::マージン僅少 ratio=${result.ratio.toFixed(2)} ${result.pair.name}`,
+    );
+  }
+};
+
+const runChecks = (strict: boolean): void => {
+  const results = getContrastPairs().map(computeContrast);
+  const semanticResults = verifySemanticPairs();
+  printReport(results, semanticResults);
 
   const allResults = [...results, ...semanticResults];
   const failed = allResults.filter((r) => !r.passed);
@@ -697,20 +751,31 @@ const main = (): void => {
     console.error("\nNG ペアあり: AAA / AA を満たしていません");
     process.exit(1);
   }
-
   if (strict && marginal.length > 0) {
     console.error("\n--strict 指定: マージン僅少ペアあり");
     process.exit(1);
   }
-
-  // GitHub Actions 上ではマージン僅少を ::warning:: で出力する
-  if (process.env.GITHUB_ACTIONS === "true" && marginal.length > 0) {
-    for (const result of marginal) {
-      console.log(
-        `::warning::マージン僅少 ratio=${result.ratio.toFixed(2)} ${result.pair.name}`,
-      );
-    }
-  }
+  emitGithubActionsWarnings(marginal);
 };
 
-main();
+const main = (): void => {
+  const args = process.argv.slice(2);
+  if (args.includes("--csv")) {
+    process.stdout.write(renderCsv());
+    return;
+  }
+  runChecks(args.includes("--strict"));
+};
+
+// CLI として直接実行されたときのみ動かす (テストからの import で副作用しないため)。
+// 判定は `path.basename` 経由で行い、OS 依存のパス区切り (POSIX `/` /
+// Windows `\\`) 双方で同じ結果になるようにする (`scripts/newPost.ts` と同パターン)。
+const isDirectInvocation =
+  typeof process !== "undefined" &&
+  Array.isArray(process.argv) &&
+  process.argv[1] !== undefined &&
+  basename(process.argv[1]) === "calculateContrast.ts";
+
+if (isDirectInvocation) {
+  main();
+}

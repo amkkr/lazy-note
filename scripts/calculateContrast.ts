@@ -665,20 +665,10 @@ const formatRow = (result: ContrastResult): string => {
   return `  ${marker}[${verdictTag}] ${ratioStr}:1 (>= ${minStr}) ${result.pair.name}${marginalTag}`;
 };
 
-const main = (): void => {
-  const args = process.argv.slice(2);
-  const outputCsv = args.includes("--csv");
-  const strict = args.includes("--strict");
-
-  if (outputCsv) {
-    process.stdout.write(renderCsv());
-    return;
-  }
-
-  const pairs = getContrastPairs();
-  const results = pairs.map(computeContrast);
-  const semanticResults = verifySemanticPairs();
-
+const printReport = (
+  results: readonly ContrastResult[],
+  semanticResults: readonly ContrastResult[],
+): void => {
   console.log("== Editorial Citrus AAA コントラスト実測 ==");
   console.log(
     `本文閾値: ${contrastThresholds.bodyText} / 大文字: ${contrastThresholds.largeText}`,
@@ -693,6 +683,25 @@ const main = (): void => {
   for (const result of semanticResults) {
     console.log(formatRow(result));
   }
+};
+
+const emitGithubActionsWarnings = (
+  marginal: readonly ContrastResult[],
+): void => {
+  if (process.env.GITHUB_ACTIONS !== "true" || marginal.length === 0) {
+    return;
+  }
+  for (const result of marginal) {
+    console.log(
+      `::warning::マージン僅少 ratio=${result.ratio.toFixed(2)} ${result.pair.name}`,
+    );
+  }
+};
+
+const runChecks = (strict: boolean): void => {
+  const results = getContrastPairs().map(computeContrast);
+  const semanticResults = verifySemanticPairs();
+  printReport(results, semanticResults);
 
   const allResults = [...results, ...semanticResults];
   const failed = allResults.filter((r) => !r.passed);
@@ -707,20 +716,20 @@ const main = (): void => {
     console.error("\nNG ペアあり: AAA / AA を満たしていません");
     process.exit(1);
   }
-
   if (strict && marginal.length > 0) {
     console.error("\n--strict 指定: マージン僅少ペアあり");
     process.exit(1);
   }
+  emitGithubActionsWarnings(marginal);
+};
 
-  // GitHub Actions 上ではマージン僅少を ::warning:: で出力する
-  if (process.env.GITHUB_ACTIONS === "true" && marginal.length > 0) {
-    for (const result of marginal) {
-      console.log(
-        `::warning::マージン僅少 ratio=${result.ratio.toFixed(2)} ${result.pair.name}`,
-      );
-    }
+const main = (): void => {
+  const args = process.argv.slice(2);
+  if (args.includes("--csv")) {
+    process.stdout.write(renderCsv());
+    return;
   }
+  runChecks(args.includes("--strict"));
 };
 
 main();

@@ -362,9 +362,7 @@ const computeContrast = (pair: ContrastPair): ContrastResult => {
   const fgColor = parse(pair.fg);
   const bgColor = parse(pair.bg);
   if (!fgColor || !bgColor) {
-    throw new Error(
-      `Failed to parse OKLCH pair: fg=${pair.fg} bg=${pair.bg}`,
-    );
+    throw new Error(`Failed to parse OKLCH pair: fg=${pair.fg} bg=${pair.bg}`);
   }
 
   const ratio = wcagContrast(fgColor, bgColor);
@@ -375,7 +373,8 @@ const computeContrast = (pair: ContrastPair): ContrastResult => {
   const aa = ratio >= 4.5;
   const passed = ratio >= pair.minRatio;
   const marginal =
-    pair.minRatio > 0 && ratio / pair.minRatio < contrastThresholds.marginalRatio;
+    pair.minRatio > 0 &&
+    ratio / pair.minRatio < contrastThresholds.marginalRatio;
 
   return { pair, ratio, fgLuminance, bgLuminance, aaa, aa, passed, marginal };
 };

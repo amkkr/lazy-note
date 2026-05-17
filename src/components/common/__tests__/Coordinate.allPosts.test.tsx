@@ -244,46 +244,44 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
     expect(fixturePostIds).toEqual(postIds);
   });
 
-  describe.each(expectations)(
-    "post.id=$postId",
-    ({ postId, publishedAt, expectedRows }) => {
-      it("post.id からタイムスタンプを推定でき、fixture の publishedAt と一致する", () => {
-        // 既存記事はすべて YYYYMMDDhhmmss 形式で、fixture と整合する
-        const inferred = inferPublishedAt(postId);
-        expect(inferred).toBe(publishedAt);
-      });
+  describe.each(expectations)("post.id=$postId", ({
+    postId,
+    publishedAt,
+    expectedRows,
+  }) => {
+    it("post.id からタイムスタンプを推定でき、fixture の publishedAt と一致する", () => {
+      // 既存記事はすべて YYYYMMDDhhmmss 形式で、fixture と整合する
+      const inferred = inferPublishedAt(postId);
+      expect(inferred).toBe(publishedAt);
+    });
 
-      it("fixture の expectedRows どおりの順序・件数・テキストで描画される", () => {
-        const { container } = render(
-          <Coordinate
-            publishedAt={publishedAt}
-            milestones={testMilestones}
-          />,
-        );
+    it("fixture の expectedRows どおりの順序・件数・テキストで描画される", () => {
+      const { container } = render(
+        <Coordinate publishedAt={publishedAt} milestones={testMilestones} />,
+      );
 
-        if (expectedRows.length === 0) {
-          // 0 件記事 (= 全節目が未来 or 全節目が heavy) は非表示
-          expect(container.firstChild).toBeNull();
-          return;
-        }
+      if (expectedRows.length === 0) {
+        // 0 件記事 (= 全節目が未来 or 全節目が heavy) は非表示
+        expect(container.firstChild).toBeNull();
+        return;
+      }
 
-        // 1 件以上ある記事は ul (aria-label="個人史座標") が描画される
-        const list = screen.getByRole("list", { name: "個人史座標" });
-        expect(list).toBeInTheDocument();
+      // 1 件以上ある記事は ul (aria-label="個人史座標") が描画される
+      const list = screen.getByRole("list", { name: "個人史座標" });
+      expect(list).toBeInTheDocument();
 
-        // 期待件数の li が並ぶ
-        const items = list.querySelectorAll("li");
-        expect(items).toHaveLength(expectedRows.length);
+      // 期待件数の li が並ぶ
+      const items = list.querySelectorAll("li");
+      expect(items).toHaveLength(expectedRows.length);
 
-        // 各 li に fixture どおりの label と日数が含まれる
-        for (const [index, row] of expectedRows.entries()) {
-          const item = items[index];
-          expect(item.textContent).toContain(row.label);
-          expect(item.textContent).toContain(String(row.daysSince));
-        }
-      });
-    },
-  );
+      // 各 li に fixture どおりの label と日数が含まれる
+      for (const [index, row] of expectedRows.entries()) {
+        const item = items[index];
+        expect(item.textContent).toContain(row.label);
+        expect(item.textContent).toContain(String(row.daysSince));
+      }
+    });
+  });
 
   describe("0 件記事の非表示 (フォールバック)", () => {
     it("milestones が空配列なら全 16 記事で非表示になる", () => {

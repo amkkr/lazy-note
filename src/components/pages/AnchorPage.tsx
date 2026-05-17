@@ -248,9 +248,11 @@ const ANCHOR_PAGE_DESCRIPTION =
 const ANCHOR_MILESTONES_SECTION_HEADING = "節目一覧" as const;
 const ANCHOR_MILESTONES_LIST_ARIA_LABEL = "節目一覧" as const;
 const ANCHOR_POSTS_SECTION_HEADING = "各記事の座標" as const;
-const ANCHOR_EMPTY_MILESTONES_MESSAGE = "まだ節目が記録されていません。" as const;
+const ANCHOR_EMPTY_MILESTONES_MESSAGE =
+  "まだ節目が記録されていません。" as const;
 const ANCHOR_EMPTY_POSTS_MESSAGE = "まだ記事がありません。" as const;
-const ANCHOR_EMPTY_COORDINATES_MESSAGE = "まだ通過した節目はありません" as const;
+const ANCHOR_EMPTY_COORDINATES_MESSAGE =
+  "まだ通過した節目はありません" as const;
 const ANCHOR_UNTITLED_POST = "無題の記事" as const;
 const ANCHOR_SKIPPED_NOTE_TEMPLATE = (skippedCount: number): string =>
   `publishedAt 推定不可でスキップした記事: ${skippedCount} 件`;

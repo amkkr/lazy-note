@@ -1,9 +1,9 @@
 import { Switch } from "@headlessui/react";
 import { css } from "../../../styled-system/css";
 import { useTheme } from "../../hooks/useTheme";
+import { focusRingStyles } from "../../styles/focusRing";
 import { Moon } from "../atoms/icons/Moon";
 import { Sun } from "../atoms/icons/Sun";
-import { focusRingStyles } from "../../styles/focusRing";
 
 /**
  * テーマ切替トグル。

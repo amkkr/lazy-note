@@ -27,17 +27,12 @@
  */
 
 import { execSync } from "node:child_process";
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import {
+  type Coordinate,
   computeCoordinates,
   computeElapsed,
-  type Coordinate,
   type Elapsed,
   inferPublishedAt,
   type Milestone,
@@ -111,7 +106,10 @@ type AnchorDiscriminatorKey = "kind";
  * - これに該当する要素型のみ discriminator 必須を強制する。該当しない型
  *   (例: `string` / `PreviousPost`) には何も制約を課さない。
  */
-type IsAnchorShape<T> = T extends { readonly label: string; readonly daysSince: number }
+type IsAnchorShape<T> = T extends {
+  readonly label: string;
+  readonly daysSince: number;
+}
   ? true
   : false;
 
@@ -300,9 +298,7 @@ export const buildIgnitionComment = (input: IgnitionInput): string => {
 
   if (input.siteOpeningElapsed !== null) {
     const safeLabel = escapeHtmlCommentLabel(input.siteOpeningElapsed.label);
-    lines.push(
-      `・${safeLabel}から ${input.siteOpeningElapsed.daysSince} 日目`,
-    );
+    lines.push(`・${safeLabel}から ${input.siteOpeningElapsed.daysSince} 日目`);
   }
 
   if (input.previousPost !== null) {
@@ -501,7 +497,7 @@ export const formatMilestonesSummary = (
       "ℹ️  datasources/milestones.json は未作成です。",
       "    社会復帰・サイト開設・喪失体験など、自分の節目を JSON で登録すると",
       "    新規記事の火種に「○○から N 日目」が並びます。",
-      "    例: [{ \"date\": \"2025-08-26\", \"label\": \"サイト開設\", \"tone\": \"neutral\" }]",
+      '    例: [{ "date": "2025-08-26", "label": "サイト開設", "tone": "neutral" }]',
     ].join("\n");
   }
   if (milestones.length === 0) {
@@ -512,7 +508,8 @@ export const formatMilestonesSummary = (
   }
   const header = `📍 現在登録されている節目 (${milestones.length} 件):`;
   const items = milestones.map((m) => {
-    const toneMark = m.tone === "heavy" ? " [重い節目]" : m.tone === "light" ? " [軽め]" : "";
+    const toneMark =
+      m.tone === "heavy" ? " [重い節目]" : m.tone === "light" ? " [軽め]" : "";
     return `   - ${m.date}  ${m.label}${toneMark}`;
   });
   const footer = "    必要に応じて milestones.json に節目を追記してください。";

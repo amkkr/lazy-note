@@ -39,6 +39,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **既存 Issue / PR の用語解釈ガイド（Issue #542）**: 過去の Issue や PR の AC / 説明文に「ファイルベースルーティング」「vite-plugin-pages」と記載されているものは、いずれも本プロジェクトの実態である「`src/pages/` 配下にページコンポーネントを置き、`src/main.tsx` の `<Routes>` に手動登録する慣行」を指すものとして読み替えること。`vite-plugin-pages` 等の自動ルート生成方式の導入検討は #562 を参照。
 
+#### 自動ルート生成方式（vite-plugin-pages 等）の導入検討結果（Issue #562, 2026-05-16）
+
+**結論: 現状維持**（`src/main.tsx` での手動 `<Routes>` 登録を継続し、`vite-plugin-pages` / `@react-router/dev` の framework mode 等の自動ルート生成方式は導入しない）。再評価したくなった開発者向けに判断根拠を残す。
+
+判断根拠:
+
+- **ルート数が少なく自動化のメリットが薄い**: 現状のルートは 3 つ（`/` = IndexPage / `/posts/:timestamp` = PostPage / `/anchor` = AnchorPage）のみ。新規ページ追加コストは `src/main.tsx` への `<Route>` 1 行追加で済み、自動生成によるコスト削減幅は小さい
+- **dynamic route は既存方式で十分**: `/posts/:timestamp` は React Router の `useParams` で対応済み（`src/pages/posts/Post.tsx`）。自動ルート生成方式が前提とするファイル名規約（`[slug].tsx` 等）に切り替える必要性はない
+- **main.tsx 側に密結合した個別制御がある**: `src/main.tsx` のコメント (L10-24) にあるとおり、View Transitions Hero morph (Issue #397) の前提として IndexPage / PostPage を **eager import** に切り替えている。`vite-plugin-pages` の `importMode` オプション（filepath → `'sync' | 'async'` を返す関数）等で個別 eager 制御は可能だが、現状 3 ルートしかないため、自動生成 + `importMode` 関数で個別オーバーライドする構造より、手動 `<Routes>` で eager / lazy を直接書く方が**宣言の局所性**が高く読みやすい
+- **外部依存追加の閾値が高い**: メモリ「外部ライブラリの追加は原則しない」の方針と整合させると、`vite-plugin-pages` 等の新規 devDependency 追加は inline 実装で代替できない場合に限られる。手動 Routes 登録で困っていない以上、追加根拠が立たない
+- **SSR / SSG とは独立に判断可能**: 将来 SSG 化（Vite SSR / Astro 等への移行）を検討する際は、その移行 Issue でルート定義方式を含めて再設計するのが筋。SSG 化を見越して先回りで自動ルート生成方式を導入する必要はない
+
+再評価のトリガー候補:
+
+- ルート数が **10 以上** に増え、`main.tsx` の手動登録 (`<Route>` 行 + import 行) で 30 行を超え視認性が下がり始めた場合（数値は目安、`main.tsx` の見通しを最優先する指針）
+- SSG / SSR への移行 Issue が起票される場合（観測可能な条件: Featured / 初回表示の Lighthouse スコア劣化が継続観測される / 3 件目以降の動的ページが追加される）。移行時にルート定義方式を含めて再設計する
+- 上記タイミングで再評価する際は、`vite-plugin-pages` だけでなく **Tanstack Router** (file-based / type-safe routing) / **React Router v7 の `@react-router/fs-routes` (flatRoutes)** / **`import.meta.glob` を使った inline 自作の glob ベース生成** (= 外部依存追加を避ける現実的中間案) も比較対象に含める
+
 ### スタイリングパターン
 
 Panda CSSを使用しているため、スタイルは以下のパターンで記述：

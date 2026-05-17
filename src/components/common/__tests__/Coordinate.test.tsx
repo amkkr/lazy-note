@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { describe, expect, it } from "vitest";
 import type { Milestone } from "../../../lib/anchors";
+import { buildPulseForbiddenVocabRegex } from "../../../test/forbiddenVocab";
 import { Coordinate } from "../Coordinate";
 
 /**
@@ -164,6 +165,27 @@ describe("Coordinate", () => {
       expect(group.textContent).toContain("333");
       // 区切り文字「・」が間に存在する
       expect(group.textContent).toMatch(/・/);
+    });
+  });
+
+  describe("過剰可視化の禁止 (Pulse 思想)", () => {
+    it("Pulse 思想禁則語彙 (投稿頻度 / 執筆ペース 等) が座標 UI に現れない", () => {
+      // 語彙の網羅は src/test/forbiddenVocab.ts に集約してあり、
+      // Resurface / AnchorPage / HomePage と共通の禁則語彙集を参照する
+      // (Issue #540)。Coordinate は「{label} から N 日目」の最小表現のみで
+      // 抽象指標語彙を一切吐かない構造を Tripwire で保証する。
+      const { container } = render(
+        <Coordinate
+          publishedAt="2025-12-31T00:00:00+09:00"
+          milestones={[
+            { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+            { date: "2025-02-01", label: "社会復帰", tone: "light" },
+          ]}
+        />,
+      );
+
+      const text = container.textContent ?? "";
+      expect(text).not.toMatch(buildPulseForbiddenVocabRegex());
     });
   });
 

@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import type { Post, PostSummary } from "../../../lib/markdown";
 import type { ResurfacedEntry } from "../../../lib/resurface";
+import { buildPulseForbiddenVocabRegex } from "../../../test/forbiddenVocab";
 import { HomePage } from "../HomePage";
 
 const mockPosts: Post[] = [
@@ -447,6 +448,29 @@ describe("HomePage", () => {
       expect(
         screen.getByRole("region", { name: "過去の記事" }),
       ).toBeInTheDocument();
+    });
+
+    it("Resurface を含む HomePage 全体に Pulse 思想禁則語彙が現れない", () => {
+      // 語彙の網羅は src/test/forbiddenVocab.ts に集約してあり、
+      // Coordinate / Resurface / AnchorPage と共通の禁則語彙集を参照する
+      // (Issue #540)。HomePage は Resurface セクションを内包するため、
+      // ページ統合状態でも抽象指標語彙が漏れていないことを Tripwire で
+      // 防御する。
+      const posts = buildMockPosts(3);
+      const { container } = render(
+        <MemoryRouter>
+          <HomePage
+            posts={posts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+            resurfaceEntry={buildEntry()}
+          />
+        </MemoryRouter>,
+      );
+
+      const text = container.textContent ?? "";
+      expect(text).not.toMatch(buildPulseForbiddenVocabRegex());
     });
   });
 });

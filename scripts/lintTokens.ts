@@ -193,10 +193,21 @@ interface Violation {
 
 /**
  * `statSync` を try/catch でラップし、対象が存在しない場合は undefined を返す。
- * `collectTargetFiles` の cognitive complexity を抑えるための補助関数。
+ * `collectTargetFiles` / `walkDirectory` の cognitive complexity を抑え、
+ * broken symlink 経路でも例外伝播を起こさないようにするための補助関数。
  *
  * CLAUDE.md「null vs undefined」方針に従い、戻り値型は `Stats | undefined` を
  * 採用する (DA レビュー Should Consider #1 / Issue #521 PR #619)。
+ *
+ * 例外ポリシー (Issue #621 / N2):
+ *   - ENOENT (ファイル / シンボリックリンク先が存在しない) は静かに undefined を返す
+ *   - **ENOENT 以外 (EACCES = 権限不足 / EMFILE = ファイルディスクリプタ枯渇 等)
+ *     も同じく握り潰して undefined を返す**。これは Tripwire スクリプトの
+ *     責務が「読める範囲のソースを走査して旧 token 検出する」ことであり、
+ *     部分的な stat 失敗を理由に CI を落とすより、走査を継続して
+ *     検出可能な違反を確実に拾うほうが価値が高いため
+ *   - 結果として、走査されなかったファイル数を別途検知したい場合は
+ *     呼び出し側で件数 / ログを別管理する必要がある (現状未実装)
  */
 const tryStat = (target: string): Stats | undefined => {
   try {
@@ -241,6 +252,9 @@ const shouldSkipEntry = (entry: string): boolean => {
  * `statSync` を直接呼ぶと broken symlink 等で throw する潜在問題があるため、
  * `tryStat` 経由で取得し、stat 失敗エントリは静かにスキップする
  * (Issue #621 / M1)。
+ *
+ * @param results **in-out**: 検出した受理可能ファイルのパスを末尾に push する
+ *   (Issue #621 / N1)
  */
 const walkDirectory = (current: string, results: string[]): void => {
   const entries = readdirSync(current);
@@ -345,8 +359,27 @@ interface StepResult {
 const NO_ADVANCE: StepResult = { advance: 0, terminated: false };
 
 /**
+ * ハンドラ関数群 (`handleBlockComment` / `handleStringLiteral` /
+ * `handleDefault`) の `out: string[]` 引数は **in-out 引数 (副作用パターン)**
+ * として運用する (Issue #621 / N1)。
+ *
+ * - 呼び出し側 (`stripComments`) が文字単位で push し、最後に `join("")`
+ *   する形で sanitized テキストを構築する。push の累積が結果なので、
+ *   ハンドラは `out` の所有権を共有し直接 mutate する
+ * - 関数の戻り値 (`StepResult`) は **位置進行情報** (`advance` /
+ *   `terminated`) のみを返し、テキストそのものは `out` 経由で持ち回る
+ *   ことで join 1 回分の文字列連結に抑え、`String += String` の二乗
+ *   アロケーションを回避する
+ * - 同様に `state: ScanState` も in-out 引数として mutate する。
+ *   呼び出し側に状態遷移を伝えるための共有参照
+ */
+
+/**
  * ブロックコメント中の 1 文字を処理する。
  * `* /` を検出したら終端、それ以外は空白に置換して維持する。
+ *
+ * @param out **in-out**: 処理後の sanitized 文字を末尾に push する (push only)
+ * @param state **in-out**: `inBlockComment` を必要に応じて mutate する
  */
 const handleBlockComment = (
   ch: string,
@@ -387,6 +420,9 @@ const QUOTE_FIELD: Readonly<Record<QuoteChar, QuoteStateField>> = {
  *
  * `quote` 引数のみで文字列リテラルの種類とフラグキーの双方を表現する
  * (旧 `closer` クロージャの責務を `QUOTE_FIELD` 表に集約)。
+ *
+ * @param out **in-out**: sanitized 文字を末尾に push する (push only)
+ * @param state **in-out**: 終端クォート検出時に対応する `in*` フラグを下ろす
  */
 const handleStringLiteral = (
   ch: string,
@@ -412,6 +448,9 @@ const handleStringLiteral = (
  * - 行コメント `//` を検出した場合は行末まで空白で埋めて打ち切り。
  * - ブロックコメント開始 `/ *` を検出したら inBlockComment を立てる。
  * - それ以外は文字をそのまま追記する。
+ *
+ * @param out **in-out**: sanitized 文字 / 空白を末尾に push する (push only)
+ * @param state **in-out**: 検出した状態遷移に応じて `in*` フラグを mutate する
  */
 const handleDefault = (
   ch: string,
@@ -453,6 +492,9 @@ const handleDefault = (
 /**
  * 現在の `ScanState` に応じて適切なハンドラを呼び分ける。
  * `stripComments` の主ループを薄く保つためのディスパッチ層。
+ *
+ * @param out **in-out**: 配下ハンドラへそのまま渡される push only バッファ
+ * @param state **in-out**: 配下ハンドラへそのまま渡される共有状態
  */
 const processChar = (
   ch: string,
@@ -592,6 +634,8 @@ const iterateMatches = (
 /**
  * ファイル全体スコープでパターン照合する (複数行にまたがるパターン用)。
  * panda.config.ts の `bg: { "0": ... }` のような複数行構造を検出するために使う。
+ *
+ * @param violations **in-out**: 検出した違反を末尾に push する (Issue #621 / N1)
  */
 const scanFileScope = (
   filePath: string,
@@ -617,6 +661,19 @@ const scanFileScope = (
 /**
  * sanitized テキスト上で `lineIndex` 行目に対応する範囲を切り出す。
  * `scanLineScope` の内部ヘルパー。
+ *
+ * `Math.max(start, nextStart - 1)` のガード意図 (Issue #621 / N3):
+ *   通常 `nextStart` は次行先頭 (改行直後) を指すため `nextStart - 1` は
+ *   現行末の改行位置となり、改行 1 文字を除いて返せる。
+ *   ただし `sanitized` が空 (`""`) の場合や、`lineStartOffsets` が
+ *   `[0]` 1 件だけのとき末尾行に対して fallback `sanitized.length + 1`
+ *   が走り、`nextStart - 1 = sanitized.length`、`start = 0` で
+ *   通常は問題ない。一方、空文字列で `lineStartOffsets = [0]` の場合
+ *   `nextStart - 1 = 0` で start と等しく、`slice(0, 0) = ""` を返す。
+ *   `Math.max` は `start > nextStart - 1` という想定外の崩れ
+ *   (将来 `lineStartOffsets` 計算ロジックを書き換えた際の安全網) に対して
+ *   slice の end が start を下回って空でない結果を返してしまうケースを
+ *   防ぐためのディフェンシブガードである。
  */
 const extractSanitizedLine = (
   sanitized: string,
@@ -625,13 +682,14 @@ const extractSanitizedLine = (
 ): string => {
   const start = lineStartOffsets[lineIndex] ?? 0;
   const nextStart = lineStartOffsets[lineIndex + 1] ?? sanitized.length + 1;
-  // nextStart は次行の先頭 (改行直後)。改行 1 文字ぶん除いた範囲を取る。
   return sanitized.slice(start, Math.max(start, nextStart - 1));
 };
 
 /**
  * 行スコープでパターン照合する (既定動作)。
  * 行ごとに sanitized 行を取り出して RegExp を実行し、行 / カラムを直接記録する。
+ *
+ * @param violations **in-out**: 検出した違反を末尾に push する (Issue #621 / N1)
  */
 const scanLineScope = (
   filePath: string,

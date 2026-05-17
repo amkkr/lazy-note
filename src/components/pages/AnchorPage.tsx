@@ -6,6 +6,7 @@ import {
   inferPublishedAt,
   type Milestone,
 } from "../../lib/anchors";
+import { UNTITLED_POST } from "../../lib/i18nLiterals";
 import type { PostSummary } from "../../lib/markdown";
 
 interface AnchorPageProps {
@@ -251,7 +252,9 @@ const ANCHOR_POSTS_SECTION_HEADING = "各記事の座標" as const;
 const ANCHOR_EMPTY_MILESTONES_MESSAGE = "まだ節目が記録されていません。" as const;
 const ANCHOR_EMPTY_POSTS_MESSAGE = "まだ記事がありません。" as const;
 const ANCHOR_EMPTY_COORDINATES_MESSAGE = "まだ通過した節目はありません" as const;
-const ANCHOR_UNTITLED_POST = "無題の記事" as const;
+// Issue #629: "無題の記事" は本ファイル外でも 5 箇所で使われるため
+// `src/lib/i18nLiterals.ts` の UNTITLED_POST へ横串集約済み (本ファイルからは
+// 上記 import で参照)。本ファイル局所定数は単一ファイルで完結する文言に限定。
 const ANCHOR_SKIPPED_NOTE_TEMPLATE = (skippedCount: number): string =>
   `publishedAt 推定不可でスキップした記事: ${skippedCount} 件`;
 const ANCHOR_ALL_SKIPPED_FALLBACK_TEMPLATE = (skippedCount: number): string =>
@@ -415,7 +418,7 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
                       data-token-border="border.subtle"
                     >
                       <span className={postTitleStyles}>
-                        {entry.post.title || ANCHOR_UNTITLED_POST}
+                        {entry.post.title || UNTITLED_POST}
                       </span>
                       {entry.coordinates.length === 0 ? (
                         <span className={emptyStateStyles}>

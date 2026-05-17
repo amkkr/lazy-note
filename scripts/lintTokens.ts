@@ -46,6 +46,7 @@
 
 import { type Stats, readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 
@@ -754,4 +755,48 @@ const main = (): void => {
   process.exit(1);
 };
 
-main();
+/**
+ * `node scripts/lintTokens.ts` で直接起動された場合のみ `main()` を実行する。
+ * テストから `import` した際に副作用 (process.exit) が走らないようにするための
+ * エントリポイントガード (Issue #621 / Should #5)。
+ */
+const isDirectInvocation = (): boolean => {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+  return resolve(entry) === fileURLToPath(import.meta.url);
+};
+
+if (isDirectInvocation()) {
+  main();
+}
+
+export {
+  collectTargetFiles,
+  extractSanitizedLine,
+  handleBlockComment,
+  handleDefault,
+  handleStringLiteral,
+  isAcceptableFile,
+  iterateMatches,
+  offsetToLineColumn,
+  processChar,
+  sanitizeFile,
+  scanFile,
+  scanFileScope,
+  scanLineScope,
+  shouldSkipEntry,
+  stripComments,
+  tryStat,
+  walkDirectory,
+  LINT_PATTERNS,
+};
+export type {
+  LintPattern,
+  QuoteChar,
+  SanitizedFile,
+  ScanState,
+  StepResult,
+  Violation,
+};

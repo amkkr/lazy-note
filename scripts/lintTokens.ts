@@ -236,6 +236,10 @@ const shouldSkipEntry = (entry: string): boolean => {
 /**
  * ディレクトリを再帰走査し、受理可能ファイルを `results` に追記する。
  * `collectTargetFiles` から呼び出される内部ヘルパー。
+ *
+ * `statSync` を直接呼ぶと broken symlink 等で throw する潜在問題があるため、
+ * `tryStat` 経由で取得し、stat 失敗エントリは静かにスキップする
+ * (Issue #621 / M1)。
  */
 const walkDirectory = (current: string, results: string[]): void => {
   const entries = readdirSync(current);
@@ -244,7 +248,10 @@ const walkDirectory = (current: string, results: string[]): void => {
       continue;
     }
     const fullPath = join(current, entry);
-    const entryStats = statSync(fullPath);
+    const entryStats = tryStat(fullPath);
+    if (!entryStats) {
+      continue;
+    }
     if (entryStats.isDirectory()) {
       walkDirectory(fullPath, results);
       continue;

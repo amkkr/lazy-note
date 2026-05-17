@@ -44,6 +44,14 @@ const EXPECTED_MILESTONES: readonly Milestone[] = [
   },
 ];
 
+/**
+ * 3 ケース構成の意図 (DA レビュー M-1 への応答):
+ * 全件 `toEqual` が pass すれば件数 / 順序ケースは構造的に必ず pass するため、
+ * 形式的には冗長な従属関係にある。しかし fail 時の **局所診断性** を優先して
+ * 意図的に分離している。全件 `toEqual` の diff は配列全体を吐くため
+ * 「件数だけずれた」「順序だけずれた」を一目で切り分けにくいが、
+ * 件数 / 順序ケースが独立に fail すれば原因種別が即特定できる。
+ */
 describe("datasources/milestones.json 意味的スナップショット (Issue #615)", () => {
   const actualMilestones = milestonesJson as readonly Milestone[];
 

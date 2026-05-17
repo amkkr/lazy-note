@@ -56,12 +56,137 @@ export interface PreviousPost {
   readonly publishedAt: string;
 }
 
+// -----------------------------------------------------------------------------
+// 型レベルガード (Issue #556): Anchor 型 (Coordinate / Elapsed) 縮退の構造的予防
+// -----------------------------------------------------------------------------
+//
+// 目的:
+//   PR #555 (Issue #523) で `IgnitionInput.coordinates` を `readonly Coordinate[]`
+//   に統一して discriminator (`kind`) 縮退を解消したが、将来 `IgnitionInput` に
+//   新フィールド (例: `resurfaceCoordinates: readonly Coordinate[]`) が増えたとき
+//   に、開発者が `Coordinate` を import せず構造的リテラル
+//   (`{ label, tone, daysSince }[]`) で書いてしまうと、再び discriminator が
+//   剥がれた縮退状態に逆戻りする可能性がある。
+//
+// 防御方針:
+//   `IgnitionInput` の各フィールドを Conditional Type で走査し、
+//   「Anchor 型らしいフィールド (= Coordinate / Elapsed と構造的に互換)」が
+//   `kind` discriminator を持たないと型エラーになる制約を課す。
+//   これにより、`IgnitionInput` に新フィールドを追加する際:
+//   - `readonly Coordinate[]` / `readonly Elapsed[]` 等の Anchor 型由来の宣言
+//     なら `kind` が自然に含まれるため pass
+//   - 構造的リテラル `{ label, tone, daysSince }[]` 等の hand-rolled な宣言は
+//     コンパイル時に rejected され、必ず Anchor 型を import するよう誘導される
+//
+// 設計判断:
+//   - branded type / 別名 import 強制ではなく Conditional Type を採用したのは、
+//     既存呼び出し側 (scripts/newPost.ts 自身) と完全な後方互換を保ち、新規
+//     フィールド追加時のみ effective に働く「opt-in 不要のゼロコストガード」
+//     にするため。
+//   - lint rule (案 B) は新規開発が必要で重く、メモリ「外部ライブラリの追加は
+//     原則しない」と整合しない。Conditional Type なら型システムだけで完結する。
+//   - 完全な「Coordinate-like 自動判定」は型システムだけでは難しいが、
+//     `label` + `daysSince` を持つ要素型を抽出して discriminator の存在を
+//     必須化する程度には現実的に書ける。
+
+/**
+ * Anchor 型 (Coordinate / Elapsed) が共通で持つ discriminator field の名前
+ *
+ * - Coordinate: `kind: "coordinate"`
+ * - Elapsed:    `kind: "elapsed"`
+ *
+ * 新しい Anchor 系 layer が追加された場合 (例: `Resurface` で
+ * `kind: "resurface"` を持つ等) も、`kind` discriminator field を持っている
+ * 限り本ガードは破綻しない (`HasAnchorDiscriminator` の判定が string literal
+ * の存在チェックに留まるため、新しい discriminator 値を許容する設計)。
+ */
+type AnchorDiscriminatorKey = "kind";
+
+/**
+ * Anchor 型らしい要素型かどうかを判定する Conditional Type
+ *
+ * - 「Anchor 型らしい」を `label: string` と `daysSince: number` の両方を
+ *   持つこと、と定義する (Coordinate / Elapsed の共通最小スキーマ)。
+ * - これに該当する要素型のみ discriminator 必須を強制する。該当しない型
+ *   (例: `string` / `PreviousPost`) には何も制約を課さない。
+ */
+type IsAnchorShape<T> = T extends { readonly label: string; readonly daysSince: number }
+  ? true
+  : false;
+
+/**
+ * Anchor 型らしい要素が discriminator `kind` を string literal で
+ * 持っているかどうかを判定する
+ *
+ * - `kind: string` のような wide string では unsafe (構造的縮退に
+ *   逆戻りする) ため、string literal (= `"coordinate"` / `"elapsed"` 等)
+ *   のみを「持っている」とみなす。
+ */
+type HasAnchorDiscriminator<T> = T extends {
+  readonly [K in AnchorDiscriminatorKey]: infer Kind;
+}
+  ? Kind extends string
+    ? string extends Kind
+      ? false
+      : true
+    : false
+  : false;
+
+/**
+ * フィールド単位での Anchor 型ガード判定
+ *
+ * - `readonly T[]` の場合は要素型 T に対して判定を再帰する
+ * - `T | null` の場合は非 null 部分のみで判定する
+ * - 上記の組み合わせ (`readonly T[] | null` 等) も同様にハンドリングする
+ *
+ * 戻り値:
+ *   - フィールドが Anchor 型らしくない → そのフィールド型をそのまま返す
+ *   - Anchor 型らしく、かつ discriminator を持つ → そのフィールド型をそのまま返す
+ *   - Anchor 型らしいのに discriminator を持たない → never に潰す
+ *     (= プロパティが never の object には代入できない = コンパイル時 reject)
+ */
+type EnforceAnchorDiscriminatorField<T> = T extends readonly (infer U)[]
+  ? IsAnchorShape<U> extends true
+    ? HasAnchorDiscriminator<U> extends true
+      ? T
+      : never
+    : T
+  : T extends null
+    ? T
+    : IsAnchorShape<T> extends true
+      ? HasAnchorDiscriminator<T> extends true
+        ? T
+        : never
+      : T;
+
+/**
+ * オブジェクト型 (interface) の全フィールドに `EnforceAnchorDiscriminatorField`
+ * を適用するヘルパ
+ *
+ * - フィールド単位で型を写像する mapped type
+ * - フィールドの readonly 修飾は維持する
+ */
+type EnforceAnchorDiscriminatorFields<T> = {
+  readonly [K in keyof T]: EnforceAnchorDiscriminatorField<T[K]>;
+};
+
 /**
  * `buildIgnitionComment` 入力
  *
  * - coordinates: 登録済み節目から算出された座標
  * - siteOpeningElapsed: milestones.json 不在時のフォールバック (最古記事日付からの経過)
  * - previousPost: 直近記事 (タイトル + 日付)。存在しない場合は null
+ *
+ * 型レベルガード (Issue #556):
+ *   - 直下にある `_ignitionInputAnchorFieldGuardCheck` の宣言で、
+ *     `IgnitionInput` の各フィールドが「Anchor 型らしい (label + daysSince
+ *     を持つ) のに discriminator `kind` を欠いている」場合にコンパイル
+ *     エラーになる構造的回帰防止を提供する。
+ *   - 新フィールド追加時に `readonly { label, tone, daysSince }[]` のような
+ *     ハンドメイドな構造的リテラルを書くと、`type-check:test` で
+ *     `AssertEqual` の不一致オブジェクト型 (`{ error; expected; actual }`)
+ *     が露出して `true` の代入が失敗し、必ず `Coordinate` / `Elapsed` 等の
+ *     Anchor 型を import するよう誘導される。
  */
 export interface IgnitionInput {
   readonly coordinates: readonly Coordinate[];
@@ -69,6 +194,63 @@ export interface IgnitionInput {
   readonly previousPost: PreviousPost | null;
   readonly publishedAt: string;
 }
+
+/**
+ * 型レベル等価性アサーション (Issue #556)
+ *
+ * `A` と `B` が双方向に extends 可能なら `true`、そうでないなら
+ * 失敗内容を示すオブジェクト型を返す。`const _x: AssertEqual<A, B> = true;`
+ * の形で代入することで、A と B が等しくないときに `true` をオブジェクト型に
+ * 代入できず型エラーになる。
+ *
+ * 旧実装の `A extends B ? A : never` 形は違反時に `never` に評価される
+ * だけでエラーにならず、ガードが空回りしていた。本実装は失敗時に `true`
+ * が代入できない非互換型を返すため、実機能化されている。
+ */
+type AssertEqual<A, B> = [A] extends [B]
+  ? [B] extends [A]
+    ? true
+    : { error: "A is not B"; expected: B; actual: A }
+  : { error: "B is not A"; expected: B; actual: A };
+
+/**
+ * 型レベルガード本体 (Issue #556)
+ *
+ * `IgnitionInput` を `EnforceAnchorDiscriminatorFields` に通した型と、
+ * 元の `IgnitionInput` が双方向に互換であることを `AssertEqual` で
+ * 検証する。いずれかのフィールドが Anchor 型らしいのに discriminator
+ * `kind` を欠いていると、対応するフィールド型が `never` に潰れて
+ * `IgnitionInput` と不一致となり、`_ignitionInputAnchorFieldGuardCheck`
+ * への `true` 代入が型エラーになる。
+ *
+ * - underscore prefix の定数として残すことで、`IgnitionInput` の定義
+ *   そのものを汚さずに型レベル契約だけを表明する。
+ * - 値は `true` リテラルだが値レベルの export は持たないため、実行時
+ *   オーバーヘッドはゼロ。
+ * - `void` 文で参照することで、将来 `scripts/` が `tsconfig.json` の
+ *   `include` 対象になった場合 (Issue #522) でも `noUnusedLocals`
+ *   警告を避ける。
+ */
+const _ignitionInputAnchorFieldGuardCheck: AssertEqual<
+  EnforceAnchorDiscriminatorFields<IgnitionInput>,
+  IgnitionInput
+> = true;
+void _ignitionInputAnchorFieldGuardCheck;
+
+/**
+ * 型レベルガードヘルパの公開 export (Issue #556)
+ *
+ * - テスト (`scripts/__tests__/newPost.test.ts`) から `@ts-expect-error`
+ *   ベースの回帰固定で参照する目的で公開する。
+ * - 値レベルの export は無く、型のみのため tree shaking 不要。
+ * - 通常のアプリケーションコードからの使用は想定していない (内部 utility)。
+ */
+export type IsAnchorShape_ForTest<T> = IsAnchorShape<T>;
+export type HasAnchorDiscriminator_ForTest<T> = HasAnchorDiscriminator<T>;
+export type EnforceAnchorDiscriminatorField_ForTest<T> =
+  EnforceAnchorDiscriminatorField<T>;
+export type EnforceAnchorDiscriminatorFields_ForTest<T> =
+  EnforceAnchorDiscriminatorFields<T>;
 
 // =============================================================================
 // 純粋関数 (テスト可能)

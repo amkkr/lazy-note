@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { Milestone } from "../../../lib/anchors";
 import type { PostSummary } from "../../../lib/markdown";
+import { buildPulseForbiddenVocabRegex } from "../../../test/forbiddenVocab";
 import { AnchorPage } from "../AnchorPage";
 
 /**
@@ -370,9 +371,11 @@ describe("AnchorPage", () => {
       );
 
       // 「投稿頻度」「平均間隔」「ペース」など Pulse を切った思想に反する語彙
-      // が AnchorPage には現れない
+      // が AnchorPage には現れない。語彙の網羅は src/test/forbiddenVocab.ts に
+      // 集約してあり、Coordinate / Resurface / HomePage と共通の禁則語彙集を
+      // 参照する (Issue #540)。
       const text = container.textContent ?? "";
-      expect(text).not.toMatch(/投稿頻度|平均間隔|投稿ペース/);
+      expect(text).not.toMatch(buildPulseForbiddenVocabRegex());
     });
 
     it("グラフ要素 (canvas) を含まない", () => {

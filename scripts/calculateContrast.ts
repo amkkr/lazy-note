@@ -21,6 +21,20 @@
  *   pnpm contrast:matrix               # docs/contrast-matrix.csv を生成
  *   node scripts/calculateContrast.ts --strict
  *     # マージン僅少 (1.05 倍以内) も fail にする
+ *
+ * Biome 厳格化耐性 (Issue #623 で実機検証、2026-05-17):
+ *   - 本ファイルは biome を以下条件で厳格化しても違反 0 を維持する:
+ *     * `complexity.noExcessiveCognitiveComplexity`: error, `maxAllowedComplexity: 8`
+ *     * `correctness.noUnusedVariables`: error
+ *     * `suspicious.noImplicitAnyLet`: error
+ *   - 再現手順 (任意の検証ブランチで):
+ *     1. biome.json の上記 3 ルールを `"error"` + `maxAllowedComplexity: 8` に上げる
+ *     2. `pnpm lint` を実行し、scripts/calculateContrast.ts の違反 0 を確認
+ *     3. `pnpm test:run` で挙動の regression がないことを確認
+ *     4. `node scripts/calculateContrast.ts --csv` の出力が master HEAD と
+ *        完全一致することを `md5sum` で確認
+ *   - 維持コストを避けるため CI workflow としては常設化しない (Issue #623 で判断)。
+ *     再評価が必要になった場合は別 Issue を切ること。
  */
 
 import { basename } from "node:path";

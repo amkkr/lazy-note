@@ -24,7 +24,12 @@ describe("PostDetailPage", () => {
   it("記事タイトルを表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        <PostDetailPage
+          post={mockPost}
+          olderPost={null}
+          newerPost={null}
+          milestones={[]}
+        />
       </MemoryRouter>,
     );
 
@@ -36,7 +41,12 @@ describe("PostDetailPage", () => {
   it("記事のメタ情報を表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        <PostDetailPage
+          post={mockPost}
+          olderPost={null}
+          newerPost={null}
+          milestones={[]}
+        />
       </MemoryRouter>,
     );
 
@@ -47,7 +57,12 @@ describe("PostDetailPage", () => {
   it("記事コンテンツを表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        <PostDetailPage
+          post={mockPost}
+          olderPost={null}
+          newerPost={null}
+          milestones={[]}
+        />
       </MemoryRouter>,
     );
 
@@ -61,7 +76,12 @@ describe("PostDetailPage", () => {
   it("トップページへのリンクを表示できる", () => {
     render(
       <MemoryRouter>
-        <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+        <PostDetailPage
+          post={mockPost}
+          olderPost={null}
+          newerPost={null}
+          milestones={[]}
+        />
       </MemoryRouter>,
     );
 
@@ -82,6 +102,7 @@ describe("PostDetailPage", () => {
           post={postWithoutTitle}
           olderPost={null}
           newerPost={null}
+          milestones={[]}
         />
       </MemoryRouter>,
     );
@@ -100,7 +121,12 @@ describe("PostDetailPage", () => {
 
     render(
       <MemoryRouter>
-        <PostDetailPage post={postWithHtml} olderPost={null} newerPost={null} />
+        <PostDetailPage
+          post={postWithHtml}
+          olderPost={null}
+          newerPost={null}
+          milestones={[]}
+        />
       </MemoryRouter>,
     );
 
@@ -143,7 +169,12 @@ describe("PostDetailPage", () => {
     it("本文コンテナが prose scope として宣言される", () => {
       render(
         <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
         </MemoryRouter>,
       );
 
@@ -160,7 +191,12 @@ describe("PostDetailPage", () => {
     it("段落が prose scope コンテナの内側に配置される", () => {
       render(
         <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
         </MemoryRouter>,
       );
 
@@ -174,7 +210,12 @@ describe("PostDetailPage", () => {
     it("見出し (h2) が prose scope コンテナの内側に配置される", () => {
       render(
         <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
         </MemoryRouter>,
       );
 
@@ -198,6 +239,7 @@ describe("PostDetailPage", () => {
             post={postWithTable}
             olderPost={null}
             newerPost={null}
+            milestones={[]}
           />
         </MemoryRouter>,
       );
@@ -221,6 +263,7 @@ describe("PostDetailPage", () => {
             post={postWithList}
             olderPost={null}
             newerPost={null}
+            milestones={[]}
           />
         </MemoryRouter>,
       );
@@ -236,7 +279,12 @@ describe("PostDetailPage", () => {
     it("TOC は本文コンテナの外側に配置される", () => {
       render(
         <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
         </MemoryRouter>,
       );
 
@@ -265,7 +313,12 @@ describe("PostDetailPage", () => {
     it("article は border.subtle 専用 token を border として宣言する", () => {
       const { container } = render(
         <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
         </MemoryRouter>,
       );
 
@@ -277,7 +330,12 @@ describe("PostDetailPage", () => {
     it("ページナビゲーションは border.subtle を border として宣言する", () => {
       const { container } = render(
         <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
         </MemoryRouter>,
       );
 
@@ -296,7 +354,12 @@ describe("PostDetailPage", () => {
     it("header と本文の間の divider が borderTop + border.subtle を宣言する", () => {
       const { container } = render(
         <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
         </MemoryRouter>,
       );
 
@@ -319,7 +382,12 @@ describe("PostDetailPage", () => {
     it("H1 に view-transition-name: post-{id} を付与する", () => {
       render(
         <MemoryRouter>
-          <PostDetailPage post={mockPost} olderPost={null} newerPost={null} />
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
         </MemoryRouter>,
       );
 
@@ -336,8 +404,9 @@ describe("PostDetailPage", () => {
   //
   // 記事詳細の MetaInfo 近傍に「{label} から N 日目」を静かに一行で並べる。
   // - post.id (YYYYMMDDhhmmss) から publishedAt を逆算する
-  // - milestones prop と showCoordinate prop は optional (既定で非表示)
-  // - 不正な id (タイムスタンプ形式でない) は publishedAt 推定不可で非表示
+  // - milestones prop は required (Issue #533)、showCoordinate prop は
+  //   optional で既定 true (撤退時の OFF フラグ専用)
+  // - 空配列 / showCoordinate=false / publishedAt 推定不可 のいずれかで非表示
   // ==========================================================================
   describe("Coordinate 表示", () => {
     /**
@@ -373,18 +442,20 @@ describe("PostDetailPage", () => {
       expect(screen.getByText(/サイト開設/)).toBeInTheDocument();
     });
 
-    it("milestones を渡さない (既定) と Coordinate を描画しない", () => {
+    it("milestones が空配列のとき Coordinate を描画しない", () => {
       render(
         <MemoryRouter>
           <PostDetailPage
             post={mockPostWithTimestamp}
             olderPost={null}
             newerPost={null}
+            milestones={[]}
           />
         </MemoryRouter>,
       );
 
-      // milestones 未指定 (= 空配列扱い) で Coordinate は出ない
+      // Issue #533: milestones を required 化したため「未指定」のケースは型的に
+      // 成立しない。撤退時の挙動 (空配列で Coordinate を描画しない) を担保する。
       expect(
         screen.queryByRole("list", { name: "個人史座標" }),
       ).not.toBeInTheDocument();

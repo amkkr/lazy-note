@@ -25,14 +25,23 @@ interface PostDetailPageProps {
    * import して渡す。本コンポーネントは `inferPublishedAt(post.id)` で
    * publishedAt を逆算し、Coordinate に渡す純粋な中継を行う。
    *
-   * 既定 (省略) では空配列扱いで Coordinate は描画されない (= 既存テスト互換)。
+   * Issue #533 で required 化。「Post.tsx 以外の経路で PostDetailPage を呼んだ際、
+   * `milestones` を渡し忘れると無音で Coordinate が消える」という UX バグを
+   * 型エラーで検知するため optional から required に変更した。空配列を渡す
+   * ことで Coordinate を非表示にできる (Coordinate 内部で early return)。
    */
-  milestones?: readonly Milestone[];
+  milestones: readonly Milestone[];
   /**
    * Coordinate の表示 OFF フラグ (撤退可能性 / epic #487)。
    *
    * Anchor 企画は「いつでも黙らせられる」設計要件。Resurface と同じ命名
-   * (`show*` 親側変数 + 子側 `show` prop) で揃える。既定 true。
+   * (`show*` 親側変数 + 子側 `show` prop) で揃える。
+   *
+   * Issue #533: 本フラグは「明示的に OFF にしたいとき専用」のスイッチで、
+   * 既定 true (= 通常時は何も指定せず Coordinate を描画する) として扱う。
+   * required 化はせず optional のまま据え置く方針 (呼び出し側で都度 true を
+   * 書かせる負担を避けるため)。OFF にしたい呼び出し側だけ `showCoordinate={false}`
+   * を明示する。
    */
   showCoordinate?: boolean;
 }
@@ -172,7 +181,7 @@ export const PostDetailPage = ({
               {publishedAt !== null && (
                 <Coordinate
                   publishedAt={publishedAt}
-                  milestones={milestones ?? []}
+                  milestones={milestones}
                   show={showCoordinate}
                 />
               )}

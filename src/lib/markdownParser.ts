@@ -6,7 +6,14 @@
  * Markdown 全文を行配列に変換する
  *
  * - 文字列冒頭の UTF-8 BOM (U+FEFF) を 1 文字除去する
- * - 改行コードは CRLF (`\r\n`) / LF (`\n`) / CR (`\r`) の 3 種を許容する
+ *   (ファイルとしての BOM は仕様上ファイル先頭にしか存在しえないため、
+ *   冒頭 1 文字のみ除去すれば十分。文字列途中に現れる U+FEFF は本来の
+ *   ゼロ幅ノーブレークスペースとして意図的に挿入された可能性があるので
+ *   保持する)
+ * - 改行コードは CRLF (`\r\n`) / LF (`\n`) / CR (`\r`) の ASCII 3 種を許容する
+ *   (Unicode 改行 LINE SEPARATOR `U+2028` / PARAGRAPH SEPARATOR `U+2029`
+ *   は Markdown ソースとして流入することがほぼ無いため非対応。
+ *   必要になった時点で対応範囲を拡張する)
  *
  * 旧 `src/lib/meta.ts` の `splitLines` (Issue #520 で削除) が持っていた
  * BOM 除去 + CRLF/LF/CR 三対応のノウハウを `markdownParser.ts` 側に

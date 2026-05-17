@@ -208,6 +208,159 @@ describe("AnchorPage", () => {
     });
   });
 
+  describe("publishedAt 推定不可な記事のスキップ件数注記 (Issue #544)", () => {
+    it("スキップ対象が 0 件のとき注記は表示しない", () => {
+      // basePosts は 2 件とも YYYYMMDDhhmmss 形式の正常 id なので、
+      // スキップは発生しない。このとき注記は描画されない。
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      expect(
+        screen.queryByText(/publishedAt 推定不可でスキップした記事/),
+      ).not.toBeInTheDocument();
+      // role="note" でも検出されないこと (= ノイズ削減の意図)
+      expect(screen.queryByRole("note")).not.toBeInTheDocument();
+    });
+
+    it("スキップ対象が 1 件のとき件数注記を表示する", () => {
+      const invalidPost: PostSummary = {
+        id: "test-invalid-id",
+        title: "壊れた id の記事",
+        createdAt: "2025-09-05",
+        author: "amkkr",
+        excerpt: "テスト",
+        readingTimeMinutes: 1,
+      };
+
+      render(
+        <MemoryRouter>
+          <AnchorPage
+            posts={[invalidPost, ...basePosts]}
+            milestones={baseMilestones}
+          />
+        </MemoryRouter>,
+      );
+
+      // 注記が role="note" として検出できる
+      const note = screen.getByRole("note");
+      expect(note).toBeInTheDocument();
+      expect(note).toHaveTextContent(
+        "publishedAt 推定不可でスキップした記事: 1 件",
+      );
+    });
+
+    it("スキップ対象が複数件のとき件数を正しく集計して表示する", () => {
+      const invalidPosts: PostSummary[] = [
+        {
+          id: "test-invalid-1",
+          title: "壊れた id 1",
+          createdAt: "2025-09-05",
+          author: "amkkr",
+          excerpt: "テスト1",
+          readingTimeMinutes: 1,
+        },
+        {
+          id: "broken",
+          title: "壊れた id 2",
+          createdAt: "2025-09-05",
+          author: "amkkr",
+          excerpt: "テスト2",
+          readingTimeMinutes: 1,
+        },
+        {
+          id: "12345",
+          title: "桁数が足りない id",
+          createdAt: "2025-09-05",
+          author: "amkkr",
+          excerpt: "テスト3",
+          readingTimeMinutes: 1,
+        },
+      ];
+
+      render(
+        <MemoryRouter>
+          <AnchorPage
+            posts={[...invalidPosts, ...basePosts]}
+            milestones={baseMilestones}
+          />
+        </MemoryRouter>,
+      );
+
+      const note = screen.getByRole("note");
+      expect(note).toHaveTextContent(
+        "publishedAt 推定不可でスキップした記事: 3 件",
+      );
+    });
+
+    it("全記事が publishedAt 推定不可のとき空 list を出さず穏やかな空状態テキストにフォールバックする", () => {
+      // 全 posts が壊れた id の場合、`postEntries.length === 0` となる。
+      // ここで空 `<ul>` を描画すると「各記事の座標」見出し + 空 list + 注記の
+      // 不自然な画面になるため、フォールバックとして 1 行の空状態テキスト
+      // (= 全件スキップである事実を件数とともに伝える) のみを出す。
+      const invalidPosts: PostSummary[] = [
+        {
+          id: "test-invalid-1",
+          title: "壊れた id 1",
+          createdAt: "2025-09-05",
+          author: "amkkr",
+          excerpt: "テスト1",
+          readingTimeMinutes: 1,
+        },
+        {
+          id: "test-invalid-2",
+          title: "壊れた id 2",
+          createdAt: "2025-09-05",
+          author: "amkkr",
+          excerpt: "テスト2",
+          readingTimeMinutes: 1,
+        },
+      ];
+
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={invalidPosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      // 各記事の座標 section 自体は出る (posts.length > 0 なので)
+      const postSection = screen.getByRole("region", {
+        name: "各記事の座標",
+      });
+      expect(postSection).toBeInTheDocument();
+      // フォールバックテキストが描画される
+      const note = within(postSection).getByRole("note");
+      expect(note).toHaveTextContent(
+        "全記事が publishedAt 推定不可のためスキップしました (2 件)",
+      );
+      // 空 `<ul>` (= 各記事を並べる list) は出さない
+      expect(within(postSection).queryByRole("list")).not.toBeInTheDocument();
+      // 通常の件数注記 (「publishedAt 推定不可でスキップした記事: N 件」) は出さない
+      // (= フォールバックテキストに件数を埋め込んでいるため二重表示を避ける)
+      expect(
+        within(postSection).queryByText(
+          /publishedAt 推定不可でスキップした記事:/,
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    it("posts が 0 件のとき注記そのものを出さない (各記事の座標 section ごと非表示のため)", () => {
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={[]} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      // 各記事の座標 region 自体が出ないため、注記も同伴して出ない
+      expect(screen.queryByRole("note")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/publishedAt 推定不可でスキップした記事/),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("過剰可視化の禁止", () => {
     it("投稿頻度に関する文言を含まない", () => {
       const { container } = render(

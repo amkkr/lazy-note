@@ -23,6 +23,7 @@
  *     # マージン僅少 (1.05 倍以内) も fail にする
  */
 
+import { basename } from "node:path";
 import { parse, wcagContrast, wcagLuminance } from "culori";
 import {
   contrastThresholds,
@@ -34,7 +35,7 @@ import {
 // 型定義
 // =============================================================================
 
-interface ContrastPair {
+export interface ContrastPair {
   readonly name: string;
   readonly fg: string;
   readonly bg: string;
@@ -44,7 +45,7 @@ interface ContrastPair {
   readonly category: ContrastCategory;
 }
 
-type ContrastCategory =
+export type ContrastCategory =
   | "body"
   | "ui-large"
   | "link"
@@ -52,7 +53,7 @@ type ContrastCategory =
   | "status"
   | "decorative";
 
-interface ContrastResult {
+export interface ContrastResult {
   readonly pair: ContrastPair;
   readonly ratio: number;
   readonly fgLuminance: number;
@@ -369,7 +370,7 @@ const computeContrast = (pair: ContrastPair): ContrastResult => {
 // CSV (surface × fg 全組合せ)
 // =============================================================================
 
-interface NamedColor {
+export interface NamedColor {
   readonly label: string;
   readonly value: string;
   readonly role: "surface" | "fg";
@@ -483,7 +484,15 @@ const formatCsvRow = (
   ].join(",");
 };
 
-const buildCsvRow = (
+/**
+ * 単一の surface × fg ペアから CSV 1 行を組み立てる。
+ *
+ * culori `parse()` が `undefined` を返すケース (= 不正な OKLCH 文字列等)
+ * では sentinel として `undefined` を返し、行をスキップさせる。
+ *
+ * テストから import するため export する (S-2 / Issue #623)。
+ */
+export const buildCsvRow = (
   surface: NamedColor,
   fg: NamedColor,
 ): string | undefined => {
@@ -685,7 +694,18 @@ const printReport = (
   }
 };
 
-const emitGithubActionsWarnings = (
+/**
+ * `GITHUB_ACTIONS=true` 環境下でのみ、マージン僅少ペアを
+ * GitHub Actions の `::warning::` 形式で出力する。
+ *
+ * - `GITHUB_ACTIONS` 未設定 / `"true"` 以外: 何も出力しない (= ローカル実行で副作用なし)
+ * - `marginal.length === 0`: 早期 return (出力すべき行がない)
+ *
+ * テストから import するため export する (S-2 / Issue #623)。
+ * 環境変数で挙動分岐するため、両ケース (true / false) を単体テストで担保し
+ * 環境変数判定の dead code 化を防ぐ。
+ */
+export const emitGithubActionsWarnings = (
   marginal: readonly ContrastResult[],
 ): void => {
   if (process.env.GITHUB_ACTIONS !== "true" || marginal.length === 0) {
@@ -732,4 +752,15 @@ const main = (): void => {
   runChecks(args.includes("--strict"));
 };
 
-main();
+// CLI として直接実行されたときのみ動かす (テストからの import で副作用しないため)。
+// 判定は `path.basename` 経由で行い、OS 依存のパス区切り (POSIX `/` /
+// Windows `\\`) 双方で同じ結果になるようにする (`scripts/newPost.ts` と同パターン)。
+const isDirectInvocation =
+  typeof process !== "undefined" &&
+  Array.isArray(process.argv) &&
+  process.argv[1] !== undefined &&
+  basename(process.argv[1]) === "calculateContrast.ts";
+
+if (isDirectInvocation) {
+  main();
+}

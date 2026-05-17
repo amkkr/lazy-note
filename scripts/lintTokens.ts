@@ -44,7 +44,7 @@
  * - false positive が出た場合は `EXCLUDED_FILE_SUFFIXES` 経由で除外する。
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { type Stats, readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, relative, resolve } from "node:path";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
@@ -191,6 +191,68 @@ interface Violation {
 }
 
 /**
+ * `statSync` を try/catch でラップし、対象が存在しない場合は null を返す。
+ * `collectTargetFiles` の cognitive complexity を抑えるための補助関数。
+ */
+const tryStat = (target: string): Stats | null => {
+  try {
+    return statSync(target);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * 走査対象ファイルとして受理可能か判定する。
+ * - 拡張子が `TARGET_EXTENSIONS` に含まれること
+ * - `EXCLUDED_FILE_SUFFIXES` のいずれにも該当しないこと
+ */
+const isAcceptableFile = (filePath: string): boolean => {
+  if (!TARGET_EXTENSIONS.has(extname(filePath))) {
+    return false;
+  }
+  return !EXCLUDED_FILE_SUFFIXES.some((suffix) => filePath.endsWith(suffix));
+};
+
+/**
+ * ディレクトリ走査時に entry 名でスキップ判定する。
+ * 隠しディレクトリ / `node_modules` / `__tests__` を弾く。
+ *
+ * `__tests__` は本ファイル冒頭 JSDoc で「除外対象」と明記済みだが、
+ * 実装側で skip しないとテスト fixture (例: `__tests__/util.ts` 等の
+ * 非 `.test.ts` ファイル) が `EXCLUDED_FILE_SUFFIXES` (suffix だけで
+ * 判定) を素通りしてしまい、テストコード中の旧 token 言及で CI が
+ * 落ちる潜在バグになる (Issue #413 / DA 重大 2 対応)。
+ */
+const shouldSkipEntry = (entry: string): boolean => {
+  return (
+    entry.startsWith(".") || entry === "node_modules" || entry === "__tests__"
+  );
+};
+
+/**
+ * ディレクトリを再帰走査し、受理可能ファイルを `results` に追記する。
+ * `collectTargetFiles` から呼び出される内部ヘルパー。
+ */
+const walkDirectory = (current: string, results: string[]): void => {
+  const entries = readdirSync(current);
+  for (const entry of entries) {
+    if (shouldSkipEntry(entry)) {
+      continue;
+    }
+    const fullPath = join(current, entry);
+    const entryStats = statSync(fullPath);
+    if (entryStats.isDirectory()) {
+      walkDirectory(fullPath, results);
+      continue;
+    }
+    if (entryStats.isFile() && isAcceptableFile(fullPath)) {
+      results.push(fullPath);
+    }
+  }
+};
+
+/**
  * 指定パスを走査し、対象ファイルのパスリストを返す (Issue #413)。
  *
  * - 単一ファイル指定 (panda.config.ts 等) なら拡張子と除外 suffix を確認した
@@ -203,27 +265,16 @@ interface Violation {
  */
 const collectTargetFiles = (target: string): string[] => {
   const results: string[] = [];
-
-  let stats;
-  try {
-    stats = statSync(target);
-  } catch {
+  const stats = tryStat(target);
+  if (stats === null) {
     return results;
   }
 
   // 単一ファイル指定 (panda.config.ts 等) のショートカット。
   if (stats.isFile()) {
-    const ext = extname(target);
-    if (!TARGET_EXTENSIONS.has(ext)) {
-      return results;
+    if (isAcceptableFile(target)) {
+      results.push(target);
     }
-    const isExcluded = EXCLUDED_FILE_SUFFIXES.some((suffix) =>
-      target.endsWith(suffix),
-    );
-    if (isExcluded) {
-      return results;
-    }
-    results.push(target);
     return results;
   }
 
@@ -231,53 +282,7 @@ const collectTargetFiles = (target: string): string[] => {
     return results;
   }
 
-  const walk = (current: string): void => {
-    const entries = readdirSync(current);
-
-    for (const entry of entries) {
-      // 隠しディレクトリ / `node_modules` / `__tests__` を skip。
-      // `__tests__` は本ファイル冒頭 JSDoc で「除外対象」と明記済みだが、
-      // 実装側で skip しないとテスト fixture (例: `__tests__/util.ts` 等の
-      // 非 `.test.ts` ファイル) が `EXCLUDED_FILE_SUFFIXES` (suffix だけで
-      // 判定) を素通りしてしまい、テストコード中の旧 token 言及で CI が
-      // 落ちる潜在バグになる (Issue #413 / DA 重大 2 対応)。
-      if (
-        entry.startsWith(".") ||
-        entry === "node_modules" ||
-        entry === "__tests__"
-      ) {
-        continue;
-      }
-
-      const fullPath = join(current, entry);
-      const entryStats = statSync(fullPath);
-
-      if (entryStats.isDirectory()) {
-        walk(fullPath);
-        continue;
-      }
-
-      if (!entryStats.isFile()) {
-        continue;
-      }
-
-      const ext = extname(fullPath);
-      if (!TARGET_EXTENSIONS.has(ext)) {
-        continue;
-      }
-
-      const isExcluded = EXCLUDED_FILE_SUFFIXES.some((suffix) =>
-        fullPath.endsWith(suffix),
-      );
-      if (isExcluded) {
-        continue;
-      }
-
-      results.push(fullPath);
-    }
-  };
-
-  walk(target);
+  walkDirectory(target, results);
   return results;
 };
 
@@ -305,106 +310,174 @@ interface CommentStripResult {
   readonly inBlockComment: boolean;
 }
 
+/**
+ * `stripComments` の状態機械内部状態。
+ * 状態ごとのハンドラ間で受け渡される、行内の文字種コンテキスト。
+ */
+interface ScanState {
+  inBlockComment: boolean;
+  inSingle: boolean;
+  inDouble: boolean;
+  inBacktick: boolean;
+}
+
+/**
+ * 1 文字処理後の進行情報。
+ * `advance` は追加で消費すべきインデックス数 (0 もしくは 1)。
+ * `terminated` が true の場合、その時点で行の処理を打ち切る (行コメント検出時)。
+ */
+interface StepResult {
+  readonly advance: number;
+  readonly terminated: boolean;
+}
+
+const NO_ADVANCE: StepResult = { advance: 0, terminated: false };
+
+/**
+ * ブロックコメント中の 1 文字を処理する。
+ * `* /` を検出したら終端、それ以外は空白に置換して維持する。
+ */
+const handleBlockComment = (
+  ch: string,
+  next: string,
+  out: string[],
+  state: ScanState,
+): StepResult => {
+  if (ch === "*" && next === "/") {
+    state.inBlockComment = false;
+    out.push(" ", " ");
+    return { advance: 1, terminated: false };
+  }
+  out.push(" ");
+  return NO_ADVANCE;
+};
+
+/**
+ * 文字列リテラル内 (シングル / ダブル / バッククォート) の 1 文字を処理する。
+ * - エスケープシーケンス (`\\x`) は次の文字も維持する。
+ * - 終端クォートを検出したら該当フラグを下ろす。
+ *
+ * `quote` 引数で文字列リテラルの種類を切り替える。
+ * `closer` は ScanState のどのフラグを下ろすかを示す関数。
+ */
+const handleStringLiteral = (
+  ch: string,
+  next: string,
+  out: string[],
+  state: ScanState,
+  quote: string,
+  closer: (s: ScanState) => void,
+): StepResult => {
+  out.push(ch);
+  if (ch === "\\" && next !== "") {
+    out.push(next);
+    return { advance: 1, terminated: false };
+  }
+  if (ch === quote) {
+    closer(state);
+  }
+  return NO_ADVANCE;
+};
+
+/**
+ * 通常コード領域での 1 文字を処理する。
+ * - 文字列開始クォートを検出したら該当フラグを立てる。
+ * - 行コメント `//` を検出した場合は行末まで空白で埋めて打ち切り。
+ * - ブロックコメント開始 `/ *` を検出したら inBlockComment を立てる。
+ * - それ以外は文字をそのまま追記する。
+ */
+const handleDefault = (
+  ch: string,
+  next: string,
+  out: string[],
+  state: ScanState,
+  remainingLength: number,
+): StepResult => {
+  if (ch === "'") {
+    state.inSingle = true;
+    out.push(ch);
+    return NO_ADVANCE;
+  }
+  if (ch === '"') {
+    state.inDouble = true;
+    out.push(ch);
+    return NO_ADVANCE;
+  }
+  if (ch === "`") {
+    state.inBacktick = true;
+    out.push(ch);
+    return NO_ADVANCE;
+  }
+  if (ch === "/" && next === "/") {
+    for (let j = 0; j < remainingLength; j += 1) {
+      out.push(" ");
+    }
+    return { advance: 0, terminated: true };
+  }
+  if (ch === "/" && next === "*") {
+    state.inBlockComment = true;
+    out.push(" ", " ");
+    return { advance: 1, terminated: false };
+  }
+  out.push(ch);
+  return NO_ADVANCE;
+};
+
+/**
+ * 現在の `ScanState` に応じて適切なハンドラを呼び分ける。
+ * `stripComments` の主ループを薄く保つためのディスパッチ層。
+ */
+const processChar = (
+  ch: string,
+  next: string,
+  remainingLength: number,
+  out: string[],
+  state: ScanState,
+): StepResult => {
+  if (state.inBlockComment) {
+    return handleBlockComment(ch, next, out, state);
+  }
+  if (state.inSingle) {
+    return handleStringLiteral(ch, next, out, state, "'", (s) => {
+      s.inSingle = false;
+    });
+  }
+  if (state.inDouble) {
+    return handleStringLiteral(ch, next, out, state, '"', (s) => {
+      s.inDouble = false;
+    });
+  }
+  if (state.inBacktick) {
+    return handleStringLiteral(ch, next, out, state, "`", (s) => {
+      s.inBacktick = false;
+    });
+  }
+  return handleDefault(ch, next, out, state, remainingLength);
+};
+
 const stripComments = (
   line: string,
   state: CommentStripState,
 ): CommentStripResult => {
-  let inBlockComment = state.inBlockComment;
-  let inSingle = false;
-  let inDouble = false;
-  let inBacktick = false;
+  const scanState: ScanState = {
+    inBlockComment: state.inBlockComment,
+    inSingle: false,
+    inDouble: false,
+    inBacktick: false,
+  };
   const out: string[] = [];
 
   for (let i = 0; i < line.length; i += 1) {
-    const ch = line[i];
-    const next = i + 1 < line.length ? line[i + 1] : "";
-
-    if (inBlockComment) {
-      if (ch === "*" && next === "/") {
-        inBlockComment = false;
-        out.push(" ", " ");
-        i += 1;
-        continue;
-      }
-      out.push(" ");
-      continue;
-    }
-
-    if (inSingle) {
-      out.push(ch);
-      if (ch === "\\" && next !== "") {
-        out.push(next);
-        i += 1;
-        continue;
-      }
-      if (ch === "'") {
-        inSingle = false;
-      }
-      continue;
-    }
-
-    if (inDouble) {
-      out.push(ch);
-      if (ch === "\\" && next !== "") {
-        out.push(next);
-        i += 1;
-        continue;
-      }
-      if (ch === '"') {
-        inDouble = false;
-      }
-      continue;
-    }
-
-    if (inBacktick) {
-      out.push(ch);
-      if (ch === "\\" && next !== "") {
-        out.push(next);
-        i += 1;
-        continue;
-      }
-      if (ch === "`") {
-        inBacktick = false;
-      }
-      continue;
-    }
-
-    // 文字列開始
-    if (ch === "'") {
-      inSingle = true;
-      out.push(ch);
-      continue;
-    }
-    if (ch === '"') {
-      inDouble = true;
-      out.push(ch);
-      continue;
-    }
-    if (ch === "`") {
-      inBacktick = true;
-      out.push(ch);
-      continue;
-    }
-
-    // コメント開始
-    if (ch === "/" && next === "/") {
-      // 行末まで全て空白扱い
-      for (let j = i; j < line.length; j += 1) {
-        out.push(" ");
-      }
+    const ch = line[i] ?? "";
+    const next = i + 1 < line.length ? (line[i + 1] ?? "") : "";
+    const step = processChar(ch, next, line.length - i, out, scanState);
+    if (step.terminated) {
       return { sanitized: out.join(""), inBlockComment: false };
     }
-    if (ch === "/" && next === "*") {
-      inBlockComment = true;
-      out.push(" ", " ");
-      i += 1;
-      continue;
-    }
-
-    out.push(ch);
+    i += step.advance;
   }
 
-  return { sanitized: out.join(""), inBlockComment };
+  return { sanitized: out.join(""), inBlockComment: scanState.inBlockComment };
 };
 
 /**
@@ -476,6 +549,101 @@ const offsetToLineColumn = (
 };
 
 /**
+ * regex.exec を反復し、ヒットごとに `onMatch` を呼ぶ汎用イテレータ。
+ * 0 幅マッチによる無限ループを避けるため、lastIndex を強制前進させる。
+ */
+const iterateMatches = (
+  pattern: RegExp,
+  haystack: string,
+  onMatch: (match: RegExpExecArray) => void,
+): void => {
+  const regex = new RegExp(pattern.source, pattern.flags);
+  let match: RegExpExecArray | null = regex.exec(haystack);
+  while (match !== null) {
+    onMatch(match);
+    if (match.index === regex.lastIndex) {
+      regex.lastIndex += 1;
+    }
+    match = regex.exec(haystack);
+  }
+};
+
+/**
+ * ファイル全体スコープでパターン照合する (複数行にまたがるパターン用)。
+ * panda.config.ts の `bg: { "0": ... }` のような複数行構造を検出するために使う。
+ */
+const scanFileScope = (
+  filePath: string,
+  pattern: LintPattern,
+  fileScope: SanitizedFile,
+  violations: Violation[],
+): void => {
+  const { sanitized, originalLines, lineStartOffsets } = fileScope;
+  iterateMatches(pattern.pattern, sanitized, (match) => {
+    const { line, column } = offsetToLineColumn(match.index, lineStartOffsets);
+    const snippetLine = originalLines[line - 1] ?? "";
+    violations.push({
+      file: filePath,
+      line,
+      column,
+      patternName: pattern.name,
+      description: pattern.description,
+      snippet: snippetLine.trim(),
+    });
+  });
+};
+
+/**
+ * sanitized テキスト上で `lineIndex` 行目に対応する範囲を切り出す。
+ * `scanLineScope` の内部ヘルパー。
+ */
+const extractSanitizedLine = (
+  sanitized: string,
+  lineStartOffsets: readonly number[],
+  lineIndex: number,
+): string => {
+  const start = lineStartOffsets[lineIndex] ?? 0;
+  const nextStart = lineStartOffsets[lineIndex + 1] ?? sanitized.length + 1;
+  // nextStart は次行の先頭 (改行直後)。改行 1 文字ぶん除いた範囲を取る。
+  return sanitized.slice(start, Math.max(start, nextStart - 1));
+};
+
+/**
+ * 行スコープでパターン照合する (既定動作)。
+ * 行ごとに sanitized 行を取り出して RegExp を実行し、行 / カラムを直接記録する。
+ */
+const scanLineScope = (
+  filePath: string,
+  pattern: LintPattern,
+  fileScope: SanitizedFile,
+  violations: Violation[],
+): void => {
+  const { sanitized, originalLines, lineStartOffsets } = fileScope;
+  for (let lineIndex = 0; lineIndex < originalLines.length; lineIndex += 1) {
+    const line = originalLines[lineIndex];
+    if (line === undefined) {
+      continue;
+    }
+    const sanitizedLine = extractSanitizedLine(
+      sanitized,
+      lineStartOffsets,
+      lineIndex,
+    );
+    iterateMatches(pattern.pattern, sanitizedLine, (match) => {
+      violations.push({
+        file: filePath,
+        line: lineIndex + 1,
+        column: match.index + 1,
+        patternName: pattern.name,
+        description: pattern.description,
+        // 元のコメント込みの行を見せたほうが文脈が分かるので元行を表示する。
+        snippet: line.trim(),
+      });
+    });
+  }
+};
+
+/**
  * 1 ファイル分の検査。
  *
  * - 行単位 (`scope: "line"` 既定) で検出位置 (line / column) を出すと
@@ -491,72 +659,13 @@ const scanFile = (
 ): Violation[] => {
   const content = readFileSync(filePath, "utf8");
   const violations: Violation[] = [];
-
   const fileScope = sanitizeFile(content);
-  const { sanitized, originalLines, lineStartOffsets } = fileScope;
 
-  for (const { name, description, pattern, scope } of patterns) {
-    if (scope === "file") {
-      // ファイル全体に対して走査。複数行にまたがるパターン (panda.config.ts の
-      // `bg: { "0": ... }` 等) を捕捉するために使う。
-      const regex = new RegExp(pattern.source, pattern.flags);
-      let match: RegExpExecArray | null = regex.exec(sanitized);
-      while (match !== null) {
-        const { line, column } = offsetToLineColumn(
-          match.index,
-          lineStartOffsets,
-        );
-        const snippetLine = originalLines[line - 1] ?? "";
-        violations.push({
-          file: filePath,
-          line,
-          column,
-          patternName: name,
-          description,
-          snippet: snippetLine.trim(),
-        });
-        if (match.index === regex.lastIndex) {
-          regex.lastIndex += 1;
-        }
-        match = regex.exec(sanitized);
-      }
+  for (const pattern of patterns) {
+    if (pattern.scope === "file") {
+      scanFileScope(filePath, pattern, fileScope, violations);
     } else {
-      // 既定の line scope: 行ごとに RegExp を実行。
-      for (let lineIndex = 0; lineIndex < originalLines.length; lineIndex += 1) {
-        const line = originalLines[lineIndex];
-        if (line === undefined) {
-          continue;
-        }
-        // sanitizeFile で算出済みの sanitized 行を再利用するため、
-        // 全体テキストから該当行のスライスを取り出す。
-        const start = lineStartOffsets[lineIndex] ?? 0;
-        const nextStart =
-          lineStartOffsets[lineIndex + 1] ?? sanitized.length + 1;
-        // nextStart は次行の先頭 (改行直後)。改行 1 文字ぶん除いた範囲を取る。
-        const sanitizedLine = sanitized.slice(
-          start,
-          Math.max(start, nextStart - 1),
-        );
-
-        const regex = new RegExp(pattern.source, pattern.flags);
-        let match: RegExpExecArray | null = regex.exec(sanitizedLine);
-        while (match !== null) {
-          violations.push({
-            file: filePath,
-            line: lineIndex + 1,
-            column: match.index + 1,
-            patternName: name,
-            description,
-            // 元のコメント込みの行を見せたほうが文脈が分かるので元行を表示する。
-            snippet: line.trim(),
-          });
-          // 無限ループ回避: 0 幅マッチには進める。
-          if (match.index === regex.lastIndex) {
-            regex.lastIndex += 1;
-          }
-          match = regex.exec(sanitizedLine);
-        }
-      }
+      scanLineScope(filePath, pattern, fileScope, violations);
     }
   }
 

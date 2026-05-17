@@ -45,8 +45,7 @@
  */
 
 import { type Stats, readdirSync, readFileSync, statSync } from "node:fs";
-import { extname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { basename, extname, join, relative, resolve } from "node:path";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 
@@ -817,13 +816,20 @@ const main = (): void => {
  * `node scripts/lintTokens.ts` で直接起動された場合のみ `main()` を実行する。
  * テストから `import` した際に副作用 (process.exit) が走らないようにするための
  * エントリポイントガード (Issue #621 / Should #5)。
+ *
+ * 判定は `scripts/newPost.ts` の `isDirectInvocation` と同じく `path.basename`
+ * 経由で行い、OS 依存のパス区切り (POSIX `/` / Windows `\\`) 双方で同じ結果に
+ * なるようにする。本プロジェクトは macOS/Linux 前提だが、basename ベースなら
+ * CI を別 OS に持ち出した際にも同じ判定が走るため移植性のコストは無視できる。
+ * 絶対パス完全一致比較 (`resolve()` + `fileURLToPath()`) を避けることで
+ * symlink 経由起動等で対称性が崩れるリスクも排除している。
  */
 const isDirectInvocation = (): boolean => {
   const entry = process.argv[1];
   if (!entry) {
     return false;
   }
-  return resolve(entry) === fileURLToPath(import.meta.url);
+  return basename(entry) === "lintTokens.ts";
 };
 
 if (isDirectInvocation()) {

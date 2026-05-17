@@ -58,7 +58,29 @@ fi
 
 # テスト用の隔離リポを作成 (毎回 clean)
 TEST_ROOT="$(mktemp -d -t pre-commit-guard-test.XXXXXX)"
-trap 'rm -rf "$TEST_ROOT"' EXIT
+# クリーンアップ:
+#   - sudo g..it commit を実行する E03 ケースは、CI (passwordless sudo) 環境では
+#     root 所有の .git/objects を作成する。通常の `rm -rf` だと EACCES で消せず
+#     exit 1 になり、harness 末尾の `exit 0` が trap によって上書きされる
+#     ( = テスト全件 OK でも CI が fail する )。
+#   - 対策として: (1) chmod -R u+w で書き込み権限を強制し、(2) それでも消せない
+#     場合は sudo rm を試み、(3) 最終的にエラーは無視する。
+#   - trap 内の失敗は trap 自体の exit code に伝播し最終 exit を上書きしうるため、
+#     `|| true` で握り潰し、stderr も `2>/dev/null` に流す。
+cleanup_test_root() {
+  if [ -z "${TEST_ROOT:-}" ] || [ ! -e "$TEST_ROOT" ]; then
+    return 0
+  fi
+  chmod -R u+w "$TEST_ROOT" 2>/dev/null || true
+  rm -rf "$TEST_ROOT" 2>/dev/null || true
+  if [ -e "$TEST_ROOT" ]; then
+    # 残骸があれば sudo -n (non-interactive) で再試行。CI の passwordless sudo
+    # でのみ成功する想定。ローカル (sudo にパスワード要求) では何もしない。
+    sudo -n rm -rf "$TEST_ROOT" 2>/dev/null || true
+  fi
+  return 0
+}
+trap cleanup_test_root EXIT
 
 MAIN_REPO="$TEST_ROOT/main-repo"
 WORKTREE="$TEST_ROOT/work-tree"

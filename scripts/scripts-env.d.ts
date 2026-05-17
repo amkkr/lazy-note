@@ -19,18 +19,31 @@
  *     将来必要になったら追加する。
  *   - `@types/node` を devDependencies に追加せず、追加依存ゼロで
  *     型解決を担保するための最小宣言。
+ *   - `dirname` は **non-readonly** で宣言する (Issue #589)。
+ *     現状 `@types/node@17.0.45` では `dirname` が未宣言で modifier conflict
+ *     は発生しないが、将来 `@types/node` を Node 20.11+ / 21.2+ 対応
+ *     バージョン (`dirname: string` を non-readonly で公式宣言) に upgrade
+ *     した際、`readonly` 修飾子の不一致で TS2687
+ *     「All declarations of 'dirname' must have identical modifiers」
+ *     が発生するため、interface merge 観点で安全な non-readonly に揃える。
+ *     Node API 仕様上 `dirname` は実質的に writable ではないが、
+ *     公式型宣言と modifier を一致させることを優先する。
  *
  * 関連 Issue:
  *   - #522: tsconfig.json 本体に scripts/ を追加 (`import.meta.dirname`
  *     型解決が前提)
  *   - PR #501: scripts/__tests__ を tsconfig.test.json でカバーした際に
  *     残された「tsconfig.json 本体への scripts 追加は別 Issue」の負債を解消。
+ *   - #589: `readonly dirname` → `dirname` (non-readonly) へ調整。
  */
 
 interface ImportMeta {
   /**
    * 現在のモジュールが存在するディレクトリの絶対パス (Node 標準)。
    * Node 20.11 / 21.2 以降で利用可能。
+   *
+   * NOTE: 将来の `@types/node` upgrade 時の TS2687 modifier conflict 回避の
+   * ため、`readonly` は付けない (Issue #589)。
    */
-  readonly dirname: string;
+  dirname: string;
 }

@@ -90,6 +90,17 @@ interface AnchorPageProps {
  * デザイン語彙:
  * - Resurface / Coordinate と同じ補助情報トーン (fg.muted / border.subtle)
  * - Editorial 雑誌風の小型見出し (uppercase + tracking) で章間を意識
+ *
+ * AA 担保 (calculateContrast.ts による実測値):
+ * - bg.canvas × fg.primary: 17.16:1 (light) / 16.98:1 (dark) AAA
+ *   (h1 ページ見出し / 節目項目本文 / 記事タイトル)
+ * - bg.canvas × fg.secondary: light 9.59:1 / dark 14.84:1 AAA
+ *   (ページ説明文)
+ * - bg.canvas × fg.muted: light 6.54:1 (AA / AAA 未達) / dark 14.84:1 AAA
+ *   (section 見出し / 節目の日付・tone タグ / 各記事の座標一覧 / 空状態テキスト /
+ *    スキップ件数注記。いずれも補助情報用途で本文転用は不可。検証は
+ *    colorTokens.test.ts §"Issue #537")
+ * - border.subtle × bg.canvas: light 3.49:1 / dark 6.18:1 (WCAG 1.4.11 非テキスト 3:1)
  */
 
 const containerStyles = css({
@@ -215,6 +226,10 @@ const postCoordinatesStyles = css({
   gap: "xs-sm",
 });
 
+// 空状態テキストは穏やかなトーン優先で fg.muted を採用。AnchorPage の bg.canvas
+// 上に置かれる前提で WCAG 1.4.3 AA (4.5:1) を満たす (実測 light 6.54:1 /
+// dark 14.84:1。light は AAA 7:1 未達のため補助情報専用で本文転用は不可。
+// 検証は colorTokens.test.ts §"Issue #537")。
 const emptyStateStyles = css({
   fontSize: "sm",
   color: "fg.muted",
@@ -224,7 +239,8 @@ const emptyStateStyles = css({
 
 // publishedAt 推定不可でスキップした記事の件数注記。Issue #544 で追加。
 // 運用画面の透明性を優先するため、件数 N >= 1 のとき末尾に小さく出す。
-// emptyStateStyles と同じ補助情報トーン (fg.muted) に揃え、過剰可視化を避ける。
+// emptyStateStyles と同じ補助情報トーン (fg.muted: bg.canvas 上 light 6.54:1 /
+// dark 14.84:1 で AA pass、AAA は light のみ未達) に揃え、過剰可視化を避ける。
 // section の枠 (= border.subtle の境界) は重ねず、文章として控えめに添える。
 const skippedNoteStyles = css({
   fontSize: "xs",

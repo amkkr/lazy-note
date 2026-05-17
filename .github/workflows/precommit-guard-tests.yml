@@ -90,7 +90,7 @@ jobs:
             echo "## pre-commit-guard test harness";
             echo "";
             if [ -n "$out_file" ] && [ -f "$out_file" ]; then
-              # TOTAL 行 (例: "TOTAL: 27  OK: 15  FAIL: 0  SKIP(known-limitation): 12")
+              # TOTAL 行 (例: "TOTAL: 27  OK: 16  FAIL: 0  SKIP(known-limitation): 11")
               # を抽出して目立つ位置に置く。grep が一致しない場合に備えて || true。
               total_line=$(grep -E '^TOTAL:' "$out_file" || true)
               if [ -n "$total_line" ]; then

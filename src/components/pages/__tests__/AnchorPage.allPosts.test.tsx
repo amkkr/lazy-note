@@ -9,6 +9,7 @@ import {
   type Milestone,
 } from "../../../lib/anchors";
 import type { PostSummary } from "../../../lib/markdown";
+import { buildPulseForbiddenVocabRegex } from "../../../test/forbiddenVocab";
 import { AnchorPage } from "../AnchorPage";
 
 /**
@@ -144,5 +145,22 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
 
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  it("16 記事 + 実 milestones の描画結果に Pulse 思想禁則語彙が現れない", () => {
+    // 語彙の網羅は src/test/forbiddenVocab.ts に集約してあり、
+    // Coordinate / Resurface / HomePage と共通の禁則語彙集を参照する
+    // (Issue #540)。AnchorPage.test.tsx は固定 fixture でガードしているのに
+    // 対し、本テストは実 datasources/milestones.json + 全 16 記事の組合せでも
+    // 抽象指標語彙が漏れていないことを Tripwire で防御する。
+    const posts = buildPostSummaries(postIds);
+    const { container } = render(
+      <MemoryRouter>
+        <AnchorPage posts={posts} milestones={milestones} />
+      </MemoryRouter>,
+    );
+
+    const text = container.textContent ?? "";
+    expect(text).not.toMatch(buildPulseForbiddenVocabRegex());
   });
 });

@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { PostSummary } from "../../../lib/markdown";
 import type { ResurfacedEntry } from "../../../lib/resurface";
+import { buildPulseForbiddenVocabRegex } from "../../../test/forbiddenVocab";
 import { Resurface } from "../Resurface";
 
 const buildPost = (overrides: Partial<PostSummary> = {}): PostSummary => ({
@@ -242,6 +243,29 @@ describe("Resurface", () => {
       expect(screen.queryByText(/日経過/)).not.toBeInTheDocument();
       expect(screen.queryByText(/投稿間隔/)).not.toBeInTheDocument();
       expect(screen.queryByText(/頻度/)).not.toBeInTheDocument();
+    });
+
+    it("Pulse 思想禁則語彙 (投稿頻度 / 執筆ペース 等) が UI 上に現れない", () => {
+      // 語彙の網羅は src/test/forbiddenVocab.ts に集約してあり、
+      // Coordinate / AnchorPage / HomePage と共通の禁則語彙集を参照する
+      // (Issue #540)。Resurface は silence reason の数値ガードと併せて
+      // 抽象指標語彙でも防御する。
+      const { container } = render(
+        <MemoryRouter>
+          <Resurface
+            entry={buildEntry({
+              reason: {
+                kind: "silence",
+                lastPostDaysAgo: 60,
+                sub: "yearAgo",
+              },
+            })}
+          />
+        </MemoryRouter>,
+      );
+
+      const text = container.textContent ?? "";
+      expect(text).not.toMatch(buildPulseForbiddenVocabRegex());
     });
   });
 

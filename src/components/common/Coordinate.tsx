@@ -98,9 +98,14 @@ const containerStyles = css({
 
 // 区切り文字「・」のスタイル。aria-hidden で SR からは隠す
 // (項目区切りは ul/li 構造で SR に伝わるため、視覚装飾のみ)。
+//
+// Issue #536: 色は wrapper (containerStyles) の `color: "fg.muted"` を CSS の
+// 継承で受け取り、ここでは独自宣言しない。separator に同じ token を重複宣言
+// すると Tripwire 網漏れ (wrapper だけ検証されるため separator の color を
+// 別 token に差し替えても気付けない) を構造的に生むため、宣言自体を撤去して
+// 「色は wrapper 1 箇所」に統一する (案 B: 構造的解決)。
 const separatorStyles = css({
   marginInline: "xs",
-  color: "fg.muted",
 });
 
 /**

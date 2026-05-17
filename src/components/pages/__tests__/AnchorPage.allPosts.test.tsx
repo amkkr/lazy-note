@@ -271,6 +271,13 @@ const testMilestones: readonly Milestone[] = [
  * narrowing キャストの意図は `anchors.test.ts` の milestonesJson キャスト
  * (Issue #546) と同じ: resolveJsonModule で widen された `tone: string` を
  * `Milestone["tone"]` の literal union に narrowing する。
+ * 設計判断の正本 (集約せず各 page で個別 import / 撤退方法 / 不正値時の挙動
+ * など) は `src/pages/index.tsx` の MILESTONES JSDoc を参照 (Issue #546)。
+ *
+ * **副次効果 (Tripwire 強化)**: 本定数を導入することで、末尾の Pulse 禁則語彙
+ * Tripwire テストが runtime で必ず実行されるようになる (Issue #618 案A)。
+ * PR #611 / #612 のような「未定義 milestones 参照」交差バグが今後再発した場合も
+ * 本 Tripwire 経由で検知できるため、検知網が二重化される。
  */
 const milestones: readonly Milestone[] = milestonesData as readonly Milestone[];
 

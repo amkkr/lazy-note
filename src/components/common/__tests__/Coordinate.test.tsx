@@ -234,6 +234,59 @@ describe("Coordinate", () => {
       // ul の親要素であることを確認 (Coordinate の wrapper は ul を内包する)
       expect(wrapper?.querySelector("ul")).not.toBeNull();
     });
+
+    // Issue #536 (案 B): separator span は独自の color 宣言を持たず、wrapper の
+    // `color: "fg.muted"` を CSS の継承で受け取る構造に統一する。重複宣言を
+    // 撤去することで「wrapper だけ Tripwire 検証されて separator の color 差し替えに
+    // 気付けない」網漏れを**構造的に**解消する (案 A の二重 data-token-color 化より
+    // CSS が 1 行減り、宣言箇所が 1 箇所に集約される)。
+    //
+    // 本テストは separator が独自 `data-token-color` を吐かないこと (= 色は wrapper の
+    // 1 箇所のみで宣言される) を Tripwire 属性レベルで保証する。
+    it("separator span は独自の data-token-color を吐かず wrapper の色を継承する (Issue #536 案 B)", () => {
+      // 座標 2 件以上で separator span が描画される (index > 0 のときのみ描画)
+      const { container } = render(
+        <Coordinate
+          publishedAt="2025-12-31T00:00:00+09:00"
+          milestones={[
+            { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+            { date: "2025-02-01", label: "社会復帰", tone: "light" },
+          ]}
+        />,
+      );
+
+      // separator span (aria-hidden="true" を持つ span) を取得
+      const separators = container.querySelectorAll('span[aria-hidden="true"]');
+      // 2 件の座標があるので separator は 1 件描画される (index === 0 のときは出ない)
+      expect(separators).toHaveLength(1);
+
+      const separator = separators[0];
+      // 独自の data-token-color 属性を持たない (色は wrapper から継承)
+      expect(separator).not.toHaveAttribute("data-token-color");
+      // 表示文字は中点「・」
+      expect(separator?.textContent).toBe("・");
+    });
+
+    // Issue #536: 色の宣言箇所が wrapper の 1 箇所のみであることを Tripwire 網
+    // 全体で保証する (= ドキュメント全体に `data-token-color="fg.muted"` を持つ
+    // 要素は wrapper の 1 件しか存在しない)。separator や個別 li に同じ token
+    // を重複宣言したくなった場合のレビュー観点として機能する。
+    it("Coordinate 全体で data-token-color='fg.muted' を吐く要素は wrapper の 1 件のみ", () => {
+      const { container } = render(
+        <Coordinate
+          publishedAt="2025-12-31T00:00:00+09:00"
+          milestones={[
+            { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+            { date: "2025-02-01", label: "社会復帰", tone: "light" },
+          ]}
+        />,
+      );
+
+      const tokenColorNodes = container.querySelectorAll(
+        '[data-token-color="fg.muted"]',
+      );
+      expect(tokenColorNodes).toHaveLength(1);
+    });
   });
 
   // ==========================================================================

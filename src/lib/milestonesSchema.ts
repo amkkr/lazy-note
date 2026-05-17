@@ -207,9 +207,9 @@ const validateOne = (
  *   `validateMilestonesStrict` を使う。
  *
  * @param input - JSON.parse の戻り値などの未検証データ
- * @returns 有効と判定された Milestone の配列
+ * @returns 有効と判定された Milestone の配列 (readonly)
  */
-export const parseMilestones = (input: unknown): Milestone[] => {
+export const parseMilestones = (input: unknown): readonly Milestone[] => {
   if (!Array.isArray(input)) {
     return [];
   }

@@ -350,7 +350,9 @@ export const buildIgnitionComment = (input: IgnitionInput): string => {
  * @param filePath - milestones.json の絶対パス
  * @returns 読み込んだ Milestone 配列。ファイル不在時は null
  */
-export const loadMilestones = (filePath: string): Milestone[] | null => {
+export const loadMilestones = (
+  filePath: string,
+): readonly Milestone[] | null => {
   if (!existsSync(filePath)) {
     return null;
   }
@@ -492,7 +494,7 @@ ${params.ignitionComment}## 本文
  * - tone:heavy は明示マークを付け、執筆者の意識喚起を狙う。
  */
 export const formatMilestonesSummary = (
-  milestones: Milestone[] | null,
+  milestones: readonly Milestone[] | null,
 ): string => {
   if (milestones === null) {
     return [

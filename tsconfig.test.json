@@ -1,14 +1,13 @@
 {
+  // tsconfig.json (本体) を継承し、テスト実行時のみ必要な型と緩和設定を上書きする。
+  // include は本体の ["src", "scripts"] を継承するため (Issue #522)、
+  // src 配下 / scripts 配下の __tests__ も自動的にカバーされる。
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    // vite/client は src 配下のテストが import.meta.env 等を参照するため必要
     "types": ["vitest/globals", "@testing-library/jest-dom", "vite/client"],
+    // テストでは setup 用の helper 変数等で意図的に未使用なものを許容する
     "noUnusedLocals": false,
     "noUnusedParameters": false
-  },
-  "include": [
-    "src/**/*",
-    "src/**/__tests__/**/*",
-    "scripts/**/__tests__/**/*"
-  ],
-  "exclude": []
+  }
 }

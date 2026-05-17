@@ -31,3 +31,7 @@ styled-system-studio
 playwright-report
 test-results
 /playwright/.cache
+
+## TypeScript incremental build (Issue #580)
+.tsbuildinfo
+*.tsbuildinfo

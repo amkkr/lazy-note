@@ -8,6 +8,10 @@
     "types": ["vitest/globals", "@testing-library/jest-dom", "vite/client"],
     // テストでは setup 用の helper 変数等で意図的に未使用なものを許容する
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    // Incremental build (Issue #580): tsconfig.json と独立した .tsbuildinfo を出力。
+    // 本体と test で include は同じだが、設定差分により別ビルド状態を持つため
+    // ファイルを分離する。
+    "tsBuildInfoFile": "./.tsbuildinfo/tsconfig.test.tsbuildinfo"
   }
 }

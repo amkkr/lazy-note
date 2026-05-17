@@ -60,6 +60,15 @@ jobs:
           fi
           if ! grep -qE '^\s*hash:\s*true,?\s*$' panda.config.ts; then
             echo "::error::panda.config.ts への hash:true 挿入に失敗しました。preflight 行の書式が想定 (^\\s*preflight: true,?$) と異なる可能性があります。確認ポイント: (1) preflight 行の末尾カンマ有無 (sed の置換失敗) / (2) preflight 行がコメントアウトされていないか / (3) 別記法 (例: preflight: { enabled: true } 等の object 表記) に変わっていないか / (4) 行頭に空白/タブ以外の文字 (YAML マーカー '-' / CR-LF の CR 混入など) が紛れていないか。"
+            # Issue #572: 失敗時に panda.config.ts の preflight 周辺行 (L15-30)
+            # を dump し、上記 (1)-(4) のどれが原因かを実機の現物で切り分け
+            # 可能にする。正常系では本ブロックには到達しない (exit 1 で job
+            # が止まる) ため、後段の "patched head" dump との二重出力には
+            # ならない。cat -A を使い、行末の CR (`^M`) や trailing space ($)
+            # を可視化して (4) の検出を補助する。
+            echo "--- panda.config.ts (preflight 周辺, L15-30) ---" >&2
+            sed -n '15,30p' panda.config.ts | cat -A >&2
+            echo "--- end of dump ---" >&2
             exit 1
           fi
           echo "--- panda.config.ts (patched head) ---"

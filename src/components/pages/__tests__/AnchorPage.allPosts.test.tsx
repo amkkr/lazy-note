@@ -26,6 +26,12 @@ import { AnchorPage } from "../AnchorPage";
  * することで記事の追加・削除に追従できるテストにする。
  */
 
+// `as readonly Milestone[]` は resolveJsonModule:true で widen された JSON 型
+// (`tone: string`) を `Milestone` (`tone: "neutral" | "light" | "heavy"`) に
+// narrowing するキャスト。設計判断の正本 (集約せず各 page で個別 import / 撤退方法
+// / 不正値時の挙動など) は pages/anchor.tsx の MILESTONES JSDoc を参照 (Issue #546)。
+// 本テストは「本物の milestones.json を入力にする回帰テスト」のため、production と
+// 同一の narrowing キャストをそのまま再現する。
 const milestones: readonly Milestone[] = milestonesData as readonly Milestone[];
 
 const postFilePaths = Object.keys(import.meta.glob("/datasources/*.md"));

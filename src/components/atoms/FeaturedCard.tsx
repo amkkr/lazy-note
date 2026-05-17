@@ -1,5 +1,6 @@
 import { type CSSProperties, memo } from "react";
 import { css } from "../../../styled-system/css";
+import { UNTITLED_POST } from "../../lib/i18nLiterals";
 import type { PostSummary } from "../../lib/markdown";
 import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { MetaInfo } from "../common/MetaInfo";
@@ -161,7 +162,7 @@ export const FeaturedCard = memo(({ post }: FeaturedCardProps) => {
         viewTransition
       >
         <h2 className={featuredTitleStyles} style={heroNameStyle}>
-          {post.title || "無題の記事"}
+          {post.title || UNTITLED_POST}
         </h2>
       </Link>
       {post.excerpt && <p className={featuredExcerptStyles}>{post.excerpt}</p>}

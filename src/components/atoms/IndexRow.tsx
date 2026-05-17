@@ -1,5 +1,6 @@
 import { type CSSProperties, memo } from "react";
 import { css } from "../../../styled-system/css";
+import { UNTITLED_POST } from "../../lib/i18nLiterals";
 import type { PostSummary } from "../../lib/markdown";
 import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { Link } from "./Link";
@@ -210,7 +211,7 @@ export const IndexRow = memo(({ post, index }: IndexRowProps) => {
           className={indexStretchedLinkStyles}
           viewTransition
         >
-          {post.title || "無題の記事"}
+          {post.title || UNTITLED_POST}
         </Link>
       </span>
       <span className={indexLeaderStyles} aria-hidden="true" />

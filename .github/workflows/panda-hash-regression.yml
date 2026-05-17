@@ -39,11 +39,17 @@ jobs:
 
       - name: Build baseline (hash:false) for bundle size comparison
         # Issue #553: baseline (hash:false) との bundle size 対比のため、先に
-        # hash:false 状態でビルドして dist/assets/*.css のサイズを退避する。
+        # hash:false 状態でビルドして dist/assets/*.{css,js} のサイズを退避する。
         # 本 step は後段の bundle size report 用のデータ収集が目的で、
         # 失敗しても既存の pass/fail 判定 (tests / build with hash:true) には
         # 影響させない (continue-on-error: true)。退避先が空のままでも、
         # 後段の report step が baseline 列を欠落表示するだけで規程通り動作する。
+        #
+        # Issue #554: 退避対象は CSS だけでなく JS chunk も含める。Panda は JSX
+        # 解析で生成した class 文字列を JS bundle 内にも埋め込むため、hash 化に
+        # よる class 名長変化は CSS だけでなく JS chunk の gzip 圧縮率にも影響
+        # する。退避先ディレクトリは CSS / JS で分離し、後段 report step が
+        # 種別ごとに対比表示できるようにする。
         id: baseline_build
         continue-on-error: true
         # 既存 hash:true build step (L116) と同じく test を二重実行しないため
@@ -56,16 +62,20 @@ jobs:
           pnpm exec panda
           pnpm exec tsc
           pnpm exec vite build
-          # baseline CSS を退避。後段で hash:true ビルド成果物と並べて
-          # 合計サイズで比較する (hash 化でファイル名が変わるため個別ファイル
-          # 名比較ではなく合計値で見る)。dist/assets が無いケースに備えて
-          # nullglob で空ガード。
-          mkdir -p /tmp/baseline-css
+          # baseline 成果物を CSS / JS 別ディレクトリに退避。後段で hash:true
+          # ビルド成果物と並べて合計サイズで比較する (hash 化でファイル名が
+          # 変わるため個別ファイル名比較ではなく合計値で見る)。dist/assets が
+          # 無いケース、あるいは片方が 0 件のケースに備えて nullglob で空ガード。
+          mkdir -p /tmp/baseline-css /tmp/baseline-js
           shopt -s nullglob
-          baseline_files=(dist/assets/*.css)
+          baseline_css_files=(dist/assets/*.css)
+          baseline_js_files=(dist/assets/*.js)
           shopt -u nullglob
-          if (( ${#baseline_files[@]} > 0 )); then
-            cp "${baseline_files[@]}" /tmp/baseline-css/
+          if (( ${#baseline_css_files[@]} > 0 )); then
+            cp "${baseline_css_files[@]}" /tmp/baseline-css/
+          fi
+          if (( ${#baseline_js_files[@]} > 0 )); then
+            cp "${baseline_js_files[@]}" /tmp/baseline-js/
           fi
 
       - name: Enable Panda hash:true (temporary in-CI patch)
@@ -167,84 +177,202 @@ jobs:
         # 名が変わるため、個別ファイル単位ではなく合計バイト数で比較する。
         # baseline build が失敗 (steps.baseline_build.outcome == 'failure') した
         # 場合は baseline 列を欠落させ、hash:true 単独の表示に縮退する。
+        #
+        # Issue #554: 対象を CSS だけでなく JS chunk (dist/assets/*.js) にも
+        # 拡張する。Panda は JSX 解析で生成した class 文字列を JS bundle 内
+        # にも埋め込むため、hash 化による class 名長変化は CSS だけでなく JS
+        # chunk の gzip 圧縮率にも影響する (gzip 後の +5.8% トレードオフが
+        # JS 側でも同様に観測できるか追跡可能にする)。レポート構成は
+        # CSS / JS で 2 テーブルに分け、baseline 対比は CSS / JS / total の
+        # 3 行で表示する。JS chunk は記事数だけ並ぶことがあるため per-file
+        # 明細は <details> でラップして折りたたむ。
         if: steps.tests.outcome == 'success' && steps.build.outcome == 'success'
         run: |
           set -euo pipefail
-          # 空 glob ガード: `set -euo pipefail` 下で `for f in dist/assets/*.css`
-          # を直接書くと、CSS が 1 件も emit されないケースで glob がリテラル
-          # 文字列 `dist/assets/*.css` のまま 1 回ループし、`stat` が非 0 で
-          # 終了して job 自体が fail する。これは「pass/fail 判定に影響しない」
-          # という本 step の前提に反するため、nullglob で空配列に展開して
-          # スキップする。
+          # 空 glob ガード: `set -euo pipefail` 下で
+          # `for f in dist/assets/*.{css,js}` を直接書くと、対象が 1 件も
+          # emit されないケースで glob がリテラル文字列のまま 1 回ループし、
+          # `stat` が非 0 で終了して job 自体が fail する。これは「pass/fail
+          # 判定に影響しない」という本 step の前提に反するため、nullglob で
+          # 空配列に展開してスキップする。
           shopt -s nullglob
-          files=(dist/assets/*.css)
-          baseline_files=(/tmp/baseline-css/*.css)
+          css_files=(dist/assets/*.css)
+          js_files=(dist/assets/*.js)
+          baseline_css_files=(/tmp/baseline-css/*.css)
+          baseline_js_files=(/tmp/baseline-js/*.js)
           shopt -u nullglob
-          if (( ${#files[@]} == 0 )); then
+          if (( ${#css_files[@]} == 0 && ${#js_files[@]} == 0 )); then
             {
-              echo "## hash:true bundle size";
+              echo "## hash:true CSS / JS bundle size";
               echo "";
-              echo "_(no CSS assets emitted under dist/assets/*.css)_";
+              echo "_(no CSS / JS assets emitted under dist/assets/)_";
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
-          # hash:true 側の合計サイズ算出
-          hash_raw_total=0
-          hash_gz_total=0
-          for f in "${files[@]}"; do
-            raw=$(stat -c '%s' "$f")
-            gz=$(gzip -c "$f" | wc -c)
-            hash_raw_total=$(( hash_raw_total + raw ))
-            hash_gz_total=$(( hash_gz_total + gz ))
-          done
-
-          # baseline 側の合計サイズ算出 (退避ファイルが無ければ 0 のまま)
-          base_raw_total=0
-          base_gz_total=0
-          for f in "${baseline_files[@]}"; do
-            raw=$(stat -c '%s' "$f")
-            gz=$(gzip -c "$f" | wc -c)
-            base_raw_total=$(( base_raw_total + raw ))
-            base_gz_total=$(( base_gz_total + gz ))
-          done
-
-          # 個別ファイル明細 (hash:true 側)
-          {
-            echo "## hash:true bundle size";
-            echo "";
-            echo "### Per-file (hash:true)";
-            echo "";
-            echo "| File | raw (B) | gzip (B) |";
-            echo "|------|---------|----------|";
-            for f in "${files[@]}"; do
+          # 合計サイズを算出するヘルパー。`sum_sizes <files...>` で raw/gz
+          # 合計を空白区切りで 1 行に出力する (`raw_total gz_total`)。空配列
+          # の場合は `0 0` を返す。
+          sum_sizes() {
+            local raw_total=0
+            local gz_total=0
+            local f raw gz
+            for f in "$@"; do
               raw=$(stat -c '%s' "$f")
               gz=$(gzip -c "$f" | wc -c)
-              echo "| \`${f}\` | ${raw} | ${gz} |";
+              raw_total=$(( raw_total + raw ))
+              gz_total=$(( gz_total + gz ))
             done
+            echo "${raw_total} ${gz_total}"
+          }
+
+          # baseline / hash:true 双方の CSS / JS 合計を集計する。read で
+          # 空白区切りを 2 変数に同時展開し、awk への引き渡しを統一する。
+          read -r hash_css_raw hash_css_gz < <(sum_sizes "${css_files[@]}")
+          read -r hash_js_raw hash_js_gz < <(sum_sizes "${js_files[@]}")
+          read -r base_css_raw base_css_gz \
+            < <(sum_sizes "${baseline_css_files[@]}")
+          read -r base_js_raw base_js_gz \
+            < <(sum_sizes "${baseline_js_files[@]}")
+          hash_total_raw=$(( hash_css_raw + hash_js_raw ))
+          hash_total_gz=$(( hash_css_gz + hash_js_gz ))
+          base_total_raw=$(( base_css_raw + base_js_raw ))
+          base_total_gz=$(( base_css_gz + base_js_gz ))
+
+          # 差分 % 算出ヘルパー (baseline が 0 のとき n/a)。awk で小数1桁の
+          # % を出す (bash は整数演算のみのため)。
+          diff_pct() {
+            local base=$1
+            local hash=$2
+            if (( base > 0 )); then
+              awk -v b="$base" -v h="$hash" \
+                'BEGIN { printf "%+.1f%%", (h - b) * 100.0 / b }'
+            else
+              echo "n/a"
+            fi
+          }
+
+          # 個別ファイル明細 (hash:true 側)。JS chunk は記事数だけ並ぶため
+          # <details> でラップして折りたたむ。CSS は通常 1 件なので開いた
+          # ままで良い (個別 <details> ラップで揃え見通しを上げる)。
+          {
+            echo "## hash:true CSS / JS bundle size";
+            echo "";
+            echo "<details open><summary>Per-file CSS (hash:true)</summary>";
+            echo "";
+            if (( ${#css_files[@]} == 0 )); then
+              echo "_(no CSS assets emitted)_";
+            else
+              echo "| File | raw (B) | gzip (B) |";
+              echo "|------|--------:|---------:|";
+              for f in "${css_files[@]}"; do
+                raw=$(stat -c '%s' "$f")
+                gz=$(gzip -c "$f" | wc -c)
+                echo "| \`${f}\` | ${raw} | ${gz} |";
+              done
+            fi
+            echo "";
+            echo "</details>";
+            echo "";
+            echo "<details><summary>Per-file JS (hash:true)</summary>";
+            echo "";
+            if (( ${#js_files[@]} == 0 )); then
+              echo "_(no JS assets emitted)_";
+            else
+              echo "| File | raw (B) | gzip (B) |";
+              echo "|------|--------:|---------:|";
+              # 視認性のため raw サイズ降順で並べる。`sort -k` を使うため
+              # 一旦 raw / gz / path を tab 区切りで出してから整形する。
+              for f in "${js_files[@]}"; do
+                raw=$(stat -c '%s' "$f")
+                gz=$(gzip -c "$f" | wc -c)
+                printf '%s\t%s\t%s\n' "$raw" "$gz" "$f"
+              done | sort -k1,1nr | while IFS=$'\t' read -r raw gz f; do
+                echo "| \`${f}\` | ${raw} | ${gz} |";
+              done
+            fi
+            echo "";
+            echo "</details>";
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # baseline 対比サマリ
-          # baseline が取得できなかった場合 (build 失敗 / CSS 0 件) は差分列を
-          # `n/a` 表示にして縮退する。awk で小数1桁の % を出す
-          # (bash は整数演算のみのため)。
+          # baseline 対比サマリ (CSS / JS / total の 3 行)。baseline が
+          # 取得できなかった種別は差分列を `n/a` に縮退する。
+          css_raw_diff=$(diff_pct "$base_css_raw" "$hash_css_raw")
+          css_gz_diff=$(diff_pct "$base_css_gz" "$hash_css_gz")
+          js_raw_diff=$(diff_pct "$base_js_raw" "$hash_js_raw")
+          js_gz_diff=$(diff_pct "$base_js_gz" "$hash_js_gz")
+          total_raw_diff=$(diff_pct "$base_total_raw" "$hash_total_raw")
+          total_gz_diff=$(diff_pct "$base_total_gz" "$hash_total_gz")
+          base_css_raw_cell="$base_css_raw"
+          base_css_gz_cell="$base_css_gz"
+          base_js_raw_cell="$base_js_raw"
+          base_js_gz_cell="$base_js_gz"
+          base_total_raw_cell="$base_total_raw"
+          base_total_gz_cell="$base_total_gz"
+          if (( base_css_raw == 0 )); then
+            base_css_raw_cell="n/a"
+            base_css_gz_cell="n/a"
+          fi
+          if (( base_js_raw == 0 )); then
+            base_js_raw_cell="n/a"
+            base_js_gz_cell="n/a"
+          fi
+          # total baseline は両 kind が揃ったときだけ有効値とする。片方でも
+          # 欠落していると hash:true (両 kind 集計) との比較が不公平になる
+          # ため、安全側に倒して n/a に縮退する。
+          total_baseline_valid=1
+          if (( base_css_raw == 0 || base_js_raw == 0 )); then
+            total_baseline_valid=0
+          fi
+          if (( total_baseline_valid == 0 )); then
+            base_total_raw_cell="n/a"
+            base_total_gz_cell="n/a"
+            total_raw_diff="n/a"
+            total_gz_diff="n/a"
+          fi
+          # baseline 対比表は行幅を抑えるため printf '%s\t...' で組み立てて
+          # から `| column -t -s $'\t' -o ' | '` で整形…はしない (列幅可変で
+          # markdown 表として崩れるリスクがあるため)。代わりに per-cell
+          # 変数を短縮名に再代入して echo 1 行を 80 列以内に収める。
+          br="$base_css_raw_cell"
+          bg="$base_css_gz_cell"
+          hr="$hash_css_raw"
+          hg="$hash_css_gz"
+          dr="$css_raw_diff"
+          dg="$css_gz_diff"
           {
             echo "";
             echo "### Baseline (hash:false) vs hash:true (total)";
             echo "";
-            echo "| Metric | baseline (hash:false) | hash:true | diff |";
-            echo "|--------|----------------------:|----------:|-----:|";
-            if (( base_raw_total > 0 )); then
-              raw_diff=$(awk -v b="$base_raw_total" -v h="$hash_raw_total" \
-                'BEGIN { printf "%+.1f%%", (h - b) * 100.0 / b }')
-              gz_diff=$(awk -v b="$base_gz_total" -v h="$hash_gz_total" \
-                'BEGIN { printf "%+.1f%%", (h - b) * 100.0 / b }')
-              echo "| raw  (B) | ${base_raw_total} | ${hash_raw_total} | ${raw_diff} |";
-              echo "| gzip (B) | ${base_gz_total} | ${hash_gz_total} | ${gz_diff} |";
-            else
-              echo "| raw  (B) | n/a | ${hash_raw_total} | n/a |";
-              echo "| gzip (B) | n/a | ${hash_gz_total} | n/a |";
+            echo "| Kind | Metric | baseline (hash:false) | hash:true | diff |";
+            echo "|------|--------|----------------------:|----------:|-----:|";
+            echo "| CSS  | raw  (B)  | ${br} | ${hr} | ${dr} |";
+            echo "| CSS  | gzip (B) | ${bg} | ${hg} | ${dg} |";
+          } >> "$GITHUB_STEP_SUMMARY"
+          br="$base_js_raw_cell"
+          bg="$base_js_gz_cell"
+          hr="$hash_js_raw"
+          hg="$hash_js_gz"
+          dr="$js_raw_diff"
+          dg="$js_gz_diff"
+          {
+            echo "| JS   | raw  (B)  | ${br} | ${hr} | ${dr} |";
+            echo "| JS   | gzip (B) | ${bg} | ${hg} | ${dg} |";
+          } >> "$GITHUB_STEP_SUMMARY"
+          br="$base_total_raw_cell"
+          bg="$base_total_gz_cell"
+          hr="$hash_total_raw"
+          hg="$hash_total_gz"
+          dr="$total_raw_diff"
+          dg="$total_gz_diff"
+          {
+            echo "| total | raw  (B)  | ${br} | ${hr} | ${dr} |";
+            echo "| total | gzip (B) | ${bg} | ${hg} | ${dg} |";
+            if (( base_total_raw == 0 )); then
               echo "";
-              echo "_(baseline build did not produce CSS assets; baseline columns are unavailable)_";
+              echo "_(baseline build produced no assets; baseline = n/a)_";
+            elif (( base_css_raw == 0 || base_js_raw == 0 )); then
+              echo "";
+              echo "_(baseline produced only one kind; missing = n/a)_";
             fi
           } >> "$GITHUB_STEP_SUMMARY"

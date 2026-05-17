@@ -620,15 +620,10 @@ describe("Issue #537: fg.muted 補助情報の WCAG 1.4.3 AA (4.5:1) 検証", ()
     expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
   });
 
-  it("fg.muted (light) は本文 AAA 7.20:1 を満たさない (補助情報のみ運用 Tripwire)", () => {
-    // negative test: fg.muted は補助情報専用 token で、本文として転用すると AAA
-    // 未達。Coordinate JSDoc の「7:1 を満たす」記述は実態と乖離していたため、
-    // Issue #537 で実測ベースに修正済み (commit 1)。値が将来改善された場合は
-    // このテストが落ちて、本文転用解禁の意思決定をレビューで促す。
-    const r = ratio(
-      semanticColorTokens.fgMuted.light,
-      semanticColorTokens.bgSurface.light,
-    );
-    expect(r).toBeLessThan(contrastThresholds.bodyText);
-  });
+  // 補助情報専用 (AAA 未達 token の意図的選択) の運用意図は、
+  // panda.config.ts §"fg.muted は本文として運用しない (補助情報のみ)" と
+  // Coordinate.tsx の JSDoc (色は fg.muted / 補助情報専用で本文転用は不可) で
+  // ドキュメント化している。値が将来改善されて AAA を満たした場合でも、それは
+  // 純粋な改善変更であり Tripwire でブロックすべきではないため、本 describe では
+  // 「AAA を満たさない」ことを assert する negative test は持たない。
 });

@@ -3,6 +3,7 @@ import { css } from "../../../styled-system/css";
 import { useCodeBlockCopy } from "../../hooks/useCodeBlockCopy";
 import { useImageLightbox } from "../../hooks/useImageLightbox";
 import { inferPublishedAt, type Milestone } from "../../lib/anchors";
+import { UNTITLED_POST } from "../../lib/i18nLiterals";
 import type { Post, PostSummary } from "../../lib/markdown";
 import { sanitizePostHtml } from "../../lib/sanitize";
 import { buildPostHeroTransitionName } from "../../lib/viewTransition";
@@ -163,7 +164,7 @@ export const PostDetailPage = ({
                 className={css({ marginBottom: "card" })}
                 style={heroNameStyle}
               >
-                {post.title || "無題の記事"}
+                {post.title || UNTITLED_POST}
               </Heading1>
 
               <MetaInfo

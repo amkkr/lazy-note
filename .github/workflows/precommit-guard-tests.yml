@@ -56,10 +56,12 @@ jobs:
         # literal 一致 grep で固定化する。
         #
         # harness の TOTAL 行例:
-        #   TOTAL: 27  OK: 15  FAIL: 0  SKIP(known-limitation): 12
+        #   TOTAL: 27  OK: 16  FAIL: 0  SKIP(known-limitation): 11
         #
-        # 期待値は現状 12 (Issue #550 の DA レビューで指摘された既存 bypass 11
-        # + R06 nested subshell 1)。新たに known-limitation が追加された
+        # 期待値は現状 11 (Issue #568 / PR #594 で R06 nested subshell を
+        # known-limitation から「block」期待値へ昇格させたことで、Issue #550
+        # の DA レビューで指摘された既存 bypass 11 件 = E01-E11 のみが
+        # known-limitation として残る)。新たに known-limitation が追加された
         # (= SKIP が増えた) regression を CI 上で検知し、harness 側と本
         # workflow 側を同 PR で更新する運用に倒す。
         run: |
@@ -69,8 +71,8 @@ jobs:
             echo "::error::harness output file not found: $out_file"
             exit 1
           fi
-          if ! grep -qE 'SKIP\(known-limitation\): 12$' "$out_file"; then
-            echo "::error::Expected 'SKIP(known-limitation): 12' but harness output diverged."
+          if ! grep -qE 'SKIP\(known-limitation\): 11$' "$out_file"; then
+            echo "::error::Expected 'SKIP(known-limitation): 11' but harness output diverged."
             echo "::error::Check harness output below and update either the harness or this workflow in the same PR."
             grep -E '^TOTAL:' "$out_file" || echo "(TOTAL line not found in harness output)"
             exit 1
@@ -88,7 +90,7 @@ jobs:
             echo "## pre-commit-guard test harness";
             echo "";
             if [ -n "$out_file" ] && [ -f "$out_file" ]; then
-              # TOTAL 行 (例: "TOTAL: 27  OK: 15  FAIL: 0  SKIP(known-limitation): 12")
+              # TOTAL 行 (例: "TOTAL: 27  OK: 16  FAIL: 0  SKIP(known-limitation): 11")
               # を抽出して目立つ位置に置く。grep が一致しない場合に備えて || true。
               total_line=$(grep -E '^TOTAL:' "$out_file" || true)
               if [ -n "$total_line" ]; then

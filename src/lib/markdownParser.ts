@@ -3,6 +3,24 @@
  */
 
 /**
+ * Markdown 全文を行配列に変換する
+ *
+ * - 文字列冒頭の UTF-8 BOM (U+FEFF) を 1 文字除去する
+ * - 改行コードは CRLF (`\r\n`) / LF (`\n`) / CR (`\r`) の 3 種を許容する
+ *
+ * 旧 `src/lib/meta.ts` の `splitLines` (Issue #520 で削除) が持っていた
+ * BOM 除去 + CRLF/LF/CR 三対応のノウハウを `markdownParser.ts` 側に
+ * バックポートしたもの (Issue #558)。
+ *
+ * @param content Markdown 全文の文字列
+ * @returns 改行で分割された行配列
+ */
+export const splitLines = (content: string): string[] => {
+  const stripped = content.replace(/^﻿/, "");
+  return stripped.split(/\r\n|\r|\n/);
+};
+
+/**
  * Markdownの行配列からタイトル（# で始まる行）を抽出する
  * @param lines Markdownの行配列
  * @returns タイトル文字列（見つからない場合は空文字）
@@ -125,7 +143,7 @@ export const extractSummaryFromContent = (
   content: string,
   timestamp: string,
 ): PostSummary => {
-  const lines = content.split("\n");
+  const lines = splitLines(content);
   const title = extractTitle(lines);
   const createdAt = extractSectionContent(lines, "投稿日時");
   const author = extractSectionContent(lines, "筆者名");

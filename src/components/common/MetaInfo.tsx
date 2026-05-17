@@ -62,7 +62,10 @@ const itemCompactStyles = css({
 });
 
 // Editorial Citrus トークン (R-2b / Issue #389)
-// - card variant: 補助情報のため fg.muted を使用
+// - card variant: 補助情報のため fg.muted を使用。bg.surface 上に置かれる前提で
+//   WCAG 1.4.3 AA (4.5:1) を満たす (実測 light 6.17:1 / dark 7.91:1。light は
+//   AAA 7:1 未達のため補助情報専用で本文転用は不可。検証は colorTokens.test.ts
+//   §"Issue #537")。
 // - header variant: 見出し相当のため fg.primary を使用
 // - featured variant: Featured 大見出しの上に置く控えめな補助行 (case 変形なし)
 //   のため fg.secondary を使い、上部に静かに配置する (Issue #395 / #424)。

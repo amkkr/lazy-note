@@ -307,7 +307,10 @@ describe("R-2a (Issue #388) で追加した semantic token", () => {
   it("focusRing × ink-900 (二重リング内側) が AA 4.5:1 以上である", () => {
     // 二重リング: 外側 ink-900 + 内側 citrus-500 (focusRing)。
     // 内側は外側と AA 4.5:1 以上のコントラストでリングそのものを認知できる必要がある。
-    const r = ratio(semanticColorTokens.focusRing.light, oklchPrimitives.ink["900"]);
+    const r = ratio(
+      semanticColorTokens.focusRing.light,
+      oklchPrimitives.ink["900"],
+    );
     expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
   });
 

@@ -44,7 +44,7 @@
  * - false positive が出た場合は `EXCLUDED_FILE_SUFFIXES` 経由で除外する。
  */
 
-import { type Stats, readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, type Stats, statSync } from "node:fs";
 import { basename, extname, join, relative, resolve } from "node:path";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
@@ -836,6 +836,14 @@ if (isDirectInvocation()) {
   main();
 }
 
+export type {
+  LintPattern,
+  QuoteChar,
+  SanitizedFile,
+  ScanState,
+  StepResult,
+  Violation,
+};
 export {
   collectTargetFiles,
   extractSanitizedLine,
@@ -844,6 +852,7 @@ export {
   handleStringLiteral,
   isAcceptableFile,
   iterateMatches,
+  LINT_PATTERNS,
   offsetToLineColumn,
   processChar,
   sanitizeFile,
@@ -854,13 +863,4 @@ export {
   stripComments,
   tryStat,
   walkDirectory,
-  LINT_PATTERNS,
-};
-export type {
-  LintPattern,
-  QuoteChar,
-  SanitizedFile,
-  ScanState,
-  StepResult,
-  Violation,
 };

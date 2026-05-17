@@ -131,6 +131,10 @@ const indexListStyles = css({
 
 // Index セクションの見出し (Editorial 風)。
 // "Index" のような小さな目印で雑誌の章タイトルを意識。
+// 補助情報のため fg.muted を採用 (Resurface / AnchorPage 見出しと同じ語彙)。
+// HomePage の bg.canvas 上に置かれる前提で WCAG 1.4.3 AA (4.5:1) を満たす
+// (実測 light 6.54:1 / dark 14.84:1。light は AAA 7:1 未達のため補助情報専用で
+//  本文転用は不可。検証は colorTokens.test.ts §"Issue #537")。
 const indexHeadingStyles = css({
   fontSize: "xs",
   fontWeight: "700",

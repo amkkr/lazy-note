@@ -1,0 +1,19 @@
+{
+  // tsconfig.json (本体) を継承し、scripts/ 配下専用に Node 環境向けの設定を上書きする。
+  // 本体 tsconfig の include から "scripts" を除外する代わりに、
+  // 本ファイルで scripts/ を対象にすることで、scripts/ 由来の ambient 型
+  // (@types/node の globals.d.ts 等) が src/ 側に漏出するのを防ぐ (Issue #634)。
+  //
+  // scripts/__tests__ は vitest ベースで実行されるため、vitest/globals も types に含める。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // scripts/ は Node スクリプトとして実行されるため、明示的に @types/node の
+    // ambient globals (process / Buffer / __dirname 等) を有効化する。
+    // scripts/__tests__ が vitest で実行されるため vitest/globals も含める。
+    "types": ["node", "vitest/globals"],
+    // Incremental build (Issue #580): tsconfig.json / tsconfig.test.json と独立した
+    // .tsbuildinfo を出力する。include が異なるため別ファイルにしないと衝突する。
+    "tsBuildInfoFile": "./.tsbuildinfo/tsconfig.scripts.tsbuildinfo"
+  },
+  "include": ["scripts"]
+}

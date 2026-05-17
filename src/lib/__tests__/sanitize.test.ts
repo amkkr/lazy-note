@@ -132,7 +132,8 @@ describe("sanitizePostHtml", () => {
     });
 
     it("button タグの onmouseover 等の他イベントハンドラも除去される", () => {
-      const dirty = '<button onmouseover="alert(1)" onfocus="alert(2)">XSS</button>';
+      const dirty =
+        '<button onmouseover="alert(1)" onfocus="alert(2)">XSS</button>';
       const result = sanitizePostHtml(dirty);
 
       expect(result).toContain("<button");

@@ -35,17 +35,18 @@ jobs:
         run: pnpm lint:tokens
 
       # Issue #580: tsc --incremental の .tsbuildinfo を cache し、
-      # type-check / type-check:test の cold ビルドを高速化する。
-      # メインキー: lockfile + tsconfig.json / tsconfig.test.json + src/scripts の hash が完全一致した場合のみ hit
+      # type-check / type-check:test / type-check:scripts の cold ビルドを高速化する。
+      # メインキー: lockfile + tsconfig.json / tsconfig.test.json / tsconfig.scripts.json + src/scripts の hash が完全一致した場合のみ hit
       # restoreKeys: lockfile + tsconfig が一致なら部分的に再利用 (src 差分のみ再計算)
       # tsconfig.build.json は本 cache のスコープ外 (build 側 / vite build 前 tsc) のため除外 (DA M-3)
+      # tsconfig.scripts.json は Issue #634 で新設 (scripts/ ambient 型の attack surface 制御)
       - name: Cache tsc incremental build info (Issue #580)
         uses: actions/cache@v5
         with:
           path: .tsbuildinfo
-          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts') }}
+          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts') }}
           restore-keys: |
-            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json') }}-
+            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json') }}-
             tsc-${{ runner.os }}-
 
       - name: Type check
@@ -53,3 +54,6 @@ jobs:
 
       - name: Type check (test)
         run: pnpm type-check:test
+
+      - name: Type check (scripts) (Issue #634)
+        run: pnpm type-check:scripts

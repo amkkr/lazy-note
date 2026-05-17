@@ -153,8 +153,7 @@ describe("MetaInfo", () => {
     );
 
     // 装飾アイコン (svg) が width="12" を持つ
-    const featuredSvgs =
-      featuredContainer.querySelectorAll('svg[width="12"]');
+    const featuredSvgs = featuredContainer.querySelectorAll('svg[width="12"]');
     expect(featuredSvgs.length).toBeGreaterThanOrEqual(2);
     const bentoSvgs = bentoContainer.querySelectorAll('svg[width="12"]');
     expect(bentoSvgs.length).toBeGreaterThanOrEqual(2);

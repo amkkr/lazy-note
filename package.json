@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "panda --watch & vite",
-    "build": "pnpm run lint && pnpm run test:run && pnpm run type-check && panda && tsc && vite build",
+    "build": "pnpm run lint && pnpm run test:run && pnpm run type-check && pnpm run type-check:scripts && panda && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
@@ -17,6 +17,7 @@
     "lint:tokens": "node scripts/lintTokens.ts",
     "type-check": "tsc --noEmit",
     "type-check:test": "tsc --noEmit --project tsconfig.test.json",
+    "type-check:scripts": "tsc --noEmit --project tsconfig.scripts.json",
     "prepare": "panda codegen",
     "new-post": "node scripts/newPost.ts",
     "contrast:check": "node scripts/calculateContrast.ts",

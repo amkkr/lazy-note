@@ -29,8 +29,13 @@
 #      (native hook 側の対応は本 Issue #592 のスコープ外。shell hook が唯一の防御)
 #   3. コミットメッセージ内に `Co-Authored-By` を含めない — `-m`/`--message` 引数の文字列判定
 #      ※ 真の防御は `.githooks/commit-msg`。本 hook は -m "..." の literal のみ早期検知
-#   4. master/main ブランチへの直接 commit/push 拒否 (best-effort)
+#   4. 保護ブランチ (master/main) への直接 commit/push 拒否 (best-effort)
 #      ※ 真の防御は `.githooks/pre-commit`。本 hook は素朴な経路のみ早期検知
+#
+# 規約 SSOT (Issue #649 / Moderate 4):
+#   「保護ブランチ名 (master/main)」「Co-Authored-By 検出 regex」は
+#   `.githooks/_lib.sh` に集約済み。本 hook 起動時に source して
+#   PROTECTED_BRANCHES / COAUTHOR_PATTERN / is_protected_branch を共有する。
 #
 # 既知の限界 (= shell 文字列解析の本質的限界。これらは git ネイティブ hook で塞ぐ):
 #   - env 変数 prefix (`PAGER=cat git commit ...`)
@@ -57,6 +62,25 @@
 #       本 hook が allowlist で追加カバーする必要は無くなった。
 
 set -euo pipefail
+
+# 規約 SSOT (.githooks/_lib.sh) を読み込む (Issue #649 / Moderate 4)。
+# 本 shell hook と git ネイティブ hook で「保護ブランチ」「Co-Authored-By regex」を
+# 1 箇所で定義し、二重管理を解消する。
+#
+# 解決方針:
+#   - 本 hook は常に `<repo>/.claude/hooks/pre-commit-guard.sh` に置かれる前提のため、
+#     $0 基点で `../../.githooks/_lib.sh` を参照する。
+#   - source 失敗時 (= 想定外の path で実行) は安全側に何もせず exit 0 する
+#     (= Bash ツール呼び出しを spurious block しない)。SSOT 読み込み失敗は
+#     git ネイティブ hook 側で本来の防御層が機能するため致命傷ではない。
+_GUARD_LIB="$(cd "$(dirname "$0")" && pwd)/../../.githooks/_lib.sh"
+if [ -f "$_GUARD_LIB" ]; then
+  # shellcheck source=../../.githooks/_lib.sh
+  . "$_GUARD_LIB"
+else
+  # SSOT が無い環境では本 hook は何もしない (native hook が真の防御層)。
+  exit 0
+fi
 
 INPUT=$(cat)
 
@@ -449,17 +473,27 @@ if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+(commit|push)([[
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
   fi
 
-  if [ "$CURRENT_BRANCH" = "master" ] || [ "$CURRENT_BRANCH" = "main" ]; then
-    block "master/main ブランチへの直接 commit/push は禁止です。作業ブランチを切ってください。"
+  # 保護ブランチ判定は SSOT (.githooks/_lib.sh の is_protected_branch) を利用する
+  # (Issue #649 / Moderate 4)。
+  if is_protected_branch "$CURRENT_BRANCH"; then
+    block "保護ブランチ (${PROTECTED_BRANCHES_RE}) への直接 commit/push は禁止です。作業ブランチを切ってください。"
   fi
 fi
 
 # git commit の場合、コマンド引数の -m / --message メッセージに Co-Authored-By が含まれないかチェック
 # （本文に Co-Authored-By という単語が単に言及されるだけのケースと区別するため、
 #  git commit 呼び出しを含むときのみ、かつそのコマンド自体のテキスト内に含まれるかを見る）
+#
+# 検出 regex は SSOT (.githooks/_lib.sh の COAUTHOR_LITERAL_PATTERN) を利用する
+# (Issue #649 / Moderate 4)。case-insensitive 検出に統一することで、
+# 旧実装で素通りしていた `co-authored-by:` (小文字) も block する。
+#
+# shell コマンド literal 段階では `\n` で囲まれた literal 改行も含めて
+# `co-authored-by:` の sub-string を保守的に検出する (COAUTHOR_LITERAL_PATTERN)。
+# 本文向けの厳密判定 (前置 [[:space:]] 要求) は commit-msg hook 側で行う。
 if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+commit([[:space:]]|$)'; then
   COMMIT_LINE=$(printf '%s\n' "$GIT_INVOCATIONS" | grep -E '^git[[:space:]]+commit([[:space:]]|$)' | head -n1)
-  if printf '%s' "$COMMIT_LINE" | grep -q 'Co-Authored-By'; then
+  if printf '%s' "$COMMIT_LINE" | grep -qiE "$COAUTHOR_LITERAL_PATTERN"; then
     block "コミットメッセージに Co-Authored-By を含めることは禁止されています。"
   fi
 fi

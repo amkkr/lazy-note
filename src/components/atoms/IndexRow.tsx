@@ -34,6 +34,10 @@ interface IndexRowProps {
  * - bg.canvas × fg.primary: 17.16:1 AAA / 16.98:1 AAA
  * - bg.canvas × fg.secondary: 9.59:1 AAA / 14.84:1 AAA
  * - bg.canvas × accent.featured: 5.74:1 AA / 5.17:1 AA
+ * - bg.canvas × fg.muted: light 6.54:1 (AA / AAA 未達) / dark 14.84:1 AAA
+ *   (Index 行は bg.canvas 上に置かれる。hover 時は bg.surface に切り替わるが
+ *    その場合も light 6.17:1 / dark 7.91:1 で AA を満たす。番号は装飾扱い
+ *    だが補助情報として AA 4.5:1 を確保。検証は colorTokens.test.ts §"Issue #537")
  *
  * borderBottom の WCAG 1.4.11 (Non-text Contrast / Issue #445):
  * 旧 token (bg.elevated) は light 環境で外側 bg.canvas との差が 1.06:1 と
@@ -86,8 +90,10 @@ const indexRowStyles = css({
 });
 
 // 番号 (01, 02, ...)。tabular-nums で桁ぞろえ。
-// fg.muted (light 6.54:1 AA) は装飾扱いなので問題なし。bold + 小フォントなので
-// 14pt 未満でも装飾的役割。意味は隣接の (link) タイトルが伝える。
+// fg.muted (bg.canvas 上 light 6.54:1 / dark 14.84:1) は補助情報トーンで AA 4.5:1
+// を満たす (light は AAA 7:1 未達のため本文転用は不可)。bold + 小フォントだが
+// 装飾的役割で、意味は隣接の (link) タイトルが伝える。検証は
+// colorTokens.test.ts §"Issue #537"。
 const indexNumberStyles = css({
   fontSize: "sm",
   fontWeight: "700",
@@ -176,6 +182,8 @@ const indexMetaStyles = css({
 });
 
 // メタ間の区切り。視覚絵文字は使わず Em ダッシュで控えめに。
+// aria-hidden の装飾要素のため WCAG 1.4.3 対象外だが、fg.muted は bg.canvas 上
+// (light 6.54:1 / dark 14.84:1) で補助情報トーンとして十分視認可能。
 const indexMetaSeparatorStyles = css({
   color: "fg.muted",
 });

@@ -27,11 +27,11 @@ import {
   iterateMatches,
   type LintPattern,
   processChar,
+  type ScanState,
   sanitizeFile,
   scanFile,
   scanFileScope,
   scanLineScope,
-  type ScanState,
   shouldSkipEntry,
   stripComments,
   tryStat,
@@ -391,9 +391,9 @@ describe("iterateMatches", () => {
 describe("extractSanitizedLine", () => {
   it("途中行を改行を除外して切り出せる", () => {
     const file = sanitizeFile("line0\nline1\nline2\n");
-    expect(
-      extractSanitizedLine(file.sanitized, file.lineStartOffsets, 1),
-    ).toBe("line1");
+    expect(extractSanitizedLine(file.sanitized, file.lineStartOffsets, 1)).toBe(
+      "line1",
+    );
   });
 
   it("最終行 (改行なしで終わる) を末尾までスライスできる", () => {
@@ -406,9 +406,9 @@ describe("extractSanitizedLine", () => {
 
   it("空行を空文字として切り出せる", () => {
     const file = sanitizeFile("\n\n");
-    expect(
-      extractSanitizedLine(file.sanitized, file.lineStartOffsets, 0),
-    ).toBe("");
+    expect(extractSanitizedLine(file.sanitized, file.lineStartOffsets, 0)).toBe(
+      "",
+    );
   });
 });
 

@@ -37,9 +37,12 @@ jobs:
       - name: Assert .githooks files exist and are executable
         # Issue #592 (Counterpoint 31): git native hook の同梱を CI で保証する。
         # ローカル開発者が hook ファイルを誤って削除した PR を CI で検知できる。
+        # Issue #649 (Moderate 4): _lib.sh は両 hook が source する SSOT のため、
+        # 同様に存在 / executable bit を保証する。削除されると hook 起動時に
+        # FATAL で fail するため、CI で先回り検知する。
         run: |
           set -uo pipefail
-          for hook in .githooks/pre-commit .githooks/commit-msg; do
+          for hook in .githooks/pre-commit .githooks/commit-msg .githooks/_lib.sh; do
             if [ ! -f "$hook" ]; then
               echo "::error::Required git native hook is missing: $hook"
               exit 1
@@ -77,8 +80,19 @@ jobs:
         # harness の TOTAL 行例:
         #   TOTAL: 27  OK: 27  FAIL: 0
         #
-        # 期待値: TOTAL 27 / FAIL 0。新たにケースが追加された (= TOTAL 増) 場合は
-        # 本 grep を更新する運用に倒す (harness と workflow を同 PR で更新)。
+        # Issue #649 (Moderate 3) で grep を retrofit:
+        #   - 旧: `TOTAL: 27  OK: 27  FAIL: 0` 完全一致
+        #   - 新: 「FAIL: 0」+「TOTAL >= 27 (下限固定)」分離型
+        #   - 理由: 「新ケースを追加した PR」で TOTAL が増えると workflow 文字列も
+        #          同 PR で更新せねばならず、片方を忘れた regression を CI で
+        #          検出できなくなる懸念があった。下限 (= MIN_TOTAL) を固定して
+        #          上限は開ける運用にすれば、ケース追加時に workflow 更新を
+        #          必須にせず、ケース削除 (= 下限割れ) のみを regression として弾ける。
+        #
+        # 下限 MIN_TOTAL の更新タイミング:
+        #   - ケースを追加するだけなら MIN_TOTAL は据え置きで OK。
+        #   - ケース削除 / 統合で件数が減る方向に更新する場合は本 step の
+        #     MIN_TOTAL を同 PR で減らす (= 新規 baseline の宣言)。
         run: |
           set -uo pipefail
           out_file="${{ steps.harness.outputs.out_file }}"
@@ -86,10 +100,31 @@ jobs:
             echo "::error::harness output file not found: $out_file"
             exit 1
           fi
-          if ! grep -qE '^TOTAL: 27  OK: 27  FAIL: 0$' "$out_file"; then
-            echo "::error::Expected 'TOTAL: 27  OK: 27  FAIL: 0' but harness output diverged."
-            echo "::error::Check harness output below and update either the harness or this workflow in the same PR."
+          # 下限: 現在の baseline は 27 (Issue #592 完了時点)。減らす方向のみ
+          # 同 PR で更新する。
+          MIN_TOTAL=27
+          total_line=$(grep -E '^TOTAL:' "$out_file" | head -n1 || true)
+          if [ -z "$total_line" ]; then
+            echo "::error::harness output に TOTAL 行が見つかりません"
             grep -E '^TOTAL:' "$out_file" || echo "(TOTAL line not found in harness output)"
+            exit 1
+          fi
+          # FAIL: 0 を厳密確認 (regression の主要シグナル)
+          if ! printf '%s\n' "$total_line" | grep -qE '(^|[[:space:]])FAIL: 0([[:space:]]|$)'; then
+            echo "::error::Expected 'FAIL: 0' in TOTAL line but got: $total_line"
+            exit 1
+          fi
+          # TOTAL 件数を抽出して下限と比較
+          total_num=$(printf '%s\n' "$total_line" \
+            | sed -nE 's/^TOTAL:[[:space:]]+([0-9]+).*/\1/p')
+          if [ -z "$total_num" ]; then
+            echo "::error::TOTAL 件数を抽出できません: $total_line"
+            exit 1
+          fi
+          if [ "$total_num" -lt "$MIN_TOTAL" ]; then
+            echo "::error::TOTAL ($total_num) が下限 $MIN_TOTAL を下回りました。"
+            echo "::error::ケースが意図せず削除された可能性があります。harness を確認するか、"
+            echo "::error::意図的な削減であれば本 workflow の MIN_TOTAL も同 PR で更新してください。"
             exit 1
           fi
 

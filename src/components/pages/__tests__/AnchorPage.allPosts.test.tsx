@@ -405,35 +405,34 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
     for (const [index, row] of expectedRows.entries()) {
       const span = coordinateSpans[index];
       expect(span.getAttribute("data-tone")).toBe(row.tone);
-      expect(span.textContent).toBe(
-        `${row.label} から ${row.daysSince} 日目`,
-      );
+      expect(span.textContent).toBe(`${row.label} から ${row.daysSince} 日目`);
     }
   };
 
   describe("各記事の座標表示が fixture (expectations) と完全一致する (heavy 含む)", () => {
-    describe.each(expectations)(
-      "post.id=$postId",
-      ({ postId, publishedAt, expectedRows }) => {
-        it("post.id からタイムスタンプを推定でき、fixture の publishedAt と一致する", () => {
-          // 既存記事はすべて YYYYMMDDhhmmss 形式で、fixture と整合する
-          const inferred = inferPublishedAt(postId);
-          expect(inferred).toBe(publishedAt);
-        });
+    describe.each(expectations)("post.id=$postId", ({
+      postId,
+      publishedAt,
+      expectedRows,
+    }) => {
+      it("post.id からタイムスタンプを推定でき、fixture の publishedAt と一致する", () => {
+        // 既存記事はすべて YYYYMMDDhhmmss 形式で、fixture と整合する
+        const inferred = inferPublishedAt(postId);
+        expect(inferred).toBe(publishedAt);
+      });
 
-        it("fixture の expectedRows どおりの順序・件数・テキストで描画される", () => {
-          const posts = buildPostSummaries(postIds);
-          render(
-            <MemoryRouter>
-              <AnchorPage posts={posts} milestones={testMilestones} />
-            </MemoryRouter>,
-          );
+      it("fixture の expectedRows どおりの順序・件数・テキストで描画される", () => {
+        const posts = buildPostSummaries(postIds);
+        render(
+          <MemoryRouter>
+            <AnchorPage posts={posts} milestones={testMilestones} />
+          </MemoryRouter>,
+        );
 
-          const postItem = getPostItem(postId);
-          verifyPostCoordinates(postItem, expectedRows);
-        });
-      },
-    );
+        const postItem = getPostItem(postId);
+        verifyPostCoordinates(postItem, expectedRows);
+      });
+    });
   });
 
   /**

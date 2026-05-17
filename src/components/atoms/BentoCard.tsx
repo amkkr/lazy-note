@@ -195,63 +195,58 @@ const bentoStretchedLinkStyles = css({
   },
 });
 
-export const BentoCard = memo(
-  ({ post, size = "default" }: BentoCardProps) => {
-    // size prop が未指定 (= "default") の場合は span スタイルを当てない。
-    // HomePage 側の bentoSizes 配列は 6 要素しか持たないため、idx >= 6 で
-    // bentoSizes[idx] が undefined となるが、デフォルト引数 "default" が
-    // 適用されて default フォールバックする (1x1 セル)。
-    const sizeStyles =
-      size === "tall"
-        ? bentoSizeTallStyles
-        : size === "wide"
-          ? bentoSizeWideStyles
-          : bentoSizeDefaultStyles;
+export const BentoCard = memo(({ post, size = "default" }: BentoCardProps) => {
+  // size prop が未指定 (= "default") の場合は span スタイルを当てない。
+  // HomePage 側の bentoSizes 配列は 6 要素しか持たないため、idx >= 6 で
+  // bentoSizes[idx] が undefined となるが、デフォルト引数 "default" が
+  // 適用されて default フォールバックする (1x1 セル)。
+  const sizeStyles =
+    size === "tall"
+      ? bentoSizeTallStyles
+      : size === "wide"
+        ? bentoSizeWideStyles
+        : bentoSizeDefaultStyles;
 
-    // Hero morph (Issue #397): Bento タイトル H3 に
-    // `view-transition-name: post-{id}` を付与し、記事詳細 (PostDetailPage) の
-    // H1 と morph させる。Featured と Bento は同時に表示されないペアなので
-    // 名前衝突は発生しない (HomePage の Featured = posts[0] / Bento = posts[1..6])。
-    const heroNameStyle: CSSProperties = {
-      viewTransitionName: buildPostHeroTransitionName(String(post.id)),
-    };
+  // Hero morph (Issue #397): Bento タイトル H3 に
+  // `view-transition-name: post-{id}` を付与し、記事詳細 (PostDetailPage) の
+  // H1 と morph させる。Featured と Bento は同時に表示されないペアなので
+  // 名前衝突は発生しない (HomePage の Featured = posts[0] / Bento = posts[1..6])。
+  const heroNameStyle: CSSProperties = {
+    viewTransitionName: buildPostHeroTransitionName(String(post.id)),
+  };
 
-    return (
-      <article
-        className={`${bentoWrapperBaseStyles} ${sizeStyles}`}
-        data-token-border="border.subtle"
-        data-token-bg="bg.surface"
-        data-grid-span={gridSpanAttrs[size]}
-      >
-        <div className={bentoMetaStyles}>
-          <MetaInfo
-            createdAt={post.createdAt}
-            author={post.author}
-            readingTimeMinutes={post.readingTimeMinutes}
-            variant="bento"
-          />
-        </div>
-        <h3
-          className={`bento-title ${bentoTitleStyles}`}
-          style={heroNameStyle}
+  return (
+    <article
+      className={`${bentoWrapperBaseStyles} ${sizeStyles}`}
+      data-token-border="border.subtle"
+      data-token-bg="bg.surface"
+      data-grid-span={gridSpanAttrs[size]}
+    >
+      <div className={bentoMetaStyles}>
+        <MetaInfo
+          createdAt={post.createdAt}
+          author={post.author}
+          readingTimeMinutes={post.readingTimeMinutes}
+          variant="bento"
+        />
+      </div>
+      <h3 className={`bento-title ${bentoTitleStyles}`} style={heroNameStyle}>
+        <Link
+          to={`/posts/${post.id}`}
+          variant="card"
+          className={bentoStretchedLinkStyles}
+          viewTransition
         >
-          <Link
-            to={`/posts/${post.id}`}
-            variant="card"
-            className={bentoStretchedLinkStyles}
-            viewTransition
-          >
-            {post.title || UNTITLED_POST}
-          </Link>
-        </h3>
-        {post.excerpt && (
-          <p className={bentoExcerptStyles} style={bentoExcerptInlineStyle}>
-            {post.excerpt}
-          </p>
-        )}
-      </article>
-    );
-  },
-);
+          {post.title || UNTITLED_POST}
+        </Link>
+      </h3>
+      {post.excerpt && (
+        <p className={bentoExcerptStyles} style={bentoExcerptInlineStyle}>
+          {post.excerpt}
+        </p>
+      )}
+    </article>
+  );
+});
 
 BentoCard.displayName = "BentoCard";

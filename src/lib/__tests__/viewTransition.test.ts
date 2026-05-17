@@ -131,11 +131,9 @@ describe("startViewTransition", () => {
     // 連続発火しても本ラッパー側でエラーや throttle は発生せず、
     // 単純に VT API に都度委譲することを確認する。
     let calls = 0;
-    const startVTMock: MockInstance = vi
-      .fn()
-      .mockImplementation(() => {
-        calls += 1;
-      });
+    const startVTMock: MockInstance = vi.fn().mockImplementation(() => {
+      calls += 1;
+    });
     // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
     (document as any).startViewTransition = startVTMock;
     window.matchMedia = vi.fn().mockReturnValue({

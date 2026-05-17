@@ -56,6 +56,9 @@ interface ResurfaceProps {
  * AA 担保 (calculateContrast.ts による実測値、BentoCard / IndexRow と同様):
  * - bg.surface × fg.primary: 16.19:1 (light) / 7.93:1 (dark) AAA
  * - bg.surface × fg.secondary: light 9.59:1 / dark 14.84:1 AAA
+ * - bg.canvas × fg.muted: light 6.54:1 (AA / AAA 未達) / dark 14.84:1 AAA
+ *   (セクション見出し "過去の記事" が bg.canvas 上に置かれる前提。light は
+ *    補助情報専用で本文転用は不可。検証は colorTokens.test.ts §"Issue #537")
  * - border.subtle × bg.canvas: light 3.49:1 / dark 6.18:1 (WCAG 1.4.11 非テキスト 3:1)
  */
 
@@ -71,6 +74,10 @@ const sectionStyles = css({
 });
 
 // セクション見出し ("過去の記事")。Index 見出しと同じスタイル語彙で並列にする。
+// 補助情報のため fg.muted を採用 (Coordinate / Index 見出しと同じ語彙)。
+// bg.canvas 上の補助情報として WCAG 1.4.3 AA (4.5:1) を満たす
+// (実測 light 6.54:1 / dark 14.84:1。light は AAA 7:1 未達のため補助情報専用で
+//  本文転用は不可。検証は colorTokens.test.ts §"Issue #537")。
 const headingStyles = css({
   fontSize: "xs",
   fontWeight: "700",

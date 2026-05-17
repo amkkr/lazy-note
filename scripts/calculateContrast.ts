@@ -477,7 +477,8 @@ const verdict = (ratio: number): string => {
   return "FAIL";
 };
 
-const CSV_HEADER = "surface,fg,surface_oklch,fg_oklch,ratio,verdict,aaa,aa";
+const CSV_HEADER =
+  "surface,fg,surface_oklch,fg_oklch,ratio,verdict,aaa,aa" as const;
 
 const formatCsvRow = (
   surface: NamedColor,

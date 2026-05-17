@@ -38,20 +38,28 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Enable Panda hash:true (temporary in-CI patch)
-        # panda.config.ts の defineConfig 内 `preflight: true,` 直下に
-        # `hash: true,` を 1 行挿入する。リポジトリへは push しない CI 内
-        # 一時パッチ。挿入後に grep で実在を確認し、未挿入なら即 fail する。
+        # panda.config.ts の defineConfig 内 `preflight: true` 行 (末尾カンマ
+        # 任意) 直下に `hash: true,` を 1 行挿入する。リポジトリへは push
+        # しない CI 内一時パッチ。挿入後に grep で実在を確認し、未挿入なら
+        # 即 fail する。
+        #
+        # Issue #527: sed / grep のパターンは `preflight: true` の末尾カンマ
+        # 有無の両方にマッチするよう `,\?` を付与している。これにより
+        # Biome / Prettier 系のフォーマッタが trailing comma を削除する方針に
+        # 変わった場合や、誰かが手動でカンマを消した場合でも検出できる。
+        # 挿入される行は常に `hash: true,` (カンマあり) で固定する。
         run: |
           set -euo pipefail
-          # 末尾カンマまで含めて厳格に判定する。`hash: true` 単独行のような
-          # 部分一致 / 別箇所での hash: true 出現を誤検知しないようにする。
-          if grep -qE '^\s*hash:\s*true,' panda.config.ts; then
+          # 末尾カンマの有無両対応で判定する。`hash: true` 単独行のような
+          # 部分一致 / 別箇所での hash: true 出現を誤検知しないよう、行頭
+          # インデント + key 名 + true + (任意の trailing comma) で限定する。
+          if grep -qE '^\s*hash:\s*true,?\s*$' panda.config.ts; then
             echo "panda.config.ts already has hash:true; skip patch."
           else
-            sed -i 's/^\(\s*\)preflight: true,$/\1preflight: true,\n\1hash: true,/' panda.config.ts
+            sed -i 's/^\(\s*\)preflight: true,\?$/\1preflight: true,\n\1hash: true,/' panda.config.ts
           fi
-          if ! grep -qE '^\s*hash:\s*true,' panda.config.ts; then
-            echo "::error::panda.config.ts への hash:true 挿入に失敗しました。preflight: true, の行が想定どおり存在するか確認してください。"
+          if ! grep -qE '^\s*hash:\s*true,?\s*$' panda.config.ts; then
+            echo "::error::panda.config.ts への hash:true 挿入に失敗しました。preflight 行の書式が想定 (^\\s*preflight: true,?$) と異なる可能性があります。確認ポイント: (1) preflight 行の末尾カンマ有無 (sed の置換失敗) / (2) preflight 行がコメントアウトされていないか / (3) 別記法 (例: preflight: { enabled: true } 等の object 表記) に変わっていないか / (4) 行頭に空白/タブ以外の文字 (YAML マーカー '-' / CR-LF の CR 混入など) が紛れていないか。"
             exit 1
           fi
           echo "--- panda.config.ts (patched head) ---"

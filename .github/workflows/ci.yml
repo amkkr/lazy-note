@@ -35,7 +35,7 @@ jobs:
         run: pnpm lint:tokens
 
       - name: Type check
-        run: pnpm exec tsc --noEmit
+        run: pnpm type-check
 
       - name: Type check (test)
-        run: pnpm exec tsc -p tsconfig.test.json --noEmit
+        run: pnpm type-check:test

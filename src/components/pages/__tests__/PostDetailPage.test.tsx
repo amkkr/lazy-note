@@ -532,5 +532,91 @@ describe("PostDetailPage", () => {
       const results = await axe(container);
       expect(results).toHaveNoViolations();
     });
+
+    // Issue #538: Coordinate の境界パターン (heavy 除外 / milestones=[] /
+    // showCoordinate=false / publishedAt 推定不可) を統合した状態でも
+    // PostDetailPage 全体の axe 違反が 0 件であることを保証する。
+    // 既存の「Coordinate を含む」1 パターンのみでは、Coordinate が縮んだ /
+    // 消えた状態でページ全体の ARIA 構造に副作用が生じないか検出できない。
+    // 境界 4 パターンを最小コストで axe 通過保証する。
+    it("Coordinate が heavy 除外で縮んだ PostDetailPage 全体で axe a11y 違反が 0 件である", async () => {
+      // neutral / light / heavy の 3 件を渡し、Coordinate 内部で heavy を
+      // 除外して 2 件描画する状態を再現する境界。
+      const mixedMilestones: readonly Milestone[] = [
+        { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+        { date: "2025-02-01", label: "社会復帰", tone: "light" },
+        { date: "2025-03-01", label: "休職開始", tone: "heavy" },
+      ];
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPostWithTimestamp}
+            olderPost={null}
+            newerPost={null}
+            milestones={mixedMilestones}
+          />
+        </MemoryRouter>,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    it("milestones=[] で Coordinate を描画しない PostDetailPage 全体で axe a11y 違反が 0 件である", async () => {
+      // 撤退時の挙動 (milestones を空配列にして Coordinate を黙らせる) で
+      // ページ全体の ARIA 構造が axe 違反を起こさないことを保証する。
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPostWithTimestamp}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    it("showCoordinate=false で Coordinate を OFF にした PostDetailPage 全体で axe a11y 違反が 0 件である", async () => {
+      // 表示 OFF フラグ経路の境界。milestones は渡っているが showCoordinate
+      // で個別に黙らせるケース。
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPostWithTimestamp}
+            olderPost={null}
+            newerPost={null}
+            milestones={baseMilestones}
+            showCoordinate={false}
+          />
+        </MemoryRouter>,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    it("publishedAt 推定不可 (非タイムスタンプ id) の PostDetailPage 全体で axe a11y 違反が 0 件である", async () => {
+      // mockPost.id="test-post" は YYYYMMDDhhmmss にマッチせず inferPublishedAt
+      // が null を返すため、PostDetailPage 側の条件分岐 (publishedAt !== null)
+      // で Coordinate 自体がレンダーされない経路。Coordinate 内部の early
+      // return とは別の境界 (= 親の条件分岐) で違反が生じないことを保証する。
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={baseMilestones}
+          />
+        </MemoryRouter>,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
   });
 });

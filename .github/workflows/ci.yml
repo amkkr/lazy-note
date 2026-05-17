@@ -36,15 +36,16 @@ jobs:
 
       # Issue #580: tsc --incremental の .tsbuildinfo を cache し、
       # type-check / type-check:test の cold ビルドを高速化する。
-      # メインキー: lockfile + tsconfig*.json + src/scripts の hash が完全一致した場合のみ hit
+      # メインキー: lockfile + tsconfig.json / tsconfig.test.json + src/scripts の hash が完全一致した場合のみ hit
       # restoreKeys: lockfile + tsconfig が一致なら部分的に再利用 (src 差分のみ再計算)
-      - name: Cache tsc incremental build info
+      # tsconfig.build.json は本 cache のスコープ外 (build 側 / vite build 前 tsc) のため除外 (DA M-3)
+      - name: Cache tsc incremental build info (Issue #580)
         uses: actions/cache@v5
         with:
           path: .tsbuildinfo
-          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig*.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts') }}
+          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts') }}
           restore-keys: |
-            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig*.json') }}-
+            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json') }}-
             tsc-${{ runner.os }}-
 
       - name: Type check

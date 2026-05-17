@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
+import milestonesData from "../../../../datasources/milestones.json";
 import { inferPublishedAt, type Milestone } from "../../../lib/anchors";
 import type { PostSummary } from "../../../lib/markdown";
 import { buildPulseForbiddenVocabRegex } from "../../../test/forbiddenVocab";
@@ -247,14 +248,41 @@ const expectations: readonly PostCoordinatesExpectation[] = [
  * メリットがある一方で、「本番 milestone の label rename / tone 変更 /
  * 日付変更などの意味的変更が本テスト上で silent pass する」リスクを孕む。
  * 本番 milestones.json と本テスト fixture のずれは、本番 JSON を直接 import
- * している `anchors.test.ts` および開発者の意識的な fixture 更新 (上述「fixture
- * の更新ルール」) で担保する設計とする。
+ * している `anchors.test.ts`、本ファイル末尾の「Pulse 思想禁則語彙が現れない」
+ * Tripwire テスト (後述 `milestones` 定数を限定的に使用)、および開発者の
+ * 意識的な fixture 更新 (上述「fixture の更新ルール」) で担保する設計とする。
  */
 const testMilestones: readonly Milestone[] = [
   { date: "2025-08-05", label: "休職開始", tone: "heavy" },
   { date: "2025-08-26", label: "サイト開設", tone: "neutral" },
   { date: "2025-09-05", label: "社会復帰", tone: "light" },
 ];
+
+/**
+ * 本ファイル末尾の「Pulse 思想禁則語彙が現れない」Tripwire テスト専用に、
+ * 本番 `datasources/milestones.json` を**限定的に**直接 import した定数。
+ *
+ * fixture (expectations) と組ませる入力は意図的に `testMilestones` に切り離して
+ * いるが (本 JSDoc 上部の trade-off 参照)、Pulse 禁則語彙 Tripwire は
+ * 「実 milestones × 全 16 記事の組合せ」で抽象指標語彙の漏れを防ぐことが目的
+ * (Issue #540 / Issue #618 案A) のため、本 1 件のテストに限り本番 JSON を
+ * そのまま入力として渡す。
+ *
+ * narrowing キャストの意図は `anchors.test.ts` の milestonesJson キャスト
+ * (Issue #546) と同じ: resolveJsonModule で widen された `tone: string` を
+ * `Milestone["tone"]` の literal union に narrowing する。
+ * 設計判断の正本 (集約せず各 page で個別 import / 撤退方法 / 不正値時の挙動
+ * など) は `src/pages/anchor.tsx` の MILESTONES JSDoc を参照 (Issue #546)。
+ * AnchorPage ドメインにおける不正 `tone` / 不正 `date` 時の具体挙動
+ * (`data-tone` への素通し / 座標一覧から静かに落ちる) も同 JSDoc に記述あり
+ * (`anchors.test.ts` の同等キャストコメントも同じ参照先に揃えてある)。
+ *
+ * **副次効果 (Tripwire 強化)**: 本定数を導入することで、末尾の Pulse 禁則語彙
+ * Tripwire テストが runtime で必ず実行されるようになる (Issue #618 案A)。
+ * PR #611 / #612 のような「未定義 milestones 参照」交差バグが今後再発した場合も
+ * 本 Tripwire 経由で検知できるため、検知網が二重化される。
+ */
+const milestones: readonly Milestone[] = milestonesData as readonly Milestone[];
 
 const postFilePaths = Object.keys(import.meta.glob("/datasources/*.md"));
 
@@ -528,6 +556,10 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
     // (Issue #540)。AnchorPage.test.tsx は固定 fixture でガードしているのに
     // 対し、本テストは実 datasources/milestones.json + 全 16 記事の組合せでも
     // 抽象指標語彙が漏れていないことを Tripwire で防御する。
+    //
+    // Issue #618 案A: 本テストは「Pulse 禁則語彙の組合せ Tripwire」が目的のため、
+    // fixture 化方針 (`testMilestones` ベース) を維持しつつ、本 1 件のみ
+    // 例外的に本番 `milestones` (datasources/milestones.json 由来) を入力に使う。
     const posts = buildPostSummaries(postIds);
     const { container } = render(
       <MemoryRouter>

@@ -53,13 +53,23 @@ jobs:
           # 末尾カンマの有無両対応で判定する。`hash: true` 単独行のような
           # 部分一致 / 別箇所での hash: true 出現を誤検知しないよう、行頭
           # インデント + key 名 + true + (任意の trailing comma) で限定する。
-          if grep -qE '^\s*hash:\s*true,?\s*$' panda.config.ts; then
+          #
+          # Issue #607: 空白文字クラスは `\s` ではなく `[ \t]` を使う。GNU grep
+          # の `\s` は `[[:space:]]` 相当で `\r` も含むため、CR-LF 混入時に
+          # 行末の `\r` を吸収してマッチしてしまい、Issue #572 の diagnostic
+          # ブロックに到達しない。`[ \t]` に絞ることで CR-LF 混入を確実に
+          # fail として捕捉できる。
+          if grep -qE '^[ \t]*hash:[ \t]*true,?[ \t]*$' panda.config.ts; then
             echo "panda.config.ts already has hash:true; skip patch."
           else
-            sed -i 's/^\(\s*\)preflight: true,\?$/\1preflight: true,\n\1hash: true,/' panda.config.ts
+            sed -i 's/^\([ \t]*\)preflight: true,\?$/\1preflight: true,\n\1hash: true,/' panda.config.ts
           fi
-          if ! grep -qE '^\s*hash:\s*true,?\s*$' panda.config.ts; then
-            echo "::error::panda.config.ts への hash:true 挿入に失敗しました。preflight 行の書式が想定 (^\\s*preflight: true,?$) と異なる可能性があります。確認ポイント: (1) preflight 行の末尾カンマ有無 (sed の置換失敗) / (2) preflight 行がコメントアウトされていないか / (3) 別記法 (例: preflight: { enabled: true } 等の object 表記) に変わっていないか / (4) 行頭に空白/タブ以外の文字 (YAML マーカー '-' / CR-LF の CR 混入など) が紛れていないか。"
+          if ! grep -qE '^[ \t]*hash:[ \t]*true,?[ \t]*$' panda.config.ts; then
+            # shellcheck disable=SC2028
+            # Ubuntu runner の bash は POSIX 準拠 echo で `\t` を Tab に展開せず
+            # リテラルのまま出力する (Issue #607)。正規表現 `[ \t]` を
+            # エラーメッセージにそのまま表示したいので printf 化はしない。
+            echo "::error::panda.config.ts への hash:true 挿入に失敗しました。preflight 行の書式が想定 (^[ \\t]*preflight: true,?[ \\t]*$) と異なる可能性があります。確認ポイント: (1) preflight 行の末尾カンマ有無 (sed の置換失敗) / (2) preflight 行がコメントアウトされていないか / (3) 別記法 (例: preflight: { enabled: true } 等の object 表記) に変わっていないか / (4) 行頭/行末に空白/タブ以外の文字 (YAML マーカー '-' / CR-LF の CR 混入など) が紛れていないか。"
             # Issue #572: 失敗時に panda.config.ts の preflight 周辺行 (L15-30)
             # を dump し、上記 (1)-(4) のどれが原因かを実機の現物で切り分け
             # 可能にする。正常系では本ブロックには到達しない (exit 1 で job

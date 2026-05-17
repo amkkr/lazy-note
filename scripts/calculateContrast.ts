@@ -462,38 +462,48 @@ const verdict = (ratio: number): string => {
   return "FAIL";
 };
 
+const CSV_HEADER = "surface,fg,surface_oklch,fg_oklch,ratio,verdict,aaa,aa";
+
+const formatCsvRow = (
+  surface: NamedColor,
+  fg: NamedColor,
+  ratio: number,
+): string => {
+  const aaa = ratio >= 7.0 ? "yes" : "no";
+  const aa = ratio >= 4.5 ? "yes" : "no";
+  return [
+    surface.label,
+    fg.label,
+    `"${surface.value}"`,
+    `"${fg.value}"`,
+    ratio.toFixed(2),
+    verdict(ratio),
+    aaa,
+    aa,
+  ].join(",");
+};
+
+const buildCsvRow = (
+  surface: NamedColor,
+  fg: NamedColor,
+): string | undefined => {
+  const fgColor = parse(fg.value);
+  const bgColor = parse(surface.value);
+  if (!fgColor || !bgColor) {
+    return undefined;
+  }
+  const ratio = wcagContrast(fgColor, bgColor);
+  return formatCsvRow(surface, fg, ratio);
+};
+
 const renderCsv = (): string => {
   const { surfaces, fgs } = collectMatrixColors();
-  const lines: string[] = [
-    "surface,fg,surface_oklch,fg_oklch,ratio,verdict,aaa,aa",
-  ];
-
-  for (const surface of surfaces) {
-    for (const fg of fgs) {
-      const fgColor = parse(fg.value);
-      const bgColor = parse(surface.value);
-      if (!fgColor || !bgColor) {
-        continue;
-      }
-      const ratio = wcagContrast(fgColor, bgColor);
-      const aaa = ratio >= 7.0 ? "yes" : "no";
-      const aa = ratio >= 4.5 ? "yes" : "no";
-      lines.push(
-        [
-          surface.label,
-          fg.label,
-          `"${surface.value}"`,
-          `"${fg.value}"`,
-          ratio.toFixed(2),
-          verdict(ratio),
-          aaa,
-          aa,
-        ].join(","),
-      );
-    }
-  }
-
-  return `${lines.join("\n")}\n`;
+  const rows = surfaces.flatMap((surface) =>
+    fgs
+      .map((fg) => buildCsvRow(surface, fg))
+      .filter((row): row is string => row !== undefined),
+  );
+  return `${[CSV_HEADER, ...rows].join("\n")}\n`;
 };
 
 // =============================================================================

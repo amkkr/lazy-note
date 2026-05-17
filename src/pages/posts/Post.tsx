@@ -10,6 +10,7 @@ import { PostDetailPage } from "../../components/pages/PostDetailPage";
 import { useAdjacentPosts } from "../../hooks/useAdjacentPosts";
 import { usePost } from "../../hooks/usePost";
 import type { Milestone } from "../../lib/anchors";
+import { parseMilestones } from "../../lib/milestonesSchema";
 import {
   fadeInEnter,
   fadeInEnterFrom,
@@ -31,18 +32,18 @@ import {
  * `show` フラグ** が一次手段であり、JSON の `[]` 化は 3 経路まとめての停止 =
  * 二次手段である。
  *
- * `as readonly Milestone[]` キャストは tsconfig.json の resolveJsonModule:true で
- * 取得される widen された型 (例: `tone: string`) を `Milestone`
- * (`tone: "neutral" | "light" | "heavy"`) に narrowing するため。
- * JSON データの妥当性は datasources 側で人手担保しており (`docs/MILESTONES.md`)、
- * `anchors.ts` 側にランタイム検証はない (将来 Issue #547 で Zod 等の導入を検討中)。
- * 不正な tone はサイレントに無視される (`computeCoordinates` が tone:heavy 以外を
- * Coordinate にし、表示層で更に tone:heavy を除外する)。
+ * ランタイム検証 (Issue #547):
+ * - `as readonly Milestone[]` の型キャスト**ではなく**、`parseMilestones`
+ *   (`src/lib/milestonesSchema.ts`) で lenient 検証する。`tone` の値域外
+ *   (例: `"happy"`) や `date` の形式違反などの不正要素はランタイムで除外され、
+ *   Coordinate に渡る前に弾かれる。
+ * - 厳密な検出 (CI で PR をブロック) は `src/lib/__tests__/milestonesSchema.test.ts`
+ *   の `validateMilestonesStrict` 経由で別途担保する。
  *
  * 撤退方法: `datasources/milestones.json` の配列を `[]` にすれば全記事の
  * Coordinate が消える。編集方法は `docs/MILESTONES.md` を参照する。
  */
-const MILESTONES: readonly Milestone[] = milestonesData as readonly Milestone[];
+const MILESTONES: readonly Milestone[] = parseMilestones(milestonesData);
 
 const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();

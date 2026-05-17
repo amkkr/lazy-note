@@ -40,4 +40,5 @@ v1 RFC (`01-concept-and-personas.md` 〜 `09-glossary-and-decisions.md`) は本 
   - **2026-05-16 時点: 未実装 (Issue #520 / PR #557 で `src/lib/meta.ts` を削除済)**
   - 当初 `## メタ` セクションで `status` / `published_at` / `updated_at` / `tags` を任意拡張する設計が `src/lib/meta.ts` に実装されていたが、実利用されないまま死蔵していたため Issue #520 / PR #557 で削除した
   - 再導入する場合は、削除直前の実装 (`git show 6014792^:src/lib/meta.ts`) およびテスト境界値拡充の参考 (`git show 15523ad`) を起点に、本 RFC の互換性の約束 (既存記事無改変) を守る形で書き直すこと
+  - 参考 SHA に関する注記 (Issue #582): Issue #558 本文の受け入れ基準では `15523ad` と `cd05b6c` の両 SHA 参照が要請されていたが、`cd05b6c` はリポジトリに存在しない誤参照である (`git rev-parse cd05b6c` → unknown revision)。実在するのは `15523ad` (テスト拡充時点) と `6014792^` (削除直前) のみであり、本 RFC および PR #594 の `splitLines` バックポート実装ではこの 2 つを参照している
 - 既存 Gruvbox カラーはコードハイライト用途で温存

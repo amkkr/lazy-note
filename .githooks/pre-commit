@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit
+# git ネイティブ pre-commit hook (Issue #592 / Counterpoint 31)
+#
+# 設計方針:
+#   Bash の PreToolUse hook (`.claude/hooks/pre-commit-guard.sh`) は
+#   shell コマンド文字列を解析する性質上、`eval` / `bash -c` / 絶対パス /
+#   `env -C` / alias / 行継続 / 引用符 / コマンド置換等の構造的 bypass を
+#   shell 文字列解析だけで完全に塞ぐことは不可能 (Issue #568 — Counterpoint 32)。
+#
+#   そこで Counterpoint 31 として、真の保護を git ネイティブ pre-commit hook
+#   に委ねる。git 自身が `git commit` 実行時に必ず本 hook を呼ぶため、
+#   どの経路 (eval / bash -c / 絶対パス / env -C / etc.) から `git commit`
+#   が起動されても、本 hook を bypass することは git の動作上不可能になる。
+#
+# 本 hook の責務:
+#   1. master / main ブランチへの直接 commit を拒否する
+#      (HEAD detached や rebase 中の特殊状態では何も判定しない)
+#
+# 適用方法 (各開発者がローカルで一度だけ設定する):
+#   git config core.hooksPath .githooks
+#
+#   README.md にも記載済み。
+
+set -euo pipefail
+
+# 現在のブランチ名を取得する。
+# - 通常コミット: `git symbolic-ref --short HEAD` で feat/xxx / master 等が取れる
+# - detached HEAD (rebase / cherry-pick 中等): symbolic-ref は失敗するので skip
+# - merge commit や revert 中も symbolic-ref は有効なので通常通り判定する
+
+if ! current_branch=$(git symbolic-ref --short HEAD 2>/dev/null); then
+  # detached HEAD の場合は master/main 判定不能なので素通し
+  exit 0
+fi
+
+case "$current_branch" in
+  master|main)
+    cat <<EOF >&2
+[pre-commit] master/main ブランチへの直接 commit は禁止されています。
+作業ブランチを切ってから commit してください。
+
+  git switch -c feat/your-branch-name
+
+(本 hook は .githooks/pre-commit で実装されています。
+ ローカル設定: git config core.hooksPath .githooks)
+EOF
+    exit 1
+    ;;
+esac
+
+exit 0

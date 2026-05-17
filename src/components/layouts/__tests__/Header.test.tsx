@@ -32,10 +32,7 @@ describe("Header", () => {
     );
 
     expect(screen.getByText("全 5 件")).toBeInTheDocument();
-    expect(screen.getByText("全 5 件")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
+    expect(screen.getByText("全 5 件")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("記事数バッジに SR 用「記事 N 件」テキストを補完する", () => {

@@ -157,8 +157,9 @@ describe("ThemeToggle", () => {
       // クリックで light に切替 → Sun の circle が出る
       fireEvent.click(toggle);
       rerender(<ThemeToggle />);
-      expect(screen.getByRole("switch").querySelectorAll("circle").length)
-        .toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getByRole("switch").querySelectorAll("circle").length,
+      ).toBeGreaterThanOrEqual(1);
     });
 
     it("外枠 Switch のタッチターゲットが 44px 以上になる (WCAG 2.5.5 AAA)", () => {

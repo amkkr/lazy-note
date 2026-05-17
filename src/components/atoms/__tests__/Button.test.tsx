@@ -263,8 +263,8 @@ describe("Button", () => {
       const buttonFocusVisibleBlocks = indexCss.match(
         /button:focus-visible\s*\{[^}]*\}/g,
       );
-      const offendingBlocks = (buttonFocusVisibleBlocks ?? []).filter(
-        (block) => /\boutline\s*:/.test(block),
+      const offendingBlocks = (buttonFocusVisibleBlocks ?? []).filter((block) =>
+        /\boutline\s*:/.test(block),
       );
       expect(offendingBlocks).toEqual([]);
     });

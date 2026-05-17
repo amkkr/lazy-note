@@ -104,8 +104,7 @@ export class MilestoneValidationError extends Error {
   constructor(issues: readonly MilestoneIssue[]) {
     const summary = issues
       .map((issue) => {
-        const where =
-          issue.index === null ? "root" : `index=${issue.index}`;
+        const where = issue.index === null ? "root" : `index=${issue.index}`;
         const valueRepr = JSON.stringify(issue.value);
         return `[${where}] field=${issue.field}: ${issue.message} (value=${valueRepr})`;
       })

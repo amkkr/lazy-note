@@ -348,10 +348,7 @@ describe("Link", () => {
     it("style prop を inline style として伝播する", () => {
       render(
         <MemoryRouter>
-          <Link
-            to="/styled"
-            style={{ viewTransitionName: "custom-vt-name" }}
-          >
+          <Link to="/styled" style={{ viewTransitionName: "custom-vt-name" }}>
             Styled
           </Link>
         </MemoryRouter>,

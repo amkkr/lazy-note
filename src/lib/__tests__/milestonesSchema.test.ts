@@ -180,9 +180,7 @@ describe("validateMilestonesStrict (strict)", () => {
   });
 
   it("不正な tone を含むと MilestoneValidationError を throw できる", () => {
-    const input = [
-      { date: "2025-01-01", label: "bad", tone: "happy" },
-    ];
+    const input = [{ date: "2025-01-01", label: "bad", tone: "happy" }];
     expect(() => validateMilestonesStrict(input)).toThrow(
       MilestoneValidationError,
     );

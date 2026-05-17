@@ -191,14 +191,17 @@ interface Violation {
 }
 
 /**
- * `statSync` を try/catch でラップし、対象が存在しない場合は null を返す。
+ * `statSync` を try/catch でラップし、対象が存在しない場合は undefined を返す。
  * `collectTargetFiles` の cognitive complexity を抑えるための補助関数。
+ *
+ * CLAUDE.md「null vs undefined」方針に従い、戻り値型は `Stats | undefined` を
+ * 採用する (DA レビュー Should Consider #1 / Issue #521 PR #619)。
  */
-const tryStat = (target: string): Stats | null => {
+const tryStat = (target: string): Stats | undefined => {
   try {
     return statSync(target);
   } catch {
-    return null;
+    return undefined;
   }
 };
 
@@ -266,7 +269,7 @@ const walkDirectory = (current: string, results: string[]): void => {
 const collectTargetFiles = (target: string): string[] => {
   const results: string[] = [];
   const stats = tryStat(target);
-  if (stats === null) {
+  if (!stats) {
     return results;
   }
 

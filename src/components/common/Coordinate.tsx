@@ -108,6 +108,13 @@ const separatorStyles = css({
   marginInline: "xs",
 });
 
+// Issue #534: 表示文言テンプレートを定数として外出し。将来の i18n 化や
+// 文言調整の影響範囲をファイル内 1 箇所に局所化する。
+// (i18n フレームワークは導入しない方針 — 単純な template リテラルに留める)
+const COORDINATE_LIST_ARIA_LABEL = "個人史座標";
+const COORDINATE_LABEL_TEMPLATE = (label: string, daysSince: number): string =>
+  `${label} から ${daysSince} 日目`;
+
 /**
  * 座標1件の表示文言を構築する純粋関数。
  *
@@ -115,7 +122,7 @@ const separatorStyles = css({
  * も同じ書式で表示する。
  */
 const buildCoordinateLabel = (coordinate: CoordinateData): string => {
-  return `${coordinate.label} から ${coordinate.daysSince} 日目`;
+  return COORDINATE_LABEL_TEMPLATE(coordinate.label, coordinate.daysSince);
 };
 
 /**
@@ -154,7 +161,7 @@ export const Coordinate = memo(
     return (
       <div className={containerStyles} data-token-color="fg.muted">
         {/* biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する */}
-        <ul aria-label="個人史座標" role="list">
+        <ul aria-label={COORDINATE_LIST_ARIA_LABEL} role="list">
           {displayable.map((coordinate, index) => (
             // milestones.json に同じ label が誤って 2 行入っても React の
             // duplicate key warning を起こさないよう、label と daysSince を

@@ -69,31 +69,5 @@
       "semicolons": "always"
     }
   },
-  "overrides": [
-    {
-      // 既存スクリプト (lintTokens / calculateContrast) は Cast の lint scope
-      // 拡張前から存在しており、本 PR (Issue #490) のスコープ外。
-      // cognitive complexity / noImplicitAnyLet / noUnusedVariables など
-      // 構造的な指摘が残るが、別 Issue でリファクタする想定で一時的に
-      // 当該ファイルだけルールを緩める。新規追加した scripts/newPost.ts と
-      // scripts/__tests__/ は通常ルール (recommended) を適用する。
-      "includes": [
-        "**/scripts/lintTokens.ts",
-        "**/scripts/calculateContrast.ts"
-      ],
-      "linter": {
-        "rules": {
-          "complexity": {
-            "noExcessiveCognitiveComplexity": "off"
-          },
-          "correctness": {
-            "noUnusedVariables": "off"
-          },
-          "suspicious": {
-            "noImplicitAnyLet": "off"
-          }
-        }
-      }
-    }
-  ]
+  "overrides": []
 }

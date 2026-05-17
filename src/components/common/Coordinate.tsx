@@ -54,7 +54,10 @@ interface CoordinateProps {
  *   Safari/VoiceOver で list セマンティクスが剥奪される既知の WebKit バグへの防御
  * - `<ul>/<li>` のリスト構造で項目ナビゲーションを許容
  * - 色は `fg.muted` (補助情報) を採用。`bg.surface` 上に置かれる前提で
- *   1.4.3 / 1.4.6 の本文比 4.5:1 / 7:1 を満たす Editorial Citrus トークン
+ *   WCAG 1.4.3 AA (4.5:1) を満たす Editorial Citrus トークン
+ *   (実測値: light 6.17:1 / dark 7.91:1。light は AAA 7:1 未達のため
+ *    補助情報専用で本文転用は不可。検証は colorTokens.test.ts §"Issue #537"
+ *    で Tripwire 化済み)
  *
  * 撤退可能性:
  * - `show={false}` で個別に OFF にできる
@@ -74,7 +77,8 @@ const containerStyles = css({
   gap: "xs",
   marginTop: "sm",
   // 補助情報のため fg.muted を採用 (MetaInfo card variant と同じ語彙)。
-  // bg.surface 上の補助情報として WCAG 1.4.3 (4.5:1) / 1.4.6 (7:1) を満たす。
+  // bg.surface 上の補助情報として WCAG 1.4.3 AA (4.5:1) を満たす
+  // (実測 light 6.17:1 / dark 7.91:1、検証は colorTokens.test.ts §"Issue #537")。
   color: "fg.muted",
   fontSize: "xs",
   lineHeight: "snug",

@@ -45,6 +45,42 @@ import {
  *   記載順が画面の表示順になる)。日付順などで並び替えたい場合は、JSON 自体
  *   を並び替えるか、本ファイルで sort を挟むこと。
  */
+
+/**
+ * 節目データ (`datasources/milestones.json`)。
+ *
+ * AnchorPage (個人史タイムライン) で「節目一覧 + 各記事の座標」を描画するために
+ * 使用する。Coordinate (Issue #491) / Resurface (Issue #492) と同じ JSON を
+ * 共有しているが、Issue #546 の判断で **集約せず各 page で個別 import** する
+ * 設計を採用している (認知負荷の局所化を優先)。`src/lib/milestones.ts` のような
+ * 集約点を作ると、各 page を読む際に「この MILESTONES はどこから来てどう加工
+ * されたものか」を別ファイルまで追いかける必要が出るため、3 page で import 経路と
+ * narrowing キャストを揃え、各 page の責務 (Coordinate / Resurface / AnchorPage
+ * のどれに渡すか) をその場で完結して読めるようにする。撤退の単位は
+ * docs/ANCHOR.md 「撤退可能性」節のとおり **コンポーネント (Coordinate /
+ * Resurface) ごとの `show` フラグ** が一次手段であり、JSON の `[]` 化は 3 経路
+ * まとめての停止 = 二次手段である。
+ *
+ * `as readonly Milestone[]` キャストは tsconfig.json の resolveJsonModule:true で
+ * 取得される widen された型 (例: `tone: string`) を `Milestone`
+ * (`tone: "neutral" | "light" | "heavy"`) に narrowing するため。
+ * JSON データの妥当性は datasources 側で人手担保しており (`docs/MILESTONES.md`)、
+ * `anchors.ts` 側にランタイム検証はない (将来 Issue #547 で Zod 等の導入を検討中)。
+ * 値域から外れた場合の実害は AnchorPage の責務範囲では以下に帰着する:
+ * - 不正 `tone` (`"neutral" | "light" | "heavy"` 以外の文字列): 節目一覧の
+ *   `<li data-tone="...">` および各記事の座標の `<span data-tone="...">` に
+ *   未知 string がそのまま `data-tone` として出る (描画は破綻しない)。色分けは
+ *   していないため (AnchorPage は「過剰可視化を避ける」設計で tone を色に
+ *   写像しない)、視覚的にも気付きにくいが破綻もしない
+ * - 不正 `date` (`YYYY-MM-DD` 形式違反): 節目一覧ではその不正文字列がそのまま
+ *   日付列に表示される (= 運用画面の透明性を優先し、フィルタしない) 一方、
+ *   各記事の座標計算では `anchors.ts` の `toMilestoneCalendarDate` が `null` を
+ *   返し、`computeCoordinates` が当該節目を `continue` でスキップするため、
+ *   座標一覧からは静かに落ちる
+ *
+ * 撤退方法: `datasources/milestones.json` の配列を `[]` にすれば AnchorPage の
+ * 節目一覧が空状態になる (AnchorPage 側で穏やかな 0 件文言を表示)。
+ */
 const MILESTONES: readonly Milestone[] = milestonesData as readonly Milestone[];
 
 const Anchor = () => {

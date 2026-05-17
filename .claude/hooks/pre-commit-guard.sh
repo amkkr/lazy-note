@@ -3,25 +3,36 @@
 # PreToolUse hook として Bash ツール実行前に呼ばれる
 # 標準入力からJSON（tool_input.command含む）を受け取り、違反時は JSON decision:block を stdout に出力
 #
-# 設計方針 (Issue #568 — Counterpoint 32 を採用):
+# 設計方針 (Issue #568 — Counterpoint 32 + Issue #592 — Counterpoint 31):
 #   本 hook は「shell コマンド文字列を解析」する PreToolUse hook であり、構造的に
 #   bypass 可能なパターンが多数存在する (例: `eval`, `bash -c`, env-prefix, 絶対パス,
 #   `env -C`, alias, 行継続, 引用符による分割回避 など — Issue #568 の E01-E11)。
-#   shell の文字列解析ですべての bypass を塞ぐのは本質的に不可能なので、
-#   責務を「コマンド文字列で素直に判定できるもの」だけに絞り、bypass 不可能性を
-#   要求する判定は git ネイティブ hook (`.githooks/pre-commit` + `core.hooksPath`)
-#   に委ねる方針とする (follow-up Issue: #592 — Counterpoint 31)。
+#   shell の文字列解析ですべての bypass を塞ぐのは本質的に不可能。
 #
-# 本 hook が施行する規約:
+#   そのため、本 hook の責務は「shell コマンド文字列で素直に判定できるもの」に
+#   絞り、bypass 不可能性を要求する判定 (= master/main 直 commit, Co-Authored-By)
+#   は **git ネイティブ hook が真の防御層** となる:
+#     - `.githooks/pre-commit`  → master/main 直 commit を必ず block
+#     - `.githooks/commit-msg`  → Co-Authored-By を必ず block
+#   本 shell hook は **同じ規約に対する補助的な早期フィードバック層** として残す
+#   (= 防御深さ / UX 向上)。理由:
+#     - Bash ツール経由の典型的なコマンドは shell hook 段階で即座に block されるため、
+#       開発者は git の冗長なエラーよりも早く修正できる
+#     - native hook は git config core.hooksPath を設定した開発者のローカルでのみ
+#       有効。設定漏れがあった場合でも、Claude Code 経由の典型コマンドは shell hook
+#       が拾うことで二重防御になる
+#
+# 本 hook が施行する規約 (== native hook と重複する項目はあえて残す):
 #   1. `git rebase` 禁止 — sub-command 名そのものの literal 判定
+#      (native hook 側の対応は本 Issue #592 のスコープ外。shell hook が唯一の防御)
 #   2. `git push --force` / `-f` / `--force-with-lease` 禁止 — オプション literal 判定
+#      (native hook 側の対応は本 Issue #592 のスコープ外。shell hook が唯一の防御)
 #   3. コミットメッセージ内に `Co-Authored-By` を含めない — `-m`/`--message` 引数の文字列判定
+#      ※ 真の防御は `.githooks/commit-msg`。本 hook は -m "..." の literal のみ早期検知
 #   4. master/main ブランチへの直接 commit/push 拒否 (best-effort)
-#      ※ 4 は shell 文字列解析の限界により bypass 可能。
-#         本質的な保護は git ネイティブ hook に委ねる (#592 — Counterpoint 31)。
-#         本 hook では「素朴な `git commit -m x` を master で叩いた場合」のみ best-effort で block する。
+#      ※ 真の防御は `.githooks/pre-commit`。本 hook は素朴な経路のみ早期検知
 #
-# 既知の限界 (= Counterpoint 31 / Issue #592 まで残る bypass):
+# 既知の限界 (= shell 文字列解析の本質的限界。これらは git ネイティブ hook で塞ぐ):
 #   - env 変数 prefix (`PAGER=cat git commit ...`)
 #   - 絶対パス (`/usr/bin/git commit ...`)
 #   - sudo / 前置コマンド (`sudo`, `nice`, `timeout`, `stdbuf` 等)
@@ -32,18 +43,18 @@
 #   - 行継続 (`git \<NL> commit`)
 #   - quoted command (`"git" commit`)
 #   - コマンド置換による path 隠蔽 (`git -C "$(echo $REPO)" commit`)
+#   → これらは `.claude/hooks/__tests__/pre-commit-guard.test.sh` の E01-E11 として
+#     E2E で native hook の block を検証している (Issue #592)
 #
 # Counterpoint 32 (worktree allowlist) について:
-#   本 PR では allowlist を実装しない。理由は以下:
+#   本 hook では allowlist を実装しない。理由は以下:
 #     - 「literal な `cd <path>` / `git -C <path>` の path 抽出」は既存実装
 #       (resolve_target_dir) でカバー済みで、worktree 経由のブランチ判定は正しく
 #       動作する (Issue #550 / Issue #567 の対応範囲)。
 #     - 動的に決まる path (コマンド置換・変数展開) は shell 文字列解析の限界により
 #       allowlist でも本質的に防げないため、ここで追加実装する価値が薄い。
-#     - 上記の構造的 bypass は #592 (Counterpoint 31 = git ネイティブ pre-commit hook)
-#       で塞ぐ計画であり、それまでは本 hook は best-effort に留める。
-#   よって、固定 path 列の allowlist 実装は #592 の完了後に再評価することとし、
-#   本 hook では追加実装しない。
+#     - 上記の構造的 bypass は Issue #592 で `.githooks/pre-commit` を導入して塞いだため、
+#       本 hook が allowlist で追加カバーする必要は無くなった。
 
 set -euo pipefail
 

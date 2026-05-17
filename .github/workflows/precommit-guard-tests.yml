@@ -34,6 +34,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Assert .githooks files exist and are executable
+        # Issue #592 (Counterpoint 31): git native hook の同梱を CI で保証する。
+        # ローカル開発者が hook ファイルを誤って削除した PR を CI で検知できる。
+        run: |
+          set -uo pipefail
+          for hook in .githooks/pre-commit .githooks/commit-msg; do
+            if [ ! -f "$hook" ]; then
+              echo "::error::Required git native hook is missing: $hook"
+              exit 1
+            fi
+            if [ ! -x "$hook" ]; then
+              echo "::error::Required git native hook is not executable: $hook"
+              exit 1
+            fi
+          done
+
       - name: Run pre-commit-guard test harness
         id: harness
         # harness は失敗時に exit 1 を返す。CI を即時 fail させるため
@@ -50,20 +66,19 @@ jobs:
           echo "harness_exit=$harness_exit" >> "$GITHUB_OUTPUT"
           exit "$harness_exit"
 
-      - name: Assert SKIP count (known-limitation) is fixed at expected value
-        # Issue #569 AC: 「FAIL 0 / SKIP 件数が期待値であることを確認」を
-        # 字義通り満たすため、SKIP 件数 (= known-limitation 件数) を CI 上で
-        # literal 一致 grep で固定化する。
+      - name: Assert TOTAL count and FAIL 0 are fixed at expected value
+        # Issue #569 AC: 「FAIL 0 / 件数が期待値であることを確認」を字義通り満たす。
+        #
+        # Issue #592 (Counterpoint 31) で .githooks/pre-commit / .githooks/commit-msg
+        # を導入し、旧 known-limitation (SKIP) ラベルは廃止された。E01-E11 は
+        # 全件 git native hook 経路で block されるようになったため、harness は
+        # FAIL 0 / OK 全件 で完了する想定。
         #
         # harness の TOTAL 行例:
-        #   TOTAL: 27  OK: 16  FAIL: 0  SKIP(known-limitation): 11
+        #   TOTAL: 27  OK: 27  FAIL: 0
         #
-        # 期待値は現状 11 (Issue #568 / PR #594 で R06 nested subshell を
-        # known-limitation から「block」期待値へ昇格させたことで、Issue #550
-        # の DA レビューで指摘された既存 bypass 11 件 = E01-E11 のみが
-        # known-limitation として残る)。新たに known-limitation が追加された
-        # (= SKIP が増えた) regression を CI 上で検知し、harness 側と本
-        # workflow 側を同 PR で更新する運用に倒す。
+        # 期待値: TOTAL 27 / FAIL 0。新たにケースが追加された (= TOTAL 増) 場合は
+        # 本 grep を更新する運用に倒す (harness と workflow を同 PR で更新)。
         run: |
           set -uo pipefail
           out_file="${{ steps.harness.outputs.out_file }}"
@@ -71,8 +86,8 @@ jobs:
             echo "::error::harness output file not found: $out_file"
             exit 1
           fi
-          if ! grep -qE 'SKIP\(known-limitation\): 11$' "$out_file"; then
-            echo "::error::Expected 'SKIP(known-limitation): 11' but harness output diverged."
+          if ! grep -qE '^TOTAL: 27  OK: 27  FAIL: 0$' "$out_file"; then
+            echo "::error::Expected 'TOTAL: 27  OK: 27  FAIL: 0' but harness output diverged."
             echo "::error::Check harness output below and update either the harness or this workflow in the same PR."
             grep -E '^TOTAL:' "$out_file" || echo "(TOTAL line not found in harness output)"
             exit 1

@@ -37,9 +37,12 @@ jobs:
       - name: Assert .githooks files exist and are executable
         # Issue #592 (Counterpoint 31): git native hook の同梱を CI で保証する。
         # ローカル開発者が hook ファイルを誤って削除した PR を CI で検知できる。
+        # Issue #649 (Moderate 4): _lib.sh は両 hook が source する SSOT のため、
+        # 同様に存在 / executable bit を保証する。削除されると hook 起動時に
+        # FATAL で fail するため、CI で先回り検知する。
         run: |
           set -uo pipefail
-          for hook in .githooks/pre-commit .githooks/commit-msg; do
+          for hook in .githooks/pre-commit .githooks/commit-msg .githooks/_lib.sh; do
             if [ ! -f "$hook" ]; then
               echo "::error::Required git native hook is missing: $hook"
               exit 1

@@ -105,6 +105,32 @@ setup_test_repo() {
   )
   # consecutive cd テスト用の subdir
   mkdir -p "$WORKTREE/src"
+
+  # Issue #649 (履歴肥大化対策): Phase 2 で実際に commit が試行されるケース
+  # (= block-via-native の構造的 bypass 群) では、native hook が block に失敗すると
+  # 隔離リポに commit が積まれて履歴が伸びる。各ケース実行後に setup 時点の HEAD まで
+  # `git reset --hard` で戻すことで、ケース順序に依存しない独立性を保ち、テスト
+  # リポのオブジェクト累積も抑える。
+  SETUP_HEAD_MAIN=$(git -C "$MAIN_REPO" rev-parse HEAD)
+  SETUP_HEAD_WORKTREE=$(git -C "$WORKTREE" rev-parse HEAD)
+}
+
+# Issue #649 (harness 履歴肥大化対策):
+# Phase 2 ケース実行後に、main-repo / worktree を setup 直後の状態へ巻き戻す。
+# - reset --hard で setup commit まで戻す
+# - clean -fdx でステージ前ファイル / dummy-*.txt 残骸 / untracked を全削除
+# - --no-verify は不要 (reset/clean は hook をトリガしない)
+reset_test_repos_to_setup_head() {
+  if [ -n "${SETUP_HEAD_MAIN:-}" ] && [ -d "$MAIN_REPO/.git" ]; then
+    git -C "$MAIN_REPO" reset --hard -q "$SETUP_HEAD_MAIN" 2>/dev/null || true
+    git -C "$MAIN_REPO" clean -fdxq 2>/dev/null || true
+  fi
+  if [ -n "${SETUP_HEAD_WORKTREE:-}" ] && [ -d "$WORKTREE" ]; then
+    git -C "$WORKTREE" reset --hard -q "$SETUP_HEAD_WORKTREE" 2>/dev/null || true
+    # consecutive cd 用 subdir は clean -fdx で消えるので再作成する
+    git -C "$WORKTREE" clean -fdxq 2>/dev/null || true
+    mkdir -p "$WORKTREE/src"
+  fi
 }
 
 # Phase 2 用: 「commit を試みる前にステージ済み変更を作る」ヘルパ。
@@ -404,6 +430,11 @@ for entry in "${TESTS[@]}"; do
       else
         fail_count=$((fail_count + 1))
       fi
+      # Issue #649: Phase 2 ケース実行後にテストリポを setup 直後の状態へ巻き戻す。
+      # - Phase 2 では bash -c で実コマンドを eval するため、native hook が block
+      #   に失敗した場合に commit が積まれて履歴が肥大化する
+      # - 各ケース独立性を担保するため、reset --hard + clean -fdx で fixture を再現
+      reset_test_repos_to_setup_head
       ;;
   esac
 done

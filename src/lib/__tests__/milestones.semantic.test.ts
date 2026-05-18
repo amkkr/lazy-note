@@ -29,6 +29,10 @@
 
 import { describe, expect, it } from "vitest";
 import milestonesJson from "../../../datasources/milestones.json";
+import {
+  buildPulseForbiddenVocabRegex,
+  PULSE_FORBIDDEN_VOCAB,
+} from "../../test/forbiddenVocab";
 import type { Milestone } from "../anchors";
 
 /**
@@ -96,5 +100,37 @@ describe("datasources/milestones.json 意味的スナップショット (Issue #
     const actualDates = actualMilestones.map((m) => m.date);
     const expectedDates = EXPECTED_MILESTONES.map((m) => m.date);
     expect(actualDates).toEqual(expectedDates);
+  });
+});
+
+/**
+ * Pulse 思想禁則語彙の単体 Tripwire (Issue #624 AC1)。
+ *
+ * 背景:
+ * 本番 `datasources/milestones.json` の `label` に Pulse 思想の禁則語彙
+ * (例: 「投稿頻度」「平均間隔」「執筆ペース」等。`src/test/forbiddenVocab.ts`
+ * に集約) が混入すると、AnchorPage / Coordinate / Resurface などの組合せ
+ * Tripwire で初めて検知される構造だった。これは「label そのものの妥当性」を
+ * 描画層で間接的に検査することになり、責務が不適切に表示層側へ流出していた。
+ *
+ * 本 Tripwire は「label レベルの禁則語彙混入」を **データ層単体テスト** で
+ * 直接検出する。これにより:
+ * - `AnchorPage.allPosts.test.tsx` が本番 `milestones.json` を直接 import する
+ *   特例 (Issue #618 案A の限定 import) を撤去できる (Issue #624 AC2 で実施)
+ * - 表示層 Tripwire は `testMilestones` 固定 fixture ベースに完全に統一できる
+ *
+ * 出典: Issue #624 (Issue #618 案A の follow-up = 案C)。
+ */
+describe("datasources/milestones.json Pulse 思想禁則語彙 Tripwire (Issue #624)", () => {
+  const actualMilestones = milestonesJson as readonly Milestone[];
+  const forbiddenRegex = buildPulseForbiddenVocabRegex();
+
+  it("全 milestone の label に Pulse 思想禁則語彙が含まれない", () => {
+    for (const milestone of actualMilestones) {
+      expect(
+        milestone.label,
+        `milestone.label "${milestone.label}" が Pulse 禁則語彙 (${PULSE_FORBIDDEN_VOCAB.join(" / ")}) に該当する`,
+      ).not.toMatch(forbiddenRegex);
+    }
   });
 });

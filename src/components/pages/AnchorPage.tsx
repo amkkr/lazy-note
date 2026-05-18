@@ -434,6 +434,22 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
                       key={entry.post.id}
                       className={postItemStyles}
                       data-token-border="border.subtle"
+                      // Issue #624 AC3 / PR #617 M3: 各記事 li の構造に post.id を
+                      // 機械可読な形で出す。これにより `AnchorPage.allPosts.test.tsx`
+                      // 等の順序検証 Tripwire が textContent ベース (タイトル文字列
+                      // マッチ) から構造属性ベース (`data-post-id` 完全一致) に
+                      // 切り替えられる。
+                      //
+                      // 命名規約 (CLAUDE.md「data-* 属性命名規約」):
+                      // - `data-variant` / `data-tone` のような enum 値属性ではなく、
+                      //   PostSummary.id (= YYYYMMDDhhmmss timestamp 文字列) を
+                      //   そのまま反映する **識別子属性** として定義する
+                      // - ドメイン enum ではないが、表示文脈で post の同一性を
+                      //   構造的に観測可能にする目的のため `data-post-id` という
+                      //   ドメイン語彙そのままの属性名を採用する
+                      // - 同名衝突回避のため、post ドメイン側で先に占有する形を取る
+                      //   (後発ドメインが ID 属性を必要とする場合は別 prefix を使う)
+                      data-post-id={entry.post.id}
                     >
                       <span className={postTitleStyles}>
                         {entry.post.title || UNTITLED_POST}

@@ -44,11 +44,14 @@ jobs:
       # - deploy 頻度は master push 時のみで頻度が低く、cache 書き込み衝突リスクは小さい
       # - 別 key にすると ci.yml の build 成果を再利用できず deploy 時に毎回 cold ビルドになる
       # tsconfig.build.json は本 cache のスコープ外 (build script では `tsc` (= tsconfig.json) を使うため)
+      # NOTE: Issue #654 (PR #669) で ci.yml の cache key に追加された `'scripts/**/*.tsx'` glob と
+      # 整合させるため、ここにも同 glob を含める。これにより #654 / #655 のいずれが先にマージされても
+      # ci.yml と deploy.yml の cache key が drift しない。
       - name: Cache tsc incremental build info (Issue #655)
         uses: actions/cache@v5
         with:
           path: .tsbuildinfo
-          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts') }}
+          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts', 'scripts/**/*.tsx') }}
           restore-keys: |
             tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json') }}-
             tsc-${{ runner.os }}-

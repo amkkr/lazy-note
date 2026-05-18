@@ -42,11 +42,17 @@ jobs:
       #   は deploy 時の incremental cache に対しても valid (test 用 tsconfig の hash が変わっても src の
       #   .tsbuildinfo 自体は再利用可能であり、key が変わることで再生成されても害がない)
       # - deploy 頻度は master push 時のみで頻度が低く、cache 書き込み衝突リスクは小さい
+      #   (最悪ケース: ci.yml の同 key 書き込みと同時刻実行が衝突した際に片方の cache 書き込みが失われるが、
+      #   `actions/cache` は cache miss → 再生成に degrade するだけで build correctness には影響しない)
       # - 別 key にすると ci.yml の build 成果を再利用できず deploy 時に毎回 cold ビルドになる
       # tsconfig.build.json は本 cache のスコープ外 (build script では `tsc` (= tsconfig.json) を使うため)
       # NOTE: Issue #654 (PR #669) で ci.yml の cache key に追加された `'scripts/**/*.tsx'` glob と
       # 整合させるため、ここにも同 glob を含める。これにより #654 / #655 のいずれが先にマージされても
       # ci.yml と deploy.yml の cache key が drift しない。
+      # **重要**: 本 cache step の `key` / `restore-keys` / `path` を変更する際は ci.yml
+      # (lint-and-typecheck job) 側の同 step も同期して変更すること。逆も同様。drift すると
+      # ci.yml が warm にした .tsbuildinfo を deploy.yml 側が再利用できず (またはその逆)、warm cache が
+      # 無駄になる。
       - name: Cache tsc incremental build info (Issue #655)
         uses: actions/cache@v5
         with:

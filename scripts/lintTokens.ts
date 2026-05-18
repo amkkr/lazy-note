@@ -98,7 +98,7 @@ const EXCLUDED_FILE_SUFFIXES = [
  *     (例: `bg: {\n  "0": { value: ... }\n}`) を検出するため。
  *     コメント除去はファイル単位で適用する。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 interface LintPattern {
   readonly name: string;
@@ -107,7 +107,7 @@ interface LintPattern {
   readonly scope?: "line" | "file";
 }
 
-/** @internal Test 専用 export. 本番コードから import しないこと */
+/** @internal テスト専用 export. 本番コードから import しないこと */
 const LINT_PATTERNS: readonly LintPattern[] = [
   {
     name: "old-bg-numeric",
@@ -184,7 +184,7 @@ const LINT_PATTERNS: readonly LintPattern[] = [
   },
 ] as const;
 
-/** @internal Test 専用 export. 本番コードから import しないこと */
+/** @internal テスト専用 export. 本番コードから import しないこと */
 interface Violation {
   readonly file: string;
   readonly line: number;
@@ -202,13 +202,11 @@ interface Violation {
  *   (`ENOENT` / `EACCES` / `EMFILE` 等) をそのまま渡す。code が取得
  *   できない例外は `"unknown"` にフォールバックする
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 type SkipCallback = (path: string, reason: string) => void;
 
 /**
- * @internal Test 専用 export. 本番コードから import しないこと
- *
  * `statSync` を try/catch でラップし、対象が存在しない場合は undefined を返す。
  * `collectTargetFiles` / `walkDirectory` の cognitive complexity を抑え、
  * broken symlink 経路でも例外伝播を起こさないようにするための補助関数。
@@ -232,6 +230,8 @@ type SkipCallback = (path: string, reason: string) => void;
  *   ことで、CI ログから不審な skip 異常を一目で検知可能にする。
  *
  *   `onSkip` を渡さない呼び出しは従来通り「静かに skip」を維持する。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const tryStat = (
   target: string,
@@ -256,7 +256,7 @@ const tryStat = (
  * - 拡張子が `TARGET_EXTENSIONS` に含まれること
  * - `EXCLUDED_FILE_SUFFIXES` のいずれにも該当しないこと
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const isAcceptableFile = (filePath: string): boolean => {
   if (!TARGET_EXTENSIONS.has(extname(filePath))) {
@@ -275,7 +275,7 @@ const isAcceptableFile = (filePath: string): boolean => {
  * 判定) を素通りしてしまい、テストコード中の旧 token 言及で CI が
  * 落ちる潜在バグになる (Issue #413 / DA 重大 2 対応)。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const shouldSkipEntry = (entry: string): boolean => {
   return (
@@ -296,7 +296,7 @@ const shouldSkipEntry = (entry: string): boolean => {
  * @param onSkip 省略可。stat 失敗で skip した場合に呼ばれるコールバック
  *   (Issue #637)。`main()` が件数集計用に渡す
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const walkDirectory = (
   current: string,
@@ -334,7 +334,7 @@ const walkDirectory = (
  *   将来 PROJECT_ROOT 走査に変えたとき耐えるためガードを入れておく)。
  * - 走査対象が存在しない場合は空配列を返す (例: e2e/ 未配置構成でも壊れない)。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const collectTargetFiles = (
   target: string,
@@ -390,7 +390,7 @@ interface CommentStripResult {
  * `stripComments` の状態機械内部状態。
  * 状態ごとのハンドラ間で受け渡される、行内の文字種コンテキスト。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 interface ScanState {
   inBlockComment: boolean;
@@ -404,7 +404,7 @@ interface ScanState {
  * `advance` は追加で消費すべきインデックス数 (0 もしくは 1)。
  * `terminated` が true の場合、その時点で行の処理を打ち切る (行コメント検出時)。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 interface StepResult {
   readonly advance: number;
@@ -436,7 +436,7 @@ const NO_ADVANCE: StepResult = { advance: 0, terminated: false };
  * @param out **in-out**: 処理後の sanitized 文字を末尾に push する (push only)
  * @param state **in-out**: `inBlockComment` を必要に応じて mutate する
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const handleBlockComment = (
   ch: string,
@@ -461,7 +461,7 @@ const handleBlockComment = (
  * ようにし、呼び出し側で都度 `closer` クロージャを生成していた micro-allocation
  * を排除する (Issue #621 / M2, M3)。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 type QuoteChar = "'" | '"' | "`";
 type QuoteStateField = "inSingle" | "inDouble" | "inBacktick";
@@ -483,7 +483,7 @@ const QUOTE_FIELD: Readonly<Record<QuoteChar, QuoteStateField>> = {
  * @param out **in-out**: sanitized 文字を末尾に push する (push only)
  * @param state **in-out**: 終端クォート検出時に対応する `in*` フラグを下ろす
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const handleStringLiteral = (
   ch: string,
@@ -513,7 +513,7 @@ const handleStringLiteral = (
  * @param out **in-out**: sanitized 文字 / 空白を末尾に push する (push only)
  * @param state **in-out**: 検出した状態遷移に応じて `in*` フラグを mutate する
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const handleDefault = (
   ch: string,
@@ -559,7 +559,7 @@ const handleDefault = (
  * @param out **in-out**: 配下ハンドラへそのまま渡される push only バッファ
  * @param state **in-out**: 配下ハンドラへそのまま渡される共有状態
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const processChar = (
   ch: string,
@@ -583,7 +583,7 @@ const processChar = (
   return handleDefault(ch, next, out, state, remainingLength);
 };
 
-/** @internal Test 専用 export. 本番コードから import しないこと */
+/** @internal テスト専用 export. 本番コードから import しないこと */
 const stripComments = (
   line: string,
   state: CommentStripState,
@@ -616,7 +616,7 @@ const stripComments = (
  * `scope: "file"` パターンの match.index (ファイル全体オフセット) から
  * 行番号 / カラム位置 / 元行 snippet を逆引きするのに使う。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 interface SanitizedFile {
   /** コメント領域を空白に置換したファイル全体テキスト */
@@ -627,7 +627,7 @@ interface SanitizedFile {
   readonly lineStartOffsets: number[];
 }
 
-/** @internal Test 専用 export. 本番コードから import しないこと */
+/** @internal テスト専用 export. 本番コードから import しないこと */
 const sanitizeFile = (content: string): SanitizedFile => {
   const lines = content.split(/\r?\n/);
   const sanitizedLines: string[] = [];
@@ -655,7 +655,7 @@ const sanitizeFile = (content: string): SanitizedFile => {
  * sanitized 全体オフセットから「何行目の何カラム目か」を逆引きする。
  * lineStartOffsets は昇順なので二分探索で O(log n)。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const offsetToLineColumn = (
   offset: number,
@@ -686,7 +686,7 @@ const offsetToLineColumn = (
  * regex.exec を反復し、ヒットごとに `onMatch` を呼ぶ汎用イテレータ。
  * 0 幅マッチによる無限ループを避けるため、lastIndex を強制前進させる。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const iterateMatches = (
   pattern: RegExp,
@@ -710,7 +710,7 @@ const iterateMatches = (
  *
  * @param violations **in-out**: 検出した違反を末尾に push する (Issue #621 / N1)
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const scanFileScope = (
   filePath: string,
@@ -734,8 +734,6 @@ const scanFileScope = (
 };
 
 /**
- * @internal Test 専用 export. 本番コードから import しないこと
- *
  * sanitized テキスト上で `lineIndex` 行目に対応する範囲を切り出す。
  * `scanLineScope` の内部ヘルパー。
  *
@@ -751,6 +749,8 @@ const scanFileScope = (
  *   (将来 `lineStartOffsets` 計算ロジックを書き換えた際の安全網) に対して
  *   slice の end が start を下回って空でない結果を返してしまうケースを
  *   防ぐためのディフェンシブガードである。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const extractSanitizedLine = (
   sanitized: string,
@@ -768,7 +768,7 @@ const extractSanitizedLine = (
  *
  * @param violations **in-out**: 検出した違反を末尾に push する (Issue #621 / N1)
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const scanLineScope = (
   filePath: string,
@@ -811,7 +811,7 @@ const scanLineScope = (
  * - 大文字小文字は区別する (token 名は確定的にケースが決まっている)。
  * - 行コメント / ブロックコメント内は検査対象から除外する (Issue #413)。
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const scanFile = (
   filePath: string,
@@ -837,7 +837,7 @@ const formatViolation = (v: Violation): string => {
   return `${relPath}:${v.line}:${v.column}  [${v.patternName}] ${v.description}\n    ${v.snippet}`;
 };
 
-/** @internal Test 専用 export. 本番コードから import しないこと */
+/** @internal テスト専用 export. 本番コードから import しないこと */
 interface SkipRecord {
   readonly path: string;
   readonly reason: string;
@@ -850,7 +850,7 @@ interface SkipRecord {
  * - 件数 > 0 の場合は件数とパス一覧 / reason を 1 行ずつ出力する
  *   ことで、CI ログで grep / scroll 時に skip 異常が一目で分かるようにする
  *
- * @internal Test 専用 export. 本番コードから import しないこと
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const reportSkippedTargets = (skipped: readonly SkipRecord[]): void => {
   if (skipped.length === 0) {

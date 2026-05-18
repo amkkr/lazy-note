@@ -486,17 +486,79 @@ fi
 # Issue #648 以前は「すべての Co-Authored-By を block」していたが、人間 pair
 # programming や dependabot 取り込み等の正当ユースケースを巻き添えにしていた。
 # 本 hook は SSOT (.githooks/_lib.sh の literal_contains_ai_coauthor) に判定を
-# 委譲し、`claude` / `copilot` / `anthropic` 等の AI bot 識別子を含む
-# Co-Authored-By literal のみを block する (Issue #649 / Moderate 4 で導入した
-# SSOT 体制をそのまま継承)。
+# 委譲し、AI bot fixture (email ドメイン / [bot] suffix) を含む Co-Authored-By
+# のみを block する。真の防御は commit-msg hook 側で行う。
 #
-# 本文中の単なる言及 (例: 「`co-authored-by`」という単語) は
-# literal_contains_ai_coauthor が「`co-authored-by:` の出現」と「AI 識別子の出現」
-# の 2 条件を要求するため誤検知しない。真の防御は commit-msg hook 側で行う。
+# Issue #648 DA Must 対応:
+#   - M1: literal 判定を **行単位 AND** にして native hook と挙動を揃える
+#         (subject に "copilot" 等が出現しても誤 block しない)
+#   - M2: `-m`/`--message` の引数値を python3 で pre-extract し、**実改行を
+#         保持したまま** literal_contains_ai_coauthor に流す。これにより
+#         heredoc / printf '\n' / コマンド置換で生成された改行入り message も
+#         shell hook 層で検知できる。
+#   - M3: 検出 fixture を構造的判定 (メールドメイン / [bot] suffix) に置換
+#         (_lib.sh の COAUTHOR_AI_BOT_RE)。人名 substring (Claudette /
+#         Codexa) や 説明文中の言及は誤検知しない。
 if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+commit([[:space:]]|$)'; then
+  # `-m <msg>` / `-m<msg>` / `--message=<msg>` / `--message <msg>` の値を
+  # 実改行を保ったまま COMMAND から抽出する。複数 -m があれば NUL 区切りで
+  # 順に出力 (git は順に append する挙動)。
+  # 抽出失敗時 (クォート不整合等) は空文字を返し、後段の判定で fall through。
+  MESSAGE_VALUES=$(printf '%s' "$COMMAND" | python3 -c '
+import shlex
+import sys
+
+data = sys.stdin.read()
+try:
+    toks = shlex.split(data, posix=True)
+except ValueError:
+    sys.exit(0)
+
+# `git commit` 引数の -m / --message 値だけを順に出す。複数 -m がある場合は
+# git の append 挙動に合わせて全て出す (各値は LF で区切る)。
+# 厳密な「commit セグメント特定」は行わず、全 token を線形に走査する。
+# shell hook は誤検知より見逃し回避を優先するため、保守的に全 -m を集める。
+values = []
+i = 0
+n = len(toks)
+while i < n:
+    t = toks[i]
+    if t == "-m" or t == "--message":
+        if i + 1 < n:
+            values.append(toks[i + 1])
+        i += 2
+        continue
+    if t.startswith("-m") and len(t) > 2:
+        values.append(t[2:])
+        i += 1
+        continue
+    if t.startswith("--message="):
+        values.append(t.split("=", 1)[1])
+        i += 1
+        continue
+    i += 1
+
+if values:
+    # 各 message を実 LF で連結し、さらに sentinel LF を入れて行単位
+    # 判定がぶれないようにする。
+    sys.stdout.write("\n".join(values))
+' 2>/dev/null || true)
+
+  # 1) 抽出した message 本体 (= 実改行を保持) を literal_contains_ai_coauthor
+  #    に流す。M2 対応: heredoc / printf 経由で改行が物理的に展開された場合に
+  #    対応する。
+  if [ -n "$MESSAGE_VALUES" ]; then
+    if printf '%s' "$MESSAGE_VALUES" | literal_contains_ai_coauthor; then
+      block "コミットメッセージに AI bot 由来の Co-Authored-By を含めることは禁止されています (検出: fixture-based email/bot-suffix)。"
+    fi
+  fi
+
+  # 2) フォールバック: 抽出できなかった場合 (`-F file` 経由等) は、従来通り
+  #    commit 行全体 literal で判定する。literal 内に `\n` (2 文字
+  #    backslash+n) リテラルがあるケース (Bash ツール経由の典型) はここで拾える。
   COMMIT_LINE=$(printf '%s\n' "$GIT_INVOCATIONS" | grep -E '^git[[:space:]]+commit([[:space:]]|$)' | head -n1)
   if printf '%s' "$COMMIT_LINE" | literal_contains_ai_coauthor; then
-    block "コミットメッセージに AI bot 由来の Co-Authored-By (${COAUTHOR_AI_IDENTIFIERS_RE}) を含めることは禁止されています。"
+    block "コミットメッセージに AI bot 由来の Co-Authored-By を含めることは禁止されています (検出: fixture-based email/bot-suffix)。"
   fi
 fi
 

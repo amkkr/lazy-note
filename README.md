@@ -63,7 +63,7 @@ git config core.hooksPath .githooks
 提供している hook:
 
 - `.githooks/pre-commit` — `master` / `main` ブランチへの直接 commit を拒否します
-- `.githooks/commit-msg` — コミットメッセージ本文に **AI bot 由来の** `Co-Authored-By` 行 (`claude` / `copilot` / `anthropic` / `openai` / `cursor` / `codex` のいずれかを含むもの) が含まれていたら commit を拒否します。人間 pair programming や dependabot 等の正当な共著情報は許容されます (Issue #648)
+- `.githooks/commit-msg` — コミットメッセージ本文に **AI bot 由来の** `Co-Authored-By` 行 (既知 AI bot のメールドメイン `@anthropic.com` / `@openai.com` / `@cursor.{sh,com}` を含む、または GitHub Apps の `[bot]` suffix と vendor 識別子の組み合わせ) が含まれていたら commit を拒否します。**判定は構造的 fixture-based** (メールドメイン / `[bot]` suffix) なので、人名 substring 衝突 (例: `Claudette Colvin` / `Codexa Smith`) や本文中の単なる言及は誤検知しません。人間 pair programming や dependabot 等の正当な共著情報は許容されます (Issue #648 + DA Must 対応)
 
 これらは [`CLAUDE.md`](./CLAUDE.md) のグローバルルール (「master への直接 commit 禁止」「コミットメッセージに Co-Authored-By を含めない」) を **git の動作上 bypass 不可能な層** で保証するためのものです (Issue #568 / Issue #592 / Issue #648)。
 

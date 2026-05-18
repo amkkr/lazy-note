@@ -187,24 +187,67 @@ fi
 #   - 評価対象の git config は本 hook プロセスの cwd から見たもの (= 通常は
 #     リポジトリ本体 or worktree から)。worktree の場合も `git config` は
 #     親リポと同じ config を参照するため動作する。
-#   - 値が空 (= 未設定) または `.githooks` 以外であれば warning。
+#   - 値が空 (= 未設定) または「リポジトリルートの .githooks に解決されない値」
+#     であれば warning。worktree 環境では `core.hooksPath` が絶対パスで
+#     設定されているケースが多いため、相対 / 絶対の両方で正しく判定するため
+#     repo root を基準に正規化した絶対パスで比較する (Issue #647 DA Must M1)。
+#   - hook プロセスが git リポジトリ外で実行された場合 (例: `cd /tmp && git status`
+#     を Bash ツールで実行する etc.) は warning を出さず preflight 全体を skip
+#     する (Issue #647 DA Must M2)。
 #   - exit せず処理続行 (block しない)。受入基準: warning は stderr、commit
 #     は block しない。
-HOOKS_PATH_CURRENT=$(git config --get core.hooksPath 2>/dev/null || true)
-if [ "$HOOKS_PATH_CURRENT" != ".githooks" ]; then
-  if [ -z "$HOOKS_PATH_CURRENT" ]; then
-    _hp_display="(未設定)"
-  else
-    _hp_display="$HOOKS_PATH_CURRENT"
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  HOOKS_PATH_CURRENT=$(git config --get core.hooksPath 2>/dev/null || true)
+  _HOOKS_OK=0
+  if [ -n "$HOOKS_PATH_CURRENT" ]; then
+    # repo root 基準で「期待される .githooks の絶対パス」を組み立てる。
+    # worktree でも `--show-toplevel` は当該 worktree の作業ツリーを返すが、
+    # `core.hooksPath` は通常 main repo 基準の path で設定されるため、
+    # main の作業ツリー (`--path-format=absolute --git-common-dir` の親) も
+    # 候補に含めて両方一致を許す。
+    _REPO_TOP=$(git rev-parse --show-toplevel 2>/dev/null || true)
+    _GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
+    _MAIN_TOP=""
+    if [ -n "$_GIT_COMMON_DIR" ]; then
+      # --git-common-dir は worktree でも main repo の .git を返す
+      # (例: /path/to/repo/.git)。その親が main repo の作業ツリー。
+      _MAIN_TOP=$(cd "$_GIT_COMMON_DIR/.." 2>/dev/null && pwd -P || true)
+    fi
+    # 設定値の resolve: 相対の場合は cwd 基準で解決される。git の挙動に合わせ、
+    # `cd <value> && pwd -P` を試す。存在しなければ生値のまま比較する
+    # (= ディレクトリとして存在しない値は false positive 扱いで warning)。
+    _HOOKS_RESOLVED=$(cd "$HOOKS_PATH_CURRENT" 2>/dev/null && pwd -P || true)
+    for _expected in "$_REPO_TOP" "$_MAIN_TOP"; do
+      if [ -z "$_expected" ]; then
+        continue
+      fi
+      _EXPECTED_ABS="$_expected/.githooks"
+      if [ "$_HOOKS_RESOLVED" = "$_EXPECTED_ABS" ]; then
+        _HOOKS_OK=1
+        break
+      fi
+      # 念のため basename 一致 + 相対値 ".githooks" のケースもサポート
+      if [ "$HOOKS_PATH_CURRENT" = ".githooks" ]; then
+        _HOOKS_OK=1
+        break
+      fi
+    done
   fi
-  {
-    printf '\n'
-    printf '[pre-commit-guard] WARNING: core.hooksPath が .githooks に設定されていません (現在値: %s)\n' "$_hp_display"
-    printf '[pre-commit-guard]   → master/main 直 commit や Co-Authored-By を block する git ネイティブ hook が発火しません\n'
-    printf '[pre-commit-guard]   → リポジトリルートで次のコマンドを実行してください:\n'
-    printf '[pre-commit-guard]       git config core.hooksPath .githooks\n'
-    printf '\n'
-  } >&2
+  if [ "$_HOOKS_OK" != "1" ]; then
+    if [ -z "$HOOKS_PATH_CURRENT" ]; then
+      _hp_display="(未設定)"
+    else
+      _hp_display="$HOOKS_PATH_CURRENT"
+    fi
+    {
+      printf '\n'
+      printf '[pre-commit-guard] WARNING: core.hooksPath が .githooks に設定されていません (現在値: %s)\n' "$_hp_display"
+      printf '[pre-commit-guard]   → master/main 直 commit や Co-Authored-By を block する git ネイティブ hook が発火しません\n'
+      printf '[pre-commit-guard]   → リポジトリルートで次のコマンドを実行してください:\n'
+      printf '[pre-commit-guard]       git config core.hooksPath .githooks\n'
+      printf '\n'
+    } >&2
+  fi
 fi
 
 # rebase 禁止

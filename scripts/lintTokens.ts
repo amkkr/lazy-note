@@ -191,6 +191,16 @@ interface Violation {
 }
 
 /**
+ * skip された対象 (パスと reason) を呼び出し側に通知するコールバック。
+ *
+ * - `path`: stat に失敗した絶対パス
+ * - `reason`: 失敗の理由。Node の `NodeJS.ErrnoException.code`
+ *   (`ENOENT` / `EACCES` / `EMFILE` 等) をそのまま渡す。code が取得
+ *   できない例外は `"unknown"` にフォールバックする
+ */
+type SkipCallback = (path: string, reason: string) => void;
+
+/**
  * `statSync` を try/catch でラップし、対象が存在しない場合は undefined を返す。
  * `collectTargetFiles` / `walkDirectory` の cognitive complexity を抑え、
  * broken symlink 経路でも例外伝播を起こさないようにするための補助関数。
@@ -205,13 +215,30 @@ interface Violation {
  *     責務が「読める範囲のソースを走査して旧 token 検出する」ことであり、
  *     部分的な stat 失敗を理由に CI を落とすより、走査を継続して
  *     検出可能な違反を確実に拾うほうが価値が高いため
- *   - 結果として、走査されなかったファイル数を別途検知したい場合は
- *     呼び出し側で件数 / ログを別管理する必要がある (現状未実装)
+ *
+ * 可視化 (Issue #637):
+ *   攻撃者が permission を細工して特定ファイルを Tripwire 走査から外す
+ *   経路への防御として、`onSkip` callback で skip 件数を呼び出し側に
+ *   通知できる。呼び出し側 (`walkDirectory` / `main()`) は件数を集計し、
+ *   `main()` 末尾で stderr に件数 / パス一覧を warn ログとして出力する
+ *   ことで、CI ログから不審な skip 異常を一目で検知可能にする。
+ *
+ *   `onSkip` を渡さない呼び出しは従来通り「静かに skip」を維持する。
  */
-const tryStat = (target: string): Stats | undefined => {
+const tryStat = (
+  target: string,
+  onSkip?: SkipCallback,
+): Stats | undefined => {
   try {
     return statSync(target);
-  } catch {
+  } catch (error) {
+    if (onSkip) {
+      const reason =
+        error && typeof error === "object" && "code" in error
+          ? String((error as NodeJS.ErrnoException).code ?? "unknown")
+          : "unknown";
+      onSkip(target, reason);
+    }
     return undefined;
   }
 };
@@ -254,20 +281,26 @@ const shouldSkipEntry = (entry: string): boolean => {
  *
  * @param results **in-out**: 検出した受理可能ファイルのパスを末尾に push する
  *   (Issue #621 / N1)
+ * @param onSkip 省略可。stat 失敗で skip した場合に呼ばれるコールバック
+ *   (Issue #637)。`main()` が件数集計用に渡す
  */
-const walkDirectory = (current: string, results: string[]): void => {
+const walkDirectory = (
+  current: string,
+  results: string[],
+  onSkip?: SkipCallback,
+): void => {
   const entries = readdirSync(current);
   for (const entry of entries) {
     if (shouldSkipEntry(entry)) {
       continue;
     }
     const fullPath = join(current, entry);
-    const entryStats = tryStat(fullPath);
+    const entryStats = tryStat(fullPath, onSkip);
     if (!entryStats) {
       continue;
     }
     if (entryStats.isDirectory()) {
-      walkDirectory(fullPath, results);
+      walkDirectory(fullPath, results, onSkip);
       continue;
     }
     if (entryStats.isFile() && isAcceptableFile(fullPath)) {
@@ -287,9 +320,12 @@ const walkDirectory = (current: string, results: string[]): void => {
  *   将来 PROJECT_ROOT 走査に変えたとき耐えるためガードを入れておく)。
  * - 走査対象が存在しない場合は空配列を返す (例: e2e/ 未配置構成でも壊れない)。
  */
-const collectTargetFiles = (target: string): string[] => {
+const collectTargetFiles = (
+  target: string,
+  onSkip?: SkipCallback,
+): string[] => {
   const results: string[] = [];
-  const stats = tryStat(target);
+  const stats = tryStat(target, onSkip);
   if (!stats) {
     return results;
   }
@@ -306,7 +342,7 @@ const collectTargetFiles = (target: string): string[] => {
     return results;
   }
 
-  walkDirectory(target, results);
+  walkDirectory(target, results, onSkip);
   return results;
 };
 
@@ -755,11 +791,46 @@ const formatViolation = (v: Violation): string => {
   return `${relPath}:${v.line}:${v.column}  [${v.patternName}] ${v.description}\n    ${v.snippet}`;
 };
 
+interface SkipRecord {
+  readonly path: string;
+  readonly reason: string;
+}
+
+/**
+ * skip 集計結果を stderr に warn ログとして出力する (Issue #637)。
+ *
+ * - 件数 0 の場合は何も出力しない (通常 CI ログのノイズを増やさない)
+ * - 件数 > 0 の場合は件数とパス一覧 / reason を 1 行ずつ出力する
+ *   ことで、CI ログで grep / scroll 時に skip 異常が一目で分かるようにする
+ */
+const reportSkippedTargets = (skipped: readonly SkipRecord[]): void => {
+  if (skipped.length === 0) {
+    return;
+  }
+  console.warn(
+    `lint:tokens WARN: ${skipped.length} path(s) skipped during stat. ` +
+      "permission tampering を疑う場合は以下を確認してください:",
+  );
+  for (const record of skipped) {
+    const relPath = relative(PROJECT_ROOT, record.path);
+    console.warn(`  - [${record.reason}] ${relPath}`);
+  }
+};
+
 const main = (): void => {
   const files: string[] = [];
+  const skipped: SkipRecord[] = [];
+  const onSkip: SkipCallback = (path, reason) => {
+    skipped.push({ path, reason });
+  };
   for (const target of TARGET_PATHS) {
-    files.push(...collectTargetFiles(target));
+    files.push(...collectTargetFiles(target, onSkip));
   }
+
+  // skip 件数の可視化 (Issue #637)。
+  // 0 files ガードや旧 token 検出より先に出すことで、構成不備で exit 2/1
+  // した場合でも skip 異常が CI ログに残るようにする。
+  reportSkippedTargets(skipped);
 
   // 0 files scanned ガード (Issue #413 / DA 致命 2 対応)。
   // `LINT_TOKENS_SRC_DIR=/nonexistent` のような誤設定や `TARGET_PATHS` の
@@ -841,6 +912,8 @@ export type {
   QuoteChar,
   SanitizedFile,
   ScanState,
+  SkipCallback,
+  SkipRecord,
   StepResult,
   Violation,
 };
@@ -855,6 +928,7 @@ export {
   LINT_PATTERNS,
   offsetToLineColumn,
   processChar,
+  reportSkippedTargets,
   sanitizeFile,
   scanFile,
   scanFileScope,

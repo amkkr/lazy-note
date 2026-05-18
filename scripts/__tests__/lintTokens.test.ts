@@ -16,7 +16,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   collectTargetFiles,
   extractSanitizedLine,
@@ -27,12 +27,14 @@ import {
   iterateMatches,
   type LintPattern,
   processChar,
+  reportSkippedTargets,
   type ScanState,
   sanitizeFile,
   scanFile,
   scanFileScope,
   scanLineScope,
   shouldSkipEntry,
+  type SkipRecord,
   stripComments,
   tryStat,
   type Violation,
@@ -75,6 +77,52 @@ describe("tryStat", () => {
     symlinkSync(join(tmpDir, "nonexistent-target"), link);
     expect(() => tryStat(link)).not.toThrow();
     expect(tryStat(link)).toBeUndefined();
+  });
+
+  // ====================================================================
+  // skip 通知コールバック (Issue #637)
+  //
+  // tryStat は ENOENT / EACCES / EMFILE 等を一律 silent skip するが、
+  // permission tampering を疑う場合に件数を可視化したい。
+  // onSkip コールバックでパスと reason (errno code) を呼び出し側に
+  // 通知できることを検証する。
+  // ====================================================================
+  describe("onSkip コールバック", () => {
+    it("存在しないパスでは onSkip が ENOENT reason 付きで呼ばれる", () => {
+      const onSkip = vi.fn();
+      const missing = join(tmpDir, "missing-file");
+      const result = tryStat(missing, onSkip);
+      expect(result).toBeUndefined();
+      expect(onSkip).toHaveBeenCalledTimes(1);
+      expect(onSkip).toHaveBeenCalledWith(missing, "ENOENT");
+    });
+
+    it("broken symlink でも onSkip が ENOENT reason 付きで呼ばれる", () => {
+      const onSkip = vi.fn();
+      const link = join(tmpDir, "broken-link");
+      symlinkSync(join(tmpDir, "nonexistent-target"), link);
+      tryStat(link, onSkip);
+      expect(onSkip).toHaveBeenCalledTimes(1);
+      const callArgs = onSkip.mock.calls[0];
+      expect(callArgs?.[0]).toBe(link);
+      // ENOENT が一般的だが、OS / Node によって ELOOP 等が返る可能性も
+      // 残しておく (errno code が何かしら文字列で来ることだけを保証)。
+      expect(typeof callArgs?.[1]).toBe("string");
+      expect(String(callArgs?.[1]).length).toBeGreaterThan(0);
+    });
+
+    it("存在するファイルでは onSkip は呼ばれない", () => {
+      const file = join(tmpDir, "exists.ts");
+      writeFileSync(file, "x", "utf8");
+      const onSkip = vi.fn();
+      tryStat(file, onSkip);
+      expect(onSkip).not.toHaveBeenCalled();
+    });
+
+    it("onSkip 未指定 (省略) でも従来通り undefined を返す (silent skip)", () => {
+      // 後方互換: onSkip を渡さなくても従来通り静かに skip できる。
+      expect(tryStat(join(tmpDir, "missing-no-cb"))).toBeUndefined();
+    });
   });
 });
 
@@ -168,6 +216,35 @@ describe("walkDirectory", () => {
     const results: string[] = [];
     walkDirectory(tmpDir, results);
     expect(results).toContain(join(sub, "deep.ts"));
+  });
+
+  // ====================================================================
+  // skip 通知コールバック伝播 (Issue #637)
+  //
+  // walkDirectory 内で tryStat が失敗した場合、main() 側で件数集計
+  // できるよう onSkip コールバックがそのまま伝播することを検証する。
+  // ====================================================================
+  it("broken symlink で onSkip が呼ばれ件数集計できる", () => {
+    writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+    symlinkSync(join(tmpDir, "missing-target"), join(tmpDir, "dangling"));
+    const results: string[] = [];
+    const onSkip = vi.fn();
+    walkDirectory(tmpDir, results, onSkip);
+    expect(results).toContain(join(tmpDir, "real.ts"));
+    // dangling symlink 1 件分の skip 通知が来る。
+    expect(onSkip).toHaveBeenCalledTimes(1);
+    expect(onSkip).toHaveBeenCalledWith(
+      join(tmpDir, "dangling"),
+      expect.any(String),
+    );
+  });
+
+  it("onSkip 未指定でも従来通り skip 件を集めずに走査を継続する", () => {
+    writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+    symlinkSync(join(tmpDir, "missing-target"), join(tmpDir, "dangling"));
+    const results: string[] = [];
+    expect(() => walkDirectory(tmpDir, results)).not.toThrow();
+    expect(results).toContain(join(tmpDir, "real.ts"));
   });
 });
 
@@ -480,5 +557,50 @@ describe("scanFile", () => {
       },
     ]);
     expect(violations).toEqual([]);
+  });
+});
+
+// ====================================================================
+// reportSkippedTargets (Issue #637)
+//
+// main() 末尾で呼ばれる skip 件数ログ出力の挙動を検証する。
+// - 件数 0 のときは何も出さない (通常 CI ログのノイズを増やさない)
+// - 件数 > 0 のときは件数行 + 各 skip パス / reason を warn ログとして出す
+// ====================================================================
+describe("reportSkippedTargets", () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it("skip 件数 0 のときは console.warn を呼ばない", () => {
+    reportSkippedTargets([]);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it("skip 件数 > 0 のときは件数行 + パス / reason を warn 出力できる", () => {
+    const skipped: SkipRecord[] = [
+      { path: "/repo/src/a.ts", reason: "EACCES" },
+      { path: "/repo/src/b.ts", reason: "EMFILE" },
+    ];
+    reportSkippedTargets(skipped);
+    // 件数行 1 + 各 skip 1 行ずつ = 計 3 回呼ばれる。
+    expect(warnSpy).toHaveBeenCalledTimes(3);
+    // 件数行に件数が含まれること。
+    const headerCall = warnSpy.mock.calls[0]?.[0];
+    expect(String(headerCall)).toContain("2 path(s) skipped");
+    // 各 skip 行に reason とパス (の一部) が含まれること。
+    const detailCalls = warnSpy.mock.calls
+      .slice(1)
+      .map((c: unknown[]) => String(c[0]));
+    expect(detailCalls.join("\n")).toContain("EACCES");
+    expect(detailCalls.join("\n")).toContain("EMFILE");
+    expect(detailCalls.join("\n")).toContain("a.ts");
+    expect(detailCalls.join("\n")).toContain("b.ts");
   });
 });

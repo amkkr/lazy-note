@@ -29,10 +29,7 @@
     "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src"],
-  // references: tsconfig.build.json は Vite テンプレート由来の死設定状態
-  // (Issue #641 調査結果, 2026-05-18)。素の `tsc` (本体 build script の
-  // `panda && tsc && vite build`) は `noEmit: true` のため references を
-  // build しない。incremental 化しても呼ばれないため対応見送り。詳細は
-  // tsconfig.build.json 先頭コメント参照。
+  // references の tsconfig.build.json は壊れた死設定 (Issue #641 / follow-up #678)。
+  // 詳細は tsconfig.build.json 先頭コメント参照。
   "references": [{ "path": "./tsconfig.build.json" }]
 }

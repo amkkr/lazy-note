@@ -1,14 +1,7 @@
-// Issue #641 調査結果 (2026-05-18):
-//   本ファイルは元々 Vite テンプレート由来の `vite.config.ts` / `panda.config.ts`
-//   型チェック用 config として導入されたが、現状の build 経路 (package.json の
-//   `build` script: `panda && tsc && vite build`) では `tsc` が `--build` フラグ
-//   なし & `tsconfig.json` 側に `noEmit: true` があるため、project references で
-//   参照されている本 config はビルドされない (実機検証: `pnpm exec tsc` 実行後
-//   `.tsbuildinfo/tsconfig.build.tsbuildinfo` は生成されない)。
-//   そのため Issue #641 「tsconfig.build.json 側の incremental 化」については、
-//   incremental 化しても build/CI 経路で実行されないため意味がないと判断し、
-//   設定追加を見送った。死設定状態の解消 (tsconfig.build.json 自体の削除や
-//   `tsc -b` ベースへの切替) は本 Issue のスコープを超えるため別 Issue とする。
+// 壊れた死設定 (Issue #641 / follow-up #678 参照)。
+//   build script (`panda && tsc && vite build`) では未実行、かつ `tsc -b` で
+//   直接呼ぶと include 範囲不整合 (`src/api/*` / `vite.config.ts` の type 依存が
+//   include 外) でエラーになる。incremental 化しても効果ゼロ。削除候補。
 {
   "compilerOptions": {
     "composite": true,

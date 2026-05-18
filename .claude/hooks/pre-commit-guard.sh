@@ -172,6 +172,41 @@ if [ -z "$GIT_INVOCATIONS" ]; then
   exit 0
 fi
 
+# ------------------------------------------------------------------
+# preflight: core.hooksPath 設定漏れ検知 (Issue #647)
+# ------------------------------------------------------------------
+# PR #646 で真の防御を git ネイティブ hook (`.githooks/`) に移行したが、
+# `git config core.hooksPath .githooks` を実行しない開発者には native hook
+# が発火せず、設定漏れリスクが残る。本 preflight はその設定漏れを stderr
+# に通知する (block ではなく notify)。
+#
+# 設計判断:
+#   - git 系コマンドを含む呼び出しの段階でのみ警告を出す。`ls` 等の無関係な
+#     Bash ツール呼び出しでまで毎回出すと開発者疲弊するため、`GIT_INVOCATIONS`
+#     抽出後 (= git 操作が確実に対象になっているタイミング) に評価する。
+#   - 評価対象の git config は本 hook プロセスの cwd から見たもの (= 通常は
+#     リポジトリ本体 or worktree から)。worktree の場合も `git config` は
+#     親リポと同じ config を参照するため動作する。
+#   - 値が空 (= 未設定) または `.githooks` 以外であれば warning。
+#   - exit せず処理続行 (block しない)。受入基準: warning は stderr、commit
+#     は block しない。
+HOOKS_PATH_CURRENT=$(git config --get core.hooksPath 2>/dev/null || true)
+if [ "$HOOKS_PATH_CURRENT" != ".githooks" ]; then
+  if [ -z "$HOOKS_PATH_CURRENT" ]; then
+    _hp_display="(未設定)"
+  else
+    _hp_display="$HOOKS_PATH_CURRENT"
+  fi
+  {
+    printf '\n'
+    printf '[pre-commit-guard] WARNING: core.hooksPath が .githooks に設定されていません (現在値: %s)\n' "$_hp_display"
+    printf '[pre-commit-guard]   → master/main 直 commit や Co-Authored-By を block する git ネイティブ hook が発火しません\n'
+    printf '[pre-commit-guard]   → リポジトリルートで次のコマンドを実行してください:\n'
+    printf '[pre-commit-guard]       git config core.hooksPath .githooks\n'
+    printf '\n'
+  } >&2
+fi
+
 # rebase 禁止
 if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+rebase([[:space:]]|$)'; then
   block "git rebase は禁止されています。コンフリクト解決は git merge を使用してください。"

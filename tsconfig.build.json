@@ -1,3 +1,7 @@
+// 壊れた死設定 (Issue #641 / follow-up #678 参照)。
+//   build script (`panda && tsc && vite build`) では未実行、かつ `tsc -b` で
+//   直接呼ぶと include 範囲不整合 (`src/api/*` / `vite.config.ts` の type 依存が
+//   include 外) でエラーになる。incremental 化しても効果ゼロ。削除候補。
 {
   "compilerOptions": {
     "composite": true,

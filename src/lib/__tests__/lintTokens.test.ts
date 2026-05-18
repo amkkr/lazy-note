@@ -1,5 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -518,6 +524,55 @@ describe("lint:tokens (scripts/lintTokens.ts)", () => {
       } finally {
         rmSync(emptyDir, { recursive: true, force: true });
       }
+    });
+  });
+
+  // ====================================================================
+  // skip 件数ログ (Issue #637)
+  //
+  // tryStat は ENOENT / EACCES / EMFILE 等を一律 silent skip するため、
+  // 攻撃者が permission を細工して特定ファイルを Tripwire 走査から外す
+  // 経路が懸念される。
+  // main() 末尾で skip 件数 / パス一覧を stderr に warn 出力することで
+  // CI ログから skip 異常を一目で検知可能にする。
+  //
+  // ENOENT を確実に再現できる broken symlink を仕込んで検証する。
+  // ====================================================================
+  describe("skip 件数ログ出力", () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), "lint-tokens-skip-log-"));
+    });
+
+    afterEach(() => {
+      rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it("skip が発生したら stderr に件数とパス一覧が warn 出力される", () => {
+      // 走査対象になる通常ファイル (0 files ガード回避)。
+      writeFileSync(join(tmpDir, "real.ts"), "const v = 1;\n", "utf8");
+      // broken symlink 1 件 (stat で ENOENT が出る)。
+      symlinkSync(join(tmpDir, "missing-target"), join(tmpDir, "dangling"));
+      const result = runScript({ LINT_TOKENS_SRC_DIR: tmpDir });
+      // 旧 token は無いので exit 0。
+      expect(result.status).toBe(0);
+      // stderr に skip 件数行が出る。
+      expect(result.stderr).toContain("lint:tokens WARN");
+      expect(result.stderr).toContain("1 path(s) skipped");
+      // skip パスに対応する relative path が含まれること。
+      expect(result.stderr).toContain("dangling");
+      // reason (errno code) が出ること。
+      expect(result.stderr).toMatch(/\[E[A-Z]+\]/);
+    });
+
+    it("skip 件数 0 のときは WARN ログを出さない", () => {
+      writeFileSync(join(tmpDir, "real.ts"), "const v = 1;\n", "utf8");
+      const result = runScript({ LINT_TOKENS_SRC_DIR: tmpDir });
+      expect(result.status).toBe(0);
+      // skip が無いので WARN は一切出ない (CI ログのノイズを増やさない)。
+      expect(result.stderr).not.toContain("lint:tokens WARN");
+      expect(result.stderr).not.toContain("path(s) skipped");
     });
   });
 });

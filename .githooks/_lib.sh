@@ -40,24 +40,50 @@ PROTECTED_BRANCHES_RE=$(IFS='|'; printf '%s' "${PROTECTED_BRANCHES[*]}")
 
 # Co-Authored-By 検出用 regex (大小区別は呼び出し側で -i フラグ等で制御する)。
 #
-# 2 種類用意する理由:
-#   1. COAUTHOR_PATTERN  — コミットメッセージ「本文」向け (commit-msg hook 用)
-#      行頭または空白の直後に `co-authored-by` が現れ、末尾に `:` がある場合のみ
-#      マッチ。本文中の単なる言及 (例: 「`Co-Authored-By`」のような単一トークン)
-#      は末尾 `:` の要件で弾く設計。
-#   2. COAUTHOR_LITERAL_PATTERN — shell コマンド「引数 literal」向け
-#      (pre-commit-guard.sh の `git commit -m "..."` 検出用)
-#      shell 経由で `-m "feat\nCo-Authored-By: x"` のような literal `\n` を
-#      含む文字列が渡された場合、shlex.split で引用符が剥がされるが内部の
-#      `\n` は literal の `\n` のまま残るため、前置 `[[:space:]]` を要求すると
-#      検知漏れする。shell command literal の段階では `co-authored-by` の
-#      sub-string が現れた時点で block する保守的な regex を採用する。
-#      本文中の偽陽性は shell hook 段階では許容する (= 本文の単なる言及で
-#      false positive 出る可能性はあるが、これは「`co-authored-by:` を含む
-#      shell コマンド文字列」という非常に限定的なケースのみで、現実の運用
-#      では `-m "...Co-Authored-By..."` 以外で出現しない)。
-COAUTHOR_PATTERN='(^|[[:space:]])co-authored-by[[:space:]]*:'
-COAUTHOR_LITERAL_PATTERN='co-authored-by[[:space:]]*:'
+# 設計方針 (Issue #648):
+#   `Co-Authored-By` を「全面禁止」すると、以下の正当なユースケースを巻き添えに
+#   block してしまう:
+#     - dependabot PR の取り込み時に元 PR の Co-Authored-By が引き継がれる
+#     - 人間同士の pair programming で互いを Co-Authored-By に挙げる
+#     - GitHub の "Co-authored commits" 公式機能を使う場合
+#   CLAUDE.md のルール (「Co-Authored-By を含めないこと」) は実質的には
+#   **AI bot 由来のクレジット行を禁止** する意図のもの。よって hook 側は
+#   「AI bot を示唆する識別子を含む `Co-Authored-By` 行」のみを block するように
+#   絞り込む。これによりルール本来のスコープと実装が整合する。
+#
+# AI bot 識別子の検出語彙:
+#   - claude        : Anthropic Claude (Claude Code 含む)
+#   - copilot       : GitHub Copilot
+#   - anthropic     : Anthropic 関連メール (noreply@anthropic.com 等)
+#   - openai        : OpenAI / ChatGPT 関連
+#   - cursor        : Cursor IDE
+#   - codex         : OpenAI Codex
+#   将来 AI bot が増えた場合、ここに `|` 連結で追加すれば全 hook に伝播する。
+#
+# 提供インターフェース:
+#   - COAUTHOR_HEADER_RE       : `Co-Authored-By:` 行検出用 ERE (本文向け、行頭/空白後)
+#   - COAUTHOR_LITERAL_HEADER_RE : `Co-Authored-By:` 検出用 ERE (literal 引数向け、前置条件なし)
+#   - COAUTHOR_AI_IDENTIFIERS_RE : AI bot 識別子の alternation (claude|copilot|...)
+#   - body_contains_ai_coauthor  : stdin の本文に AI 由来 Co-Authored-By が含まれれば 0
+#   - literal_contains_ai_coauthor : stdin の literal 文字列内に AI 由来 Co-Authored-By
+#                                    が含まれれば 0 (shell hook 用)
+#
+# 注意:
+#   - 検出語彙は **case-insensitive** で評価される (`grep -iE` を使う)。
+#     大文字小文字違いの偽装 (例: `CLAUDE` / `Claude`) は同じパターンで捕捉される。
+#   - 識別子は word boundary ではなく単純な sub-string で照合する。
+#     これは `noreply@anthropic.com` のような email 内出現も捕捉するため。
+#     人間で偶然 `claude` を含む名前/ドメインは block されるが、現実的衝突は稀。
+COAUTHOR_AI_IDENTIFIERS_RE='(claude|copilot|anthropic|openai|cursor|codex)'
+# 本文 (行単位 grep) 向け: 行頭または空白の直後に `co-authored-by` + `:` を要求
+COAUTHOR_HEADER_RE='(^|[[:space:]])co-authored-by[[:space:]]*:'
+# shell literal 向け: 前置条件を要求しない (shlex 後の literal は連結文字列のため)
+COAUTHOR_LITERAL_HEADER_RE='co-authored-by[[:space:]]*:'
+
+# (互換) 旧名: 既存呼び出し箇所で参照されている可能性に備え alias を残す。
+# 新規コードでは COAUTHOR_HEADER_RE / COAUTHOR_LITERAL_HEADER_RE を使うこと。
+COAUTHOR_PATTERN="$COAUTHOR_HEADER_RE"
+COAUTHOR_LITERAL_PATTERN="$COAUTHOR_LITERAL_HEADER_RE"
 
 # ブランチ名が保護対象に含まれているかを判定する。
 # 含まれていれば exit 0、それ以外は exit 1。
@@ -76,11 +102,51 @@ is_protected_branch() {
   return 1
 }
 
-# stdin に流したテキストに Co-Authored-By 行が含まれるかを判定する。
-# 含まれていれば exit 0、それ以外は exit 1。
+# stdin に流したテキストに **AI bot 由来の** Co-Authored-By 行が含まれるかを
+# 判定する (Issue #648)。含まれていれば exit 0、それ以外は exit 1。
 # 呼び出し側は本文のみ (= コメント行除去後) を流す責務を持つ。
+#
+# 実装:
+#   1. `Co-Authored-By:` を含む行のみを抽出 (行頭/空白後 + `:` で本文中の
+#      単なる言及を弾く)
+#   2. 抽出した行に AI bot 識別子が含まれるか再 grep する
+#   この 2 段階により「AI 識別子付き Co-Authored-By 行」だけを正確に判定する。
+#   POSIX ERE で `\n` を否定文字クラスに入れる挙動は実装依存 (BSD/GNU で
+#   差異あり) なので、行単位 grep を 2 回かけてポータビリティを担保する。
+body_contains_ai_coauthor() {
+  local lines
+  lines=$(grep -iE "$COAUTHOR_HEADER_RE" || true)
+  if [ -z "$lines" ]; then
+    return 1
+  fi
+  if printf '%s' "$lines" | grep -qiE "$COAUTHOR_AI_IDENTIFIERS_RE"; then
+    return 0
+  fi
+  return 1
+}
+
+# (互換) 旧 API。挙動を Issue #648 適用後の「AI 由来 Co-Authored-By のみ block」
+# に揃えるため、内部で body_contains_ai_coauthor を呼ぶ alias とする。
+# 既存呼び出し箇所 (commit-msg hook) はこの alias 経由で新挙動に切り替わる。
 body_contains_coauthor() {
-  if grep -qiE "$COAUTHOR_PATTERN"; then
+  body_contains_ai_coauthor
+}
+
+# stdin に流した shell command literal (= shlex split 後の文字列等) に
+# AI bot 由来の Co-Authored-By 表現が含まれるかを判定する (Issue #648)。
+# 含まれていれば exit 0、それ以外は exit 1。
+#
+# 本文向けと異なり、shell literal は `\n` がエスケープ表記 (literal 2 文字)
+# のまま渡されるケースがあるため、前置 `[[:space:]]` は要求しない。
+# 「`co-authored-by:` の出現」と「AI 識別子の出現」の 2 条件を満たせば block。
+# 識別子の前後距離は問わない (literal 段階では誤検知より見逃し回避を優先)。
+literal_contains_ai_coauthor() {
+  local content
+  content=$(cat)
+  if ! printf '%s' "$content" | grep -qiE "$COAUTHOR_LITERAL_HEADER_RE"; then
+    return 1
+  fi
+  if printf '%s' "$content" | grep -qiE "$COAUTHOR_AI_IDENTIFIERS_RE"; then
     return 0
   fi
   return 1

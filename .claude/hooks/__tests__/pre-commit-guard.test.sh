@@ -308,13 +308,28 @@ add_case "X03" "block" "fix-required" \
   "--git-dir=<nonexistent> is blocked (attack-surface safeguard)"
 
 # --- Co-Authored-By 検出 (regression sanity) ---------------------------------
+# Issue #648: AI bot 由来 (`claude` / `copilot` / `anthropic` / `openai` /
+# `cursor` / `codex` のいずれかを含む) `Co-Authored-By` 行のみが block 対象。
+# 人間メールや dependabot 等の正当な共著情報は許容される。
 add_case "CA01" "block" "sanity" \
-  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: x <x@x>\"" \
-  "Co-Authored-By in -m blocks"
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>\"" \
+  "Co-Authored-By with AI bot identifier (claude) in -m blocks"
 
 add_case "CA02" "pass" "sanity" \
   "$WORKTREE" "echo Co-Authored-By > /tmp/x.txt && $GIT commit" \
   "Co-Authored-By in unrelated arg does not block"
+
+add_case "CA03" "pass" "sanity" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Taro Yamada <taro@example.com>\"" \
+  "Co-Authored-By with human email in -m does not block (Issue #648)"
+
+add_case "CA04" "block" "sanity" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: github-copilot[bot] <copilot@github.com>\"" \
+  "Co-Authored-By with copilot identifier in -m blocks (Issue #648)"
+
+add_case "CA05" "block" "sanity" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nco-authored-by: claude <foo@bar>\"" \
+  "Case-insensitive AI bot identifier (claude lowercase) blocks (Issue #648)"
 
 # --- rebase / force push (regression sanity) ---------------------------------
 add_case "RB01" "block" "sanity" \

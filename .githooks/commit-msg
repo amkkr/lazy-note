@@ -66,12 +66,24 @@ fi
 #     しないため許容する (fail 時は body が空になり、誤検知は出ない安全側)。
 body=$(awk '/^# -+ >8 -+$/{exit} {print}' "$msg_file" | git stripspace --strip-comments)
 
-# 大文字小文字を区別せずに Co-Authored-By を検出する (COAUTHOR_PATTERN は SSOT)。
-# (Co-authored-by / co-authored-by などの揺れも捕捉)
-if printf '%s' "$body" | body_contains_coauthor; then
+# AI bot 由来の Co-Authored-By 行を検出する (Issue #648)。
+#
+# Issue #648 以前は「すべての Co-Authored-By を block」する実装だったが、
+# 以下の正当なユースケースを巻き添えにしていた:
+#   - dependabot PR 取り込み時の Co-Authored-By 引き継ぎ
+#   - 人間同士の pair programming
+#   - GitHub の "Co-authored commits" 公式機能
+#
+# CLAUDE.md ルールの本来意図 (= AI bot 由来クレジットを残さない) に整合させ、
+# `claude` / `copilot` / `anthropic` などの AI bot 識別子を含む
+# `Co-Authored-By` 行のみを block する。判定ロジックは _lib.sh の
+# body_contains_ai_coauthor に集約 (SSOT)。
+if printf '%s' "$body" | body_contains_ai_coauthor; then
   cat <<EOF >&2
-[commit-msg] コミットメッセージに Co-Authored-By を含めることは禁止されています。
+[commit-msg] コミットメッセージに AI bot 由来の Co-Authored-By を含めることは禁止されています。
+検出対象: ${COAUTHOR_AI_IDENTIFIERS_RE} のいずれかを含む Co-Authored-By 行。
 該当行を削除してから再度コミットしてください。
+(人間の Co-Authored-By 行や dependabot 等の正当な共著情報は許容されます。)
 
 (本 hook は .githooks/commit-msg で実装されています。
  ローカル設定: git config core.hooksPath .githooks)

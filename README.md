@@ -63,9 +63,9 @@ git config core.hooksPath .githooks
 提供している hook:
 
 - `.githooks/pre-commit` — `master` / `main` ブランチへの直接 commit を拒否します
-- `.githooks/commit-msg` — コミットメッセージ本文に `Co-Authored-By` 行が含まれていたら commit を拒否します
+- `.githooks/commit-msg` — コミットメッセージ本文に **AI bot 由来の** `Co-Authored-By` 行 (`claude` / `copilot` / `anthropic` / `openai` / `cursor` / `codex` のいずれかを含むもの) が含まれていたら commit を拒否します。人間 pair programming や dependabot 等の正当な共著情報は許容されます (Issue #648)
 
-これらは [`CLAUDE.md`](./CLAUDE.md) のグローバルルール (「master への直接 commit 禁止」「コミットメッセージに Co-Authored-By を含めない」) を **git の動作上 bypass 不可能な層** で保証するためのものです (Issue #568 / Issue #592)。
+これらは [`CLAUDE.md`](./CLAUDE.md) のグローバルルール (「master への直接 commit 禁止」「コミットメッセージに Co-Authored-By を含めない」) を **git の動作上 bypass 不可能な層** で保証するためのものです (Issue #568 / Issue #592 / Issue #648)。
 
 `postinstall` での自動セットアップは採用していません。理由は以下:
 

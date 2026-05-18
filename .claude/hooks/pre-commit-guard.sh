@@ -480,21 +480,23 @@ if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+(commit|push)([[
   fi
 fi
 
-# git commit の場合、コマンド引数の -m / --message メッセージに Co-Authored-By が含まれないかチェック
-# （本文に Co-Authored-By という単語が単に言及されるだけのケースと区別するため、
-#  git commit 呼び出しを含むときのみ、かつそのコマンド自体のテキスト内に含まれるかを見る）
+# git commit の場合、コマンド引数の -m / --message メッセージに
+# **AI bot 由来の** Co-Authored-By が含まれないかチェックする (Issue #648)。
 #
-# 検出 regex は SSOT (.githooks/_lib.sh の COAUTHOR_LITERAL_PATTERN) を利用する
-# (Issue #649 / Moderate 4)。case-insensitive 検出に統一することで、
-# 旧実装で素通りしていた `co-authored-by:` (小文字) も block する。
+# Issue #648 以前は「すべての Co-Authored-By を block」していたが、人間 pair
+# programming や dependabot 取り込み等の正当ユースケースを巻き添えにしていた。
+# 本 hook は SSOT (.githooks/_lib.sh の literal_contains_ai_coauthor) に判定を
+# 委譲し、`claude` / `copilot` / `anthropic` 等の AI bot 識別子を含む
+# Co-Authored-By literal のみを block する (Issue #649 / Moderate 4 で導入した
+# SSOT 体制をそのまま継承)。
 #
-# shell コマンド literal 段階では `\n` で囲まれた literal 改行も含めて
-# `co-authored-by:` の sub-string を保守的に検出する (COAUTHOR_LITERAL_PATTERN)。
-# 本文向けの厳密判定 (前置 [[:space:]] 要求) は commit-msg hook 側で行う。
+# 本文中の単なる言及 (例: 「`co-authored-by`」という単語) は
+# literal_contains_ai_coauthor が「`co-authored-by:` の出現」と「AI 識別子の出現」
+# の 2 条件を要求するため誤検知しない。真の防御は commit-msg hook 側で行う。
 if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+commit([[:space:]]|$)'; then
   COMMIT_LINE=$(printf '%s\n' "$GIT_INVOCATIONS" | grep -E '^git[[:space:]]+commit([[:space:]]|$)' | head -n1)
-  if printf '%s' "$COMMIT_LINE" | grep -qiE "$COAUTHOR_LITERAL_PATTERN"; then
-    block "コミットメッセージに Co-Authored-By を含めることは禁止されています。"
+  if printf '%s' "$COMMIT_LINE" | literal_contains_ai_coauthor; then
+    block "コミットメッセージに AI bot 由来の Co-Authored-By (${COAUTHOR_AI_IDENTIFIERS_RE}) を含めることは禁止されています。"
   fi
 fi
 

@@ -37,6 +37,22 @@
       "complexity": {
         "noBannedTypes": "error",
         "noEmptyTypeParameters": "error",
+        // `noExcessiveCognitiveComplexity` は biome デフォルト (maxAllowedComplexity:15) で運用するが、
+        // scripts/calculateContrast.ts については Issue #623 / PR #650 にて
+        // **予防検証の閾値として maxAllowedComplexity:8 (biome デフォルト 15 / 一般推奨 10-15 より厳しい値)**
+        // で違反 0 を維持できることを実機確認している (詳細は scripts/calculateContrast.ts 冒頭 JSDoc の
+        // "Biome 厳格化耐性" セクション、grep キー: `maxAllowedComplexity: 8`)。
+        // 採用根拠:
+        //   - 当該スクリプトは AAA コントラスト実測という CI ハードゲートの中核であり、
+        //     条件分岐の追加でロジックが肥大化すると検証ロジック自体の信頼性が落ちる
+        //   - 8 という数値は「ヘルパー抽出 / 早期 return / map ベース dispatch を維持し、
+        //     ネスト深い if/switch を持たない」状態を機械的に担保できる下限値として選定
+        //   - CI workflow への常設化は維持コスト過大として見送り、JSDoc 記載 + 任意手動再現に留める
+        // 引き上げ判断基準 (= 8 を緩める):
+        //   - 当該スクリプトに `--strict` / `--csv` 以外の新規モード分岐が 2 つ以上追加され、
+        //     かつヘルパー分割で 8 を維持するのが構造を不自然に歪める場合 (10 まで段階的に許容)
+        // 引き下げ判断基準 (= 全体閾値として 8 を採用する) は別 Issue で議論する。
+        // 他ファイルへの厳格化波及は本ファイルの実機検証範囲外なので影響評価を別途行うこと。
         "noExcessiveCognitiveComplexity": "error",
         "noExtraBooleanCast": "error",
         "noForEach": "info", // Allow forEach usage despite Biome flagging it for performance reasons as we need it in our project

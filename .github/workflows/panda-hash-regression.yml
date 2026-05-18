@@ -52,24 +52,43 @@ jobs:
         # 種別ごとに対比表示できるようにする。
         id: baseline_build
         continue-on-error: true
-        # 既存 hash:true build step (L116) と同じく test を二重実行しないため
-        # pnpm exec で panda / tsc / vite build を 1 回ずつ呼ぶ。Issue #528 で
-        # 議論中の package.json build スクリプトとの drift 問題は本 issue の
-        # スコープ外。両 step で同じコマンド列を使うことで本 workflow 内では
-        # 一貫性を保つ。
+        # 既存 hash:true build step (`Build project with hash:true`) と同じく
+        # test を二重実行しないため pnpm exec で panda / vite build を呼ぶ。
+        # Issue #528 で議論中の package.json build スクリプトとの drift 問題
+        # は本 issue のスコープ外。両 step で同じコマンド列を使うことで本
+        # workflow 内では一貫性を保つ。
+        #
+        # Issue #625 (DA #2): baseline build からは `pnpm exec tsc` を意図的に
+        # 省略する。本 step の目的は bundle size 計測のみで、型チェックは
+        # bundle size と直交する。後段の hash:true build step
+        # (`Build project with hash:true`) で同じ tree を tsc にかけるため
+        # 型 regression は引き続き検知できる。
+        # tsc を省くことで baseline build を 30 秒〜数十秒短縮できる。
         run: |
           set -euo pipefail
           pnpm exec panda
-          pnpm exec tsc
           pnpm exec vite build
           # baseline 成果物を CSS / JS 別ディレクトリに退避。後段で hash:true
           # ビルド成果物と並べて合計サイズで比較する (hash 化でファイル名が
           # 変わるため個別ファイル名比較ではなく合計値で見る)。dist/assets が
           # 無いケース、あるいは片方が 0 件のケースに備えて nullglob で空ガード。
+          #
+          # Issue #625 (/review M1): self-hosted runner や workflow 再実行で
+          # /tmp が永続している環境を想定し、退避先を空に preflight クリーン
+          # アップしてから cp する。GitHub-hosted runner は毎回 fresh だが
+          # 一貫した挙動にするため明示的に消す (`rm -f /tmp/.../*.css|.js`)。
+          # `mktemp -d` に切り替えれば preflight rm 不要だが、後段 report step
+          # との path 共有を環境変数で渡す必要があり実装複雑化するため、
+          # 固定 path + 明示 rm の方式を選択する。
           mkdir -p /tmp/baseline-css /tmp/baseline-js
+          rm -f /tmp/baseline-css/*.css /tmp/baseline-js/*.js
           shopt -s nullglob
           baseline_css_files=(dist/assets/*.css)
           baseline_js_files=(dist/assets/*.js)
+          # nullglob は本ブロックの空 glob ガードのためだけに有効化したので
+          # ここで解除する。後段 step は独自に shopt -s nullglob を再宣言して
+          # おり影響しないが、同一 step 内の以降の処理 (cp / 後続コマンド) に
+          # 副作用を残さないよう挿入直後に解除する。
           shopt -u nullglob
           if (( ${#baseline_css_files[@]} > 0 )); then
             cp "${baseline_css_files[@]}" /tmp/baseline-css/
@@ -77,6 +96,19 @@ jobs:
           if (( ${#baseline_js_files[@]} > 0 )); then
             cp "${baseline_js_files[@]}" /tmp/baseline-js/
           fi
+
+      - name: Annotate baseline build failure
+        # Issue #625 (DA #1): baseline build は continue-on-error: true で
+        # 失敗を許容しているが、その場合 Actions UI 上では何のエラーも表示
+        # されず、後段 report で「baseline 列が n/a に縮退」する原因が
+        # 一目で分からない。`::warning::` annotation を出して Run 画面上部
+        # に常時可視化することで「baseline 列欠落」と「baseline build 失敗」
+        # を Actions UI 上で即座に紐付けられるようにする。
+        if: steps.baseline_build.outcome == 'failure'
+        run: |
+          # メッセージ内ではバックティックではなく単引用符でコード片を引用する
+          # (ダブルクォート内の `...` は bash のコマンド置換として解釈されるため)。
+          echo "::warning::baseline (hash:false) build が失敗したため、後段の bundle size report で baseline 列は n/a に縮退します。hash:true 単独の数値は引き続き出力されますが、'+X.X% (gzip)' 等の対比は得られません。原因切り分けは baseline_build step のログを参照してください。"
 
       - name: Enable Panda hash:true (temporary in-CI patch)
         # panda.config.ts の defineConfig 内 `preflight: true` 行 (末尾カンマ
@@ -175,8 +207,17 @@ jobs:
         # /tmp/baseline-css/ に退避されているので、合計サイズで対比して
         # `+X.X% (gzip) / -Y.Y% (raw)` の差分を表に追加する。hash 化でファイル
         # 名が変わるため、個別ファイル単位ではなく合計バイト数で比較する。
-        # baseline build が失敗 (steps.baseline_build.outcome == 'failure') した
-        # 場合は baseline 列を欠落させ、hash:true 単独の表示に縮退する。
+        # baseline build が失敗した場合は baseline 列を欠落させ、hash:true
+        # 単独の表示に縮退する。
+        #
+        # Issue #625 (/review M2): 縮退判定は `steps.baseline_build.outcome`
+        # を直接見るのではなく、`/tmp/baseline-{css,js}/` に退避ファイルが
+        # 存在するか (= `base_*_raw > 0` か) で間接的に判定する。後者の方が
+        # 「成果物が実際に得られたか」を直接表現でき、baseline build が
+        # success でも空 artifact を残したケース (例: vite が assets を emit
+        # しなかった) も縮退に倒せる。outcome 直判定は別途
+        # `Annotate baseline build failure` step で `::warning::` 出力に
+        # 使用している。
         #
         # Issue #554: 対象を CSS だけでなく JS chunk (dist/assets/*.js) にも
         # 拡張する。Panda は JSX 解析で生成した class 文字列を JS bundle 内
@@ -195,11 +236,21 @@ jobs:
           # `stat` が非 0 で終了して job 自体が fail する。これは「pass/fail
           # 判定に影響しない」という本 step の前提に反するため、nullglob で
           # 空配列に展開してスキップする。
+          #
+          # Issue #625 (/review M3): nullglob は **直後の 4 件の配列展開
+          # (css_files / js_files / baseline_css_files / baseline_js_files)
+          # のためだけに有効化する**。展開が終わったらすぐ `shopt -u nullglob`
+          # で解除し、本 step 内の以降の glob (sum_sizes 関数内では glob を
+          # 使わず "$@" だけを参照、per-file 明細ループも展開済み配列を
+          # 使う) に副作用が及ばないようにする。これにより「nullglob は
+          # 一時的な配列展開のスコープに閉じる」という意図がコード上で
+          # 明確になる。
           shopt -s nullglob
           css_files=(dist/assets/*.css)
           js_files=(dist/assets/*.js)
           baseline_css_files=(/tmp/baseline-css/*.css)
           baseline_js_files=(/tmp/baseline-js/*.js)
+          # 4 件の配列展開が完了したのでここで nullglob を解除する。
           shopt -u nullglob
           if (( ${#css_files[@]} == 0 && ${#js_files[@]} == 0 )); then
             {
@@ -213,6 +264,17 @@ jobs:
           # 合計サイズを算出するヘルパー。`sum_sizes <files...>` で raw/gz
           # 合計を空白区切りで 1 行に出力する (`raw_total gz_total`)。空配列
           # の場合は `0 0` を返す。
+          #
+          # Issue #625 (DA #3): `gzip -c` は GNU gzip の default level=6 で
+          # 圧縮する。本番配信実態 (nginx default `gzip_comp_level 1`、CDN
+          # / Cloudflare Brotli 等) とは差異があるため、本数値は「ある一定
+          # の圧縮レベルでの相対比較」として読むこと。レベル 1 と 6 の差は
+          # 数% オーダーで baseline vs hash:true の相対差 (CLAUDE.md L75:
+          # gzip 後 +5.8%) には大きく影響しないが、絶対値そのものは本番転送
+          # 量とは一致しない。本番に合わせたい場合は `gzip -1 -c` などに
+          # 変更する余地はあるが、現状は GNU gzip の default を採用する
+          # (再現性が高く、開発者ローカルで `gzip -c | wc -c` した値と一致
+          # するため)。
           sum_sizes() {
             local raw_total=0
             local gz_total=0
@@ -268,7 +330,7 @@ jobs:
               for f in "${css_files[@]}"; do
                 raw=$(stat -c '%s' "$f")
                 gz=$(gzip -c "$f" | wc -c)
-                echo "| \`${f}\` | ${raw} | ${gz} |";
+                echo "| \`$(basename "$f")\` | ${raw} | ${gz} |";
               done
             fi
             echo "";
@@ -283,12 +345,60 @@ jobs:
               echo "|------|--------:|---------:|";
               # 視認性のため raw サイズ降順で並べる。`sort -k` を使うため
               # 一旦 raw / gz / path を tab 区切りで出してから整形する。
+              # runs-on: ubuntu-latest 前提で GNU sort/coreutils 機能 (`-k1,1nr`) を使う。
               for f in "${js_files[@]}"; do
                 raw=$(stat -c '%s' "$f")
                 gz=$(gzip -c "$f" | wc -c)
                 printf '%s\t%s\t%s\n' "$raw" "$gz" "$f"
               done | sort -k1,1nr | while IFS=$'\t' read -r raw gz f; do
-                echo "| \`${f}\` | ${raw} | ${gz} |";
+                echo "| \`$(basename "$f")\` | ${raw} | ${gz} |";
+              done
+            fi
+            echo "";
+            echo "</details>";
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Issue #625 (DA #4): baseline (hash:false) 側にも per-file 明細を
+          # <details> でラップして出す。hash:true 側 (上) と並べることで、
+          # 「どのファイルが baseline と比べて raw / gzip でどう変動したか」
+          # を file 名を手がかりに紐付けやすくする。hash 化でファイル名が
+          # 変わるため file 単位の 1:1 突合は不可能だが、JS chunk の主要
+          # チャンク (大きい順) を見比べる用途には十分使える。baseline build
+          # が失敗 / 空 emit の場合は明細を空メッセージに縮退する。CSS は
+          # hash:true 側と揃えて open、JS は閉じた状態で出す。
+          {
+            echo "";
+            echo "<details open><summary>Per-file CSS (baseline, hash:false)</summary>";
+            echo "";
+            if (( ${#baseline_css_files[@]} == 0 )); then
+              echo "_(no baseline CSS assets; baseline build may have failed)_";
+            else
+              echo "| File | raw (B) | gzip (B) |";
+              echo "|------|--------:|---------:|";
+              for f in "${baseline_css_files[@]}"; do
+                raw=$(stat -c '%s' "$f")
+                gz=$(gzip -c "$f" | wc -c)
+                echo "| \`$(basename "$f")\` | ${raw} | ${gz} |";
+              done
+            fi
+            echo "";
+            echo "</details>";
+            echo "";
+            echo "<details><summary>Per-file JS (baseline, hash:false)</summary>";
+            echo "";
+            if (( ${#baseline_js_files[@]} == 0 )); then
+              echo "_(no baseline JS assets; baseline build may have failed)_";
+            else
+              echo "| File | raw (B) | gzip (B) |";
+              echo "|------|--------:|---------:|";
+              # hash:true 側と同じく raw 降順で並べて主要 chunk を上に出す。
+              # runs-on: ubuntu-latest 前提で GNU sort/coreutils 機能 (`-k1,1nr`) を使う。
+              for f in "${baseline_js_files[@]}"; do
+                raw=$(stat -c '%s' "$f")
+                gz=$(gzip -c "$f" | wc -c)
+                printf '%s\t%s\t%s\n' "$raw" "$gz" "$f"
+              done | sort -k1,1nr | while IFS=$'\t' read -r raw gz f; do
+                echo "| \`$(basename "$f")\` | ${raw} | ${gz} |";
               done
             fi
             echo "";
@@ -309,11 +419,14 @@ jobs:
           base_js_gz_cell="$base_js_gz"
           base_total_raw_cell="$base_total_raw"
           base_total_gz_cell="$base_total_gz"
-          if (( base_css_raw == 0 )); then
+          # M2 コメントに沿って「成果物が実際に得られたか」を配列要素数で
+          # 直接判定する。`base_*_raw == 0` だと「0 バイト CSS 1 件」のような
+          # 理論上のエッジで誤って縮退してしまうのを避ける。
+          if (( ${#baseline_css_files[@]} == 0 )); then
             base_css_raw_cell="n/a"
             base_css_gz_cell="n/a"
           fi
-          if (( base_js_raw == 0 )); then
+          if (( ${#baseline_js_files[@]} == 0 )); then
             base_js_raw_cell="n/a"
             base_js_gz_cell="n/a"
           fi
@@ -321,7 +434,7 @@ jobs:
           # 欠落していると hash:true (両 kind 集計) との比較が不公平になる
           # ため、安全側に倒して n/a に縮退する。
           total_baseline_valid=1
-          if (( base_css_raw == 0 || base_js_raw == 0 )); then
+          if (( ${#baseline_css_files[@]} == 0 || ${#baseline_js_files[@]} == 0 )); then
             total_baseline_valid=0
           fi
           if (( total_baseline_valid == 0 )); then
@@ -368,10 +481,10 @@ jobs:
           {
             echo "| total | raw  (B)  | ${br} | ${hr} | ${dr} |";
             echo "| total | gzip (B) | ${bg} | ${hg} | ${dg} |";
-            if (( base_total_raw == 0 )); then
+            if (( ${#baseline_css_files[@]} == 0 && ${#baseline_js_files[@]} == 0 )); then
               echo "";
               echo "_(baseline build produced no assets; baseline = n/a)_";
-            elif (( base_css_raw == 0 || base_js_raw == 0 )); then
+            elif (( ${#baseline_css_files[@]} == 0 || ${#baseline_js_files[@]} == 0 )); then
               echo "";
               echo "_(baseline produced only one kind; missing = n/a)_";
             fi

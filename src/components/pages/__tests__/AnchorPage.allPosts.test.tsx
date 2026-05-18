@@ -2,7 +2,6 @@ import { render, screen, within } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import milestonesData from "../../../../datasources/milestones.json";
 import { inferPublishedAt, type Milestone } from "../../../lib/anchors";
 import type { PostSummary } from "../../../lib/markdown";
 import { buildPulseForbiddenVocabRegex } from "../../../test/forbiddenVocab";
@@ -243,6 +242,15 @@ const expectations: readonly PostCoordinatesExpectation[] = [
  * 本番 milestones.json を更新したら、`expectations` と本 `testMilestones` の
  * 両方を同時に書き直すこと (fixture の更新ルール)。
  *
+ * **本番 JSON 直接 import 0 化方針 (Issue #624 案C)**:
+ * 本ファイルは元々、末尾の Pulse 禁則語彙 Tripwire 1 件のみ本番 JSON を限定 import
+ * していた (Issue #618 案A)。その後 Issue #624 で「label レベルの禁則語彙混入は
+ * データ層単体テストで直接検出すべき (= 描画層 Tripwire の責務ではない)」と
+ * 整理し、`milestones.semantic.test.ts` 側に「全 milestone.label が Pulse 禁則
+ * 語彙を含まない」単体 Tripwire を追加 (Issue #624 AC1)。これにより本ファイルは
+ * `testMilestones` 一本に統一でき、本番 JSON 直接 import を 0 化できた
+ * (Issue #624 AC2)。
+ *
  * **trade-off (両刃の性質)**:
  * 本番 JSON との切り離しにより「本番 JSON 改変でテスト道連れ失敗を防ぐ」
  * メリットがある一方で、「本番 milestone の label rename / tone 変更 /
@@ -251,41 +259,15 @@ const expectations: readonly PostCoordinatesExpectation[] = [
  * している `anchors.test.ts` および `milestones.semantic.test.ts` (Issue #615
  * で追加した意味的スナップショット: 本番 JSON の date / label / tone 全件を
  * 固定 fixture と toEqual 比較し rename / 日付変更 / tone 変更 / 追加 / 削除 /
- * 並び替えを失敗として検知)、本ファイル末尾の「Pulse 思想禁則語彙が現れない」
- * Tripwire テスト (後述 `milestones` 定数を限定的に使用)、および開発者の
- * 意識的な fixture 更新 (上述「fixture の更新ルール」) で担保する設計とする。
+ * 並び替えを失敗として検知 + Issue #624 で追加した label レベル禁則語彙
+ * Tripwire)、および開発者の意識的な fixture 更新 (上述「fixture の更新ルール」)
+ * で担保する設計とする。
  */
 const testMilestones: readonly Milestone[] = [
   { date: "2025-08-05", label: "休職開始", tone: "heavy" },
   { date: "2025-08-26", label: "サイト開設", tone: "neutral" },
   { date: "2025-09-05", label: "社会復帰", tone: "light" },
 ];
-
-/**
- * 本ファイル末尾の「Pulse 思想禁則語彙が現れない」Tripwire テスト専用に、
- * 本番 `datasources/milestones.json` を**限定的に**直接 import した定数。
- *
- * fixture (expectations) と組ませる入力は意図的に `testMilestones` に切り離して
- * いるが (本 JSDoc 上部の trade-off 参照)、Pulse 禁則語彙 Tripwire は
- * 「実 milestones × 全 16 記事の組合せ」で抽象指標語彙の漏れを防ぐことが目的
- * (Issue #540 / Issue #618 案A) のため、本 1 件のテストに限り本番 JSON を
- * そのまま入力として渡す。
- *
- * narrowing キャストの意図は `anchors.test.ts` の milestonesJson キャスト
- * (Issue #546) と同じ: resolveJsonModule で widen された `tone: string` を
- * `Milestone["tone"]` の literal union に narrowing する。
- * 設計判断の正本 (集約せず各 page で個別 import / 撤退方法 / 不正値時の挙動
- * など) は `src/pages/anchor.tsx` の MILESTONES JSDoc を参照 (Issue #546)。
- * AnchorPage ドメインにおける不正 `tone` / 不正 `date` 時の具体挙動
- * (`data-tone` への素通し / 座標一覧から静かに落ちる) も同 JSDoc に記述あり
- * (`anchors.test.ts` の同等キャストコメントも同じ参照先に揃えてある)。
- *
- * **副次効果 (Tripwire 強化)**: 本定数を導入することで、末尾の Pulse 禁則語彙
- * Tripwire テストが runtime で必ず実行されるようになる (Issue #618 案A)。
- * PR #611 / #612 のような「未定義 milestones 参照」交差バグが今後再発した場合も
- * 本 Tripwire 経由で検知できるため、検知網が二重化される。
- */
-const milestones: readonly Milestone[] = milestonesData as readonly Milestone[];
 
 const postFilePaths = Object.keys(import.meta.glob("/datasources/*.md"));
 
@@ -367,18 +349,22 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
   /**
    * 指定 postId の li 要素を取得する補助関数。
    *
-   * 「各記事の座標」section 内のタイトルから親 li を辿ることで、テスト本体の
-   * 複雑度 (Biome complexity ルール) を下げるために切り出した。
+   * 「各記事の座標」section 内の `data-post-id` 属性で li を直接特定する。
+   * (Issue #624 AC3 で `data-post-id` 構造属性を追加したため、旧来の
+   * 「タイトル文字列から `closest('li')` で親を辿る」アプローチから移行した。
+   * テスト本体の Biome complexity 抑制目的は維持しつつ、構造属性ベースで
+   * lookup を統一する。)
    */
   const getPostItem = (postId: string): HTMLLIElement => {
     const postSection = screen.getByRole("region", { name: "各記事の座標" });
-    const titleEl = within(postSection).getByText(`記事 ${postId}`);
-    const postItem = titleEl.closest("li");
+    const postItem = postSection.querySelector<HTMLLIElement>(
+      `li[data-post-id="${postId}"]`,
+    );
     expect(postItem).not.toBeNull();
     if (postItem === null) {
       throw new Error(`postItem for ${postId} not found`);
     }
-    return postItem as HTMLLIElement;
+    return postItem;
   };
 
   /**
@@ -458,6 +444,11 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
       // ここでは id の大小関係を明示するため A < B (id 昇順比較で A が小さい)
       // となる 2 件を用意し、「id 降順 (B → A) で渡したら DOM も B → A」を
       // 検証する (= AnchorPage が id 昇順へ並び替えると失敗する)。
+      //
+      // Issue #624 AC3 / PR #617 M3: 順序検証は `data-post-id` 構造属性ベース
+      // で行う。textContent 経由のタイトル文字列マッチに比べ、ID は post の
+      // 一次キーであり、タイトル文言変更や i18n 化・サニタイズ追加といった
+      // 表示加工に左右されない構造的根拠で順序を固定できる。
       const postA = buildPostSummary({
         id: "20250826031705",
         title: "記事 A (id 小)",
@@ -485,8 +476,9 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
 
       expect(items).toHaveLength(2);
       // 入力順 [B, A] と完全一致 (内部で reverse / 再 sort されていない)
-      expect(items[0].textContent).toContain("記事 B (id 大)");
-      expect(items[1].textContent).toContain("記事 A (id 小)");
+      // `data-post-id` の出現順を post.id 列として直接比較する
+      const postIdOrder = items.map((li) => li.getAttribute("data-post-id"));
+      expect(postIdOrder).toEqual([postB.id, postA.id]);
     });
 
     it("publishedAt 推定不可な記事をスキップしても、残った記事間の入力相対順を保つ", () => {
@@ -497,6 +489,9 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
       // [B, invalid, A] と渡したら、DOM は [B, A] となる (invalid 除外、残余は
       // 入力相対順保持)。「スキップ後の整列に乗じて id 順へ並び替える」コード
       // 混入を検知する。
+      //
+      // Issue #624 AC3 / PR #617 M3: 順序検証は上の test 同様 `data-post-id`
+      // 構造属性ベースで行う。
       const postA = buildPostSummary({
         id: "20250826031705",
         title: "記事 A (id 小)",
@@ -534,8 +529,9 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
       // invalid をスキップした 2 件のみ描画される (= 残余配列の順序保持の前提)
       expect(items).toHaveLength(2);
       // 入力相対順 [B, A] が DOM 出現順に保持される
-      expect(items[0].textContent).toContain("記事 B (id 大)");
-      expect(items[1].textContent).toContain("記事 A (id 小)");
+      // `data-post-id` の出現順を post.id 列として直接比較する
+      const postIdOrder = items.map((li) => li.getAttribute("data-post-id"));
+      expect(postIdOrder).toEqual([postB.id, postA.id]);
     });
   });
 
@@ -552,20 +548,25 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
     expect(results).toHaveNoViolations();
   });
 
-  it("16 記事 + 実 milestones の描画結果に Pulse 思想禁則語彙が現れない", () => {
+  it("16 記事 + testMilestones の描画結果に Pulse 思想禁則語彙が現れない", () => {
     // 語彙の網羅は src/test/forbiddenVocab.ts に集約してあり、
     // Coordinate / Resurface / HomePage と共通の禁則語彙集を参照する
-    // (Issue #540)。AnchorPage.test.tsx は固定 fixture でガードしているのに
-    // 対し、本テストは実 datasources/milestones.json + 全 16 記事の組合せでも
-    // 抽象指標語彙が漏れていないことを Tripwire で防御する。
+    // (Issue #540)。AnchorPage.test.tsx は小規模 fixture でガードしているのに
+    // 対し、本テストは全 16 記事 × testMilestones の組合せでも抽象指標語彙が
+    // 漏れていないことを Tripwire で防御する (= 記事数 × milestone 数の
+    // 掛け算で生成される表示文字列の網羅性を担保する責務)。
     //
-    // Issue #618 案A: 本テストは「Pulse 禁則語彙の組合せ Tripwire」が目的のため、
-    // fixture 化方針 (`testMilestones` ベース) を維持しつつ、本 1 件のみ
-    // 例外的に本番 `milestones` (datasources/milestones.json 由来) を入力に使う。
+    // Issue #624 案C: 本テストは元々本番 `milestones` (datasources/milestones.json
+    // 由来) を入力に使っていた (Issue #618 案A の限定 import) が、label レベルの
+    // 禁則語彙混入は `milestones.semantic.test.ts` 側の単体 Tripwire (Issue #624
+    // AC1) で直接検出するように責務を分割し、本テストは `testMilestones` ベース
+    // に統一して「本番 JSON 直接 import 0 化」(Issue #624 AC2) を達成した。
+    // これにより本ファイル全体が固定 fixture (`testMilestones` + `expectations`)
+    // ベースに一本化される。
     const posts = buildPostSummaries(postIds);
     const { container } = render(
       <MemoryRouter>
-        <AnchorPage posts={posts} milestones={milestones} />
+        <AnchorPage posts={posts} milestones={testMilestones} />
       </MemoryRouter>,
     );
 

@@ -308,13 +308,72 @@ add_case "X03" "block" "fix-required" \
   "--git-dir=<nonexistent> is blocked (attack-surface safeguard)"
 
 # --- Co-Authored-By 検出 (regression sanity) ---------------------------------
+# Issue #648 / DA Must 対応: 検出 fixture を構造的 (メールドメイン / [bot] suffix)
+# に置換した。block 対象は以下:
+#   - `<...@anthropic.com>` / `<...@openai.com>` / `<...@cursor.{sh,com}>`
+#   - `[bot]` suffix + vendor email
+# 以下は block されない (誤検知排除):
+#   - 人名 substring 衝突 (Claudette / Codexa)
+#   - 本文中の説明 (`fix: Co-Authored-By: Claude の挙動を確認`)
+#   - 人間メールの Co-Authored-By
+#   - subject に "copilot" 等が出現するだけのケース (= 行単位 AND で除外)
 add_case "CA01" "block" "sanity" \
-  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: x <x@x>\"" \
-  "Co-Authored-By in -m blocks"
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>\"" \
+  "Co-Authored-By with @anthropic.com email blocks"
 
 add_case "CA02" "pass" "sanity" \
   "$WORKTREE" "echo Co-Authored-By > /tmp/x.txt && $GIT commit" \
   "Co-Authored-By in unrelated arg does not block"
+
+add_case "CA03" "pass" "sanity" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Taro Yamada <taro@example.com>\"" \
+  "Co-Authored-By with human email in -m does not block (Issue #648)"
+
+add_case "CA04" "block" "sanity" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: github-copilot[bot] <copilot@github.com>\"" \
+  "Co-Authored-By with copilot [bot] suffix blocks (Issue #648)"
+
+add_case "CA05" "block" "sanity" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nco-authored-by: Claude <noreply@anthropic.com>\"" \
+  "Case-insensitive co-authored-by header with AI email blocks (Issue #648)"
+
+# --- Issue #648 DA Must 対応: 誤検知防止 Tripwire ----------------------------
+# M3: 人名 substring 衝突 (実在人名 / 架空人名) で誤 block しないこと
+add_case "CA06" "pass" "false-positive-guard" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Claudette Colvin <ccolvin@example.com>\"" \
+  "human name 'Claudette' substring does not block (Issue #648 M3)"
+
+add_case "CA07" "pass" "false-positive-guard" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Codexa Smith <codexa@example.com>\"" \
+  "human name 'Codexa' substring does not block (Issue #648 M3)"
+
+# M3: 本文中 / subject 中の言及で誤 block しないこと
+add_case "CA08" "pass" "false-positive-guard" \
+  "$WORKTREE" "$GIT commit -m \"fix: Co-Authored-By: Claude の挙動を確認\"" \
+  "mention of 'Co-Authored-By: Claude' in subject does not block (Issue #648 M3)"
+
+# M1: subject に AI vendor 名があるだけで body は人間のケースで shell hook
+# が誤 block しないこと (旧実装は literal 全体 OR 検出で誤 block していた)
+add_case "CA09" "pass" "false-positive-guard" \
+  "$WORKTREE" "$GIT commit -m \"feat: refactor copilot integration\\n\\nCo-Authored-By: Taro <taro@example.com>\"" \
+  "subject mentioning 'copilot' + human Co-Authored-By does not block (Issue #648 M1)"
+
+# --- Issue #648 DA Must M2: 実改行 (literal LF) 入り -m -----------------------
+# heredoc / printf 等で実改行が展開されたケース。旧実装は NORMALIZED 段で
+# `tr ';&|()`' '\n'` する前提だったため、-m 引数内の実改行で git 以外の行が
+# 大量に発生し検知漏れしていた。新実装は -m / --message の値を python3 で
+# pre-extract して実改行を保ったまま行単位 AND 判定する。
+#
+# bash の $'...' (C-style escape) で実 LF を埋め込んだ literal を投入する。
+# `g..it commit -m $'feat\n\nCo-Authored-By: Claude <noreply@anthropic.com>'`
+add_case "CA10" "block" "literal-newline" \
+  "$WORKTREE" "$GIT commit -m \$'feat\nfix\n\nCo-Authored-By: Claude <noreply@anthropic.com>'" \
+  "literal LF in -m with AI email blocks (Issue #648 M2)"
+
+# 人間メールの場合は実改行入りでも pass する (誤検知防止)
+add_case "CA11" "pass" "literal-newline" \
+  "$WORKTREE" "$GIT commit -m \$'feat\nfix\n\nCo-Authored-By: Taro <taro@example.com>'" \
+  "literal LF in -m with human email does not block (Issue #648 M2)"
 
 # --- rebase / force push (regression sanity) ---------------------------------
 add_case "RB01" "block" "sanity" \

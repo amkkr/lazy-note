@@ -585,28 +585,52 @@ describe("Issue #537: fg.muted 補助情報の WCAG 1.4.3 AA (4.5:1) 検証", ()
   // colorTokens.ts + culori `wcagContrast()` で実測)
   // ─────────────────────────────────────────────────────────────────────────
   //   light:
-  //     - fg.muted × bg.canvas  (sumi-600 × cream-50)  =  6.54:1  (AA pass / AAA 未達)
-  //     - fg.muted × bg.surface (sumi-600 × cream-100) =  6.17:1  (AA pass / AAA 未達)
-  //     - fg.muted × bg.muted   (sumi-600 × cream-75)  =  6.35:1  (AA pass / AAA 未達)
+  //     - fg.muted × bg.canvas   (sumi-600 × cream-50)  =  6.54:1  (AA pass / AAA 未達)
+  //     - fg.muted × bg.surface  (sumi-600 × cream-100) =  6.17:1  (AA pass / AAA 未達)
+  //     - fg.muted × bg.muted    (sumi-600 × cream-75)  =  6.35:1  (AA pass / AAA 未達)
+  //     - fg.muted × bg.elevated (sumi-600 × cream-50)  =  6.54:1  (AA pass / AAA 未達)
+  //       ※ light の bg.elevated は cream-50 = bg.canvas と同値のため数値も同じ
   //   dark:
-  //     - fg.muted × bg.canvas  (bone-100 × sumi-950)  = 14.84:1  (AAA 大幅超過)
-  //     - fg.muted × bg.surface (bone-100 × sumi-700)  =  7.91:1  (AAA pass)
-  //     - fg.muted × bg.muted   (bone-100 × sumi-650)  = 11.87:1  (AAA 大幅超過)
+  //     - fg.muted × bg.canvas   (bone-100 × sumi-950)  = 14.84:1  (AAA 大幅超過)
+  //     - fg.muted × bg.surface  (bone-100 × sumi-700)  =  7.91:1  (AAA pass)
+  //     - fg.muted × bg.muted    (bone-100 × sumi-650)  = 11.87:1  (AAA 大幅超過)
+  //     - fg.muted × bg.elevated (bone-100 × sumi-600)  =  5.39:1  (AA pass / AAA 未達、6 ペア中最低)
+  //       ※ dark の bg.elevated (sumi-600) は FeaturedCard.tsx / CardSkeleton.tsx /
+  //          ArticleSkeleton.tsx で使用中。現状 fg.muted を直接これらカード上に置く
+  //          コンポーネントは無いが、将来配置される場合の baseline 観測点として記録。
   //
   // 色設計変更時のレビュー観点 (= この describe を触る PR の reviewer 向け):
-  //   1. 上記 baseline 値から **±30% 以上の変化** があれば、token (fg.muted, bg.*) の
-  //      意味変更が伴っているはずなので、Issue の議論 / RFC との整合を確認する。
-  //   2. dark 側が AA 下限 (4.5:1) 近傍まで低下する変更は、「補助情報専用」用途を
+  //   1. 上記 baseline 値から **経験的目安として ±30% 以上の変化** があれば、token
+  //      (fg.muted, bg.*) の意味変更が伴っているはずなので、Issue の議論 / RFC との
+  //      整合を確認する (「±30%」は Issue #645 で initial value として導入した経験的
+  //      目安であり、規格根拠を持つ閾値ではない。運用しながら値域は調整する想定)。
+  //   2. 経験則と独立した **絶対値ベースのトリガー** として、以下が観測されたら必ず
+  //      個別に意図を確認する (WCAG 規格と直結する hard line):
+  //        - dark の最低 baseline (現状 5.39:1 = bg.elevated 上) が AA 下限 (4.5:1) を
+  //          下回ったら、補助情報用途として WCAG 1.4.3 を割り込むため要再設計。
+  //        - dark の最高 baseline (現状 14.84:1) が更に上昇した場合は、bone-100 の
+  //          token 役割 (補助情報) を逸脱して本文寄りになっていないか確認。
+  //   3. dark 側が AA 下限 (4.5:1) 近傍まで低下する変更は、「補助情報専用」用途を
   //      逸脱していないか (本文用途への転用の兆候がないか) を確認する。
-  //   3. light 側が AAA (7.0:1) を満たすほど上昇した場合は、fg.secondary との
+  //   4. light 側が AAA (7.0:1) を満たすほど上昇した場合は、fg.secondary との
   //      役割重複がないか (fg.muted の存在理由が薄れていないか) を確認する。
-  //   4. baseline 値そのもの (上記コメント) も同じ PR で実測値に更新すること。
+  //   5. baseline 値そのもの (上記コメント) も同じ PR で実測値に更新すること。
+  //
+  // **注意**: 上記 5 つのレビュー観点 (特に観点 5 = baseline 更新義務) は **CI で
+  // 機械的に強制できない**。本コメントは Tripwire テスト fixture ではなく純然たる
+  // JSDoc コメントであり、token 値が変わっても本ファイルのコメントは自動更新されず、
+  // テストも fail しない。**reviewer の目視確認が唯一の防御線** である。
+  // baseline と実測値の乖離を確認する際は、reviewer が手元で `pnpm contrast:check`
+  // を実行し、本コメントの値と差分があれば PR 内で実測値への更新を要求すること
+  // (bg.elevated × fg.muted は現状 `contrast:check` スクリプトの出力対象に含まれて
+  // いないため、必要に応じて culori `wcagContrast()` で直接検算する)。
   //
   // 留意点 (実測値の事実):
   //   - light の fg.muted (sumi-600) は **AA pass / AAA 未達** (bg.surface 上 6.17:1)。
   //     fg.muted は本文ではなく「補助情報のみ」用途に限定するルール (panda.config.ts
   //     §accent ガイドライン参照)。本文として転用する場合は fg.secondary に振り直す。
   //   - dark の fg.muted (bone-100) は全 bg 階層で AA 以上 (bg.surface 上 7.91:1 で AAA)。
+  //     最低値は bg.elevated (sumi-600) 上の 5.39:1 で、AAA 未達ながら AA pass。
 
   it("fg.muted × bg.surface (light) が WCAG 1.4.3 AA 4.5:1 を満たす", () => {
     // Coordinate / Resurface 見出しが想定する主要配置。
@@ -661,6 +685,29 @@ describe("Issue #537: fg.muted 補助情報の WCAG 1.4.3 AA (4.5:1) 検証", ()
     const r = ratio(
       semanticColorTokens.fgMuted.dark,
       semanticColorTokens.bgMuted.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("fg.muted × bg.elevated (light) が WCAG 1.4.3 AA 4.5:1 を満たす", () => {
+    // light の bg.elevated は cream-50 = bg.canvas と同値のため数値も同じ。
+    // 実測 6.54:1: AA pass / AAA 未達。FeaturedCard 等が将来 light でも
+    // bg.elevated を使い、その上に fg.muted の補助情報を載せた場合の保険。
+    const r = ratio(
+      semanticColorTokens.fgMuted.light,
+      semanticColorTokens.bgElevated.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("fg.muted × bg.elevated (dark) が WCAG 1.4.3 AA 4.5:1 を満たす", () => {
+    // FeaturedCard.tsx / CardSkeleton.tsx / ArticleSkeleton.tsx で bg.elevated
+    // (sumi-600) を使用。将来 fg.muted がこれらカード上に置かれた場合の baseline。
+    // 実測 5.39:1: AA pass / AAA 未達 (6 ペア中最低)。
+    // この値が AA 下限 (4.5:1) を下回ったら sumi-600 / bone-100 の再設計が必要。
+    const r = ratio(
+      semanticColorTokens.fgMuted.dark,
+      semanticColorTokens.bgElevated.dark,
     );
     expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
   });

@@ -560,6 +560,48 @@ describe("Issue #537: fg.muted 補助情報の WCAG 1.4.3 AA (4.5:1) 検証", ()
   // 未追加だった。本 describe で fg.muted を補助情報文字色として使うパターン
   // (Coordinate / Resurface の見出し等) を全 bg 階層について Tripwire 化する。
   //
+  // ─────────────────────────────────────────────────────────────────────────
+  // 設計判断: 上限ガード (AAA 超過の最大値) は採用しない (Issue #645)
+  // ─────────────────────────────────────────────────────────────────────────
+  // Tripwire の assert は **AA 下限 (4.5:1) のみ** を要求する。dark の fg.muted ×
+  // bg.canvas (14.84:1) / fg.muted × bg.muted (11.87:1) は AAA を大幅に超過するが、
+  // これに対する上限 assertion (例: `r <= 18.0` 等の上限ガード) は意図的に追加しない。
+  //
+  // 採用案: A (上限ガード不採用、JSDoc で baseline を documented snapshot として明記)
+  // 不採用案:
+  //   - B (上限 18:1 等の数値ガード): 「より高コントラストにする改善」を阻むため不採用。
+  //     アクセシビリティの方向性 (= 高い方が良い) に逆行する hard assertion は CI の
+  //     役割として不適切。color token の改善 (例: bone-100 → bone-50 への引き上げ等)
+  //     が技術的に望ましい場合に、無関係な Tripwire fail で改善 PR がブロックされる。
+  //   - C 完全採用 (snapshot 値そのものを fixture 化): 値の微変動 (OKLCH パース誤差、
+  //     色空間ライブラリ更新等) でも fail するため過剰検出になる。
+  //
+  // 採用 = A + C のハイブリッド: hard な test assertion は AA 下限のみ。
+  // baseline 実測値は本 JSDoc にコメント snapshot として残し、色設計変更時に
+  // 「数値が大幅に変化したか」をレビュー観点として手動確認できる足場にする。
+  //
+  // ─────────────────────────────────────────────────────────────────────────
+  // baseline 実測値 (2026-05-18 時点、`pnpm contrast:check` および
+  // colorTokens.ts + culori `wcagContrast()` で実測)
+  // ─────────────────────────────────────────────────────────────────────────
+  //   light:
+  //     - fg.muted × bg.canvas  (sumi-600 × cream-50)  =  6.54:1  (AA pass / AAA 未達)
+  //     - fg.muted × bg.surface (sumi-600 × cream-100) =  6.17:1  (AA pass / AAA 未達)
+  //     - fg.muted × bg.muted   (sumi-600 × cream-75)  =  6.35:1  (AA pass / AAA 未達)
+  //   dark:
+  //     - fg.muted × bg.canvas  (bone-100 × sumi-950)  = 14.84:1  (AAA 大幅超過)
+  //     - fg.muted × bg.surface (bone-100 × sumi-700)  =  7.91:1  (AAA pass)
+  //     - fg.muted × bg.muted   (bone-100 × sumi-650)  = 11.87:1  (AAA 大幅超過)
+  //
+  // 色設計変更時のレビュー観点 (= この describe を触る PR の reviewer 向け):
+  //   1. 上記 baseline 値から **±30% 以上の変化** があれば、token (fg.muted, bg.*) の
+  //      意味変更が伴っているはずなので、Issue の議論 / RFC との整合を確認する。
+  //   2. dark 側が AA 下限 (4.5:1) 近傍まで低下する変更は、「補助情報専用」用途を
+  //      逸脱していないか (本文用途への転用の兆候がないか) を確認する。
+  //   3. light 側が AAA (7.0:1) を満たすほど上昇した場合は、fg.secondary との
+  //      役割重複がないか (fg.muted の存在理由が薄れていないか) を確認する。
+  //   4. baseline 値そのもの (上記コメント) も同じ PR で実測値に更新すること。
+  //
   // 留意点 (実測値の事実):
   //   - light の fg.muted (sumi-600) は **AA pass / AAA 未達** (bg.surface 上 6.17:1)。
   //     fg.muted は本文ではなく「補助情報のみ」用途に限定するルール (panda.config.ts
@@ -629,4 +671,7 @@ describe("Issue #537: fg.muted 補助情報の WCAG 1.4.3 AA (4.5:1) 検証", ()
   // ドキュメント化している。値が将来改善されて AAA を満たした場合でも、それは
   // 純粋な改善変更であり Tripwire でブロックすべきではないため、本 describe では
   // 「AAA を満たさない」ことを assert する negative test は持たない。
+  //
+  // 同様の理由で dark 側の AAA 大幅超過 (14.84:1 等) に対する上限 assertion も
+  // 追加していない (Issue #645 で確定した設計判断、本 describe 冒頭 JSDoc 参照)。
 });

@@ -34,6 +34,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Issue #655: ci.yml (lint-and-typecheck job) と同じ cache key を共有し、
+      # deploy 時の tsc (pnpm run build 内の `tsc` / `type-check` / `type-check:scripts`) の
+      # cold ビルドを回避する。
+      # ci.yml と key を共有する理由:
+      # - ci.yml の key 構成 (tsconfig.json / tsconfig.test.json / tsconfig.scripts.json の hash + src/scripts の hash)
+      #   は deploy 時の incremental cache に対しても valid (test 用 tsconfig の hash が変わっても src の
+      #   .tsbuildinfo 自体は再利用可能であり、key が変わることで再生成されても害がない)
+      # - deploy 頻度は master push 時のみで頻度が低く、cache 書き込み衝突リスクは小さい
+      # - 別 key にすると ci.yml の build 成果を再利用できず deploy 時に毎回 cold ビルドになる
+      # tsconfig.build.json は本 cache のスコープ外 (build script では `tsc` (= tsconfig.json) を使うため)
+      - name: Cache tsc incremental build info (Issue #655)
+        uses: actions/cache@v5
+        with:
+          path: .tsbuildinfo
+          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts') }}
+          restore-keys: |
+            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json') }}-
+            tsc-${{ runner.os }}-
+
       - name: Build project
         run: pnpm run build
 

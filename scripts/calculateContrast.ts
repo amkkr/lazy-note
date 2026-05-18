@@ -22,19 +22,62 @@
  *   node scripts/calculateContrast.ts --strict
  *     # マージン僅少 (1.05 倍以内) も fail にする
  *
- * Biome 厳格化耐性 (Issue #623 で実機検証、2026-05-17):
- *   - 本ファイルは biome を以下条件で厳格化しても違反 0 を維持する:
+ * Biome 厳格化耐性 (Issue #623 で実機検証、2026-05-17 / Issue #653 で SSoT 化):
+ *
+ *   本ファイルは「`maxAllowedComplexity:8` 運用」の SSoT (Single Source of Truth)。
+ *   biome.jsonc 側は本 JSDoc への参照のみ持ち、判断基準・採用根拠・再現手順は
+ *   全てここに集約する (drift 防止)。
+ *
+ *   ## スコープの明確化 (重要)
+ *
+ *   ここで言う `maxAllowedComplexity:8` は **本ファイル単体の予防検証値** であり、
+ *   biome 全体設定 (`biome.jsonc` の `noExcessiveCognitiveComplexity`) は
+ *   biome default の `maxAllowedComplexity:15` のまま運用している。
+ *   「8 を緩める/引き下げる」という表現は全て本ファイル内の予防検証値の話。
+ *
+ *   ## 厳格化条件
+ *
+ *   以下条件で biome を厳格化しても本ファイルは違反 0 を維持する:
  *     * `complexity.noExcessiveCognitiveComplexity`: error, `maxAllowedComplexity: 8`
  *     * `correctness.noUnusedVariables`: error
  *     * `suspicious.noImplicitAnyLet`: error
- *   - 再現手順 (任意の検証ブランチで):
- *     1. biome.json の上記 3 ルールを `"error"` + `maxAllowedComplexity: 8` に上げる
+ *
+ *   ## 採用根拠 (なぜ 8 なのか)
+ *
+ *   - 本スクリプトは AAA コントラスト実測という CI ハードゲート (G2) の中核であり、
+ *     条件分岐の追加でロジックが肥大化すると検証ロジック自体の信頼性が落ちる
+ *   - 8 という数値は「ヘルパー抽出 / 早期 return / map ベース dispatch を維持し、
+ *     ネスト深い if/switch を持たない」状態を機械的に担保できる下限値として実機選定
+ *   - biome default(15) や SonarQube default(15) など一般推奨 (10-15 帯) より厳しいが、
+ *     現状のコード構造はヘルパー分割で 8 以下を満たしている (実測ベースの選定であり
+ *     「より厳しい方が良い」という主観ではなく「現状で達成できる下限」)
+ *
+ *   ## 引き上げ判断基準 (= 本ファイル内の 8 を緩める)
+ *
+ *   決定は **測定値ベース** で行う。以下のいずれかが観測された場合に再評価する:
+ *     - ヘルパー分割を尽くしても複雑度 8 を超える関数が出現し、分割が構造を
+ *       不自然に歪めると複数レビュワーが合意した場合
+ *     - 例として: 当該スクリプトに `--strict` / `--csv` 以外の新規モード分岐が
+ *       2 つ以上追加されたケース等が該当しうる (これは目安であり決定基準ではない)
+ *   許容上限は段階的に 10 まで。10 を超える場合はリファクタを先に検討する。
+ *
+ *   ## 引き下げ判断基準 (= 全体閾値として 8 を採用する)
+ *
+ *   全体閾値化は本ファイルの実機検証範囲外。他ファイルへの厳格化波及には
+ *   影響評価が必要なため、別 Issue で議論する。
+ *
+ *   ## 再現手順 (任意の検証ブランチで)
+ *
+ *     1. biome.jsonc の上記 3 ルールを `"error"` + `maxAllowedComplexity: 8` に上げる
  *     2. `pnpm lint` を実行し、scripts/calculateContrast.ts の違反 0 を確認
  *     3. `pnpm test:run` で挙動の regression がないことを確認
  *     4. `node scripts/calculateContrast.ts --csv` の出力が master HEAD と
  *        完全一致することを `md5sum` で確認
- *   - 維持コストを避けるため CI workflow としては常設化しない (Issue #623 で判断)。
- *     再評価が必要になった場合は別 Issue を切ること。
+ *
+ *   ## CI 常設化を見送る理由
+ *
+ *   維持コストを避けるため CI workflow としては常設化しない (Issue #623 で判断)。
+ *   再評価が必要になった場合は別 Issue を切ること。
  */
 
 import { basename } from "node:path";

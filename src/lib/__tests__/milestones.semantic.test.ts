@@ -26,6 +26,19 @@ import { describe, expect, it } from "vitest";
 import milestonesJson from "../../../datasources/milestones.json";
 import type { Milestone } from "../anchors";
 
+/**
+ * 注意: 本ファイルの EXPECTED_MILESTONES は本番 milestones.json と同一の inline fixture。
+ * 共通化すると silent pass リスクが復活するため意図的に重複させているが、
+ * milestone 件数が 5 件を超えた場合は以下の代替案を再評価する:
+ *
+ * - 案 1: src/test/fixtures/expectedMilestones.ts に外出しし、Coordinate.allPosts.test.tsx /
+ *   AnchorPage.allPosts.test.tsx の testMilestones から再利用 (silent pass リスクは残るが
+ *   メンテ負荷削減)
+ * - 案 2: Issue #547 (Zod schema 検証) で fixture 自体を廃止し、schema parse による
+ *   意味的検証に置き換える
+ *
+ * (Issue #631 / PR #628 / Issue #615 follow-up)
+ */
 const EXPECTED_MILESTONES: readonly Milestone[] = [
   {
     date: "2025-08-05",

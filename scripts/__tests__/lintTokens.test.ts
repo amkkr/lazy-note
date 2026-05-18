@@ -438,6 +438,133 @@ describe("stripComments", () => {
   });
 });
 
+// ====================================================================
+// サロゲートペア / マルチバイト文字境界条件 (Issue #656, Issue #638 を吸収)
+//
+// 背景:
+//   `stripComments` / `processChar` / `handleStringLiteral` のステート
+//   マシンは `for (let i = 0; i < line.length; i += 1)` で UTF-16
+//   コードユニット単位走査する。サロゲートペア (`𠮷` = U+20BB7、絵文字
+//   `🎉` = U+1F389 等) は high surrogate (0xD800-0xDBFF) + low surrogate
+//   (0xDC00-0xDFFF) の 2 コードユニットに分割される。
+//
+//   サロゲート単体 (U+D800-U+DFFF の範囲) は ASCII クォート (U+0027
+//   `'` / U+0022 `"` / U+0060 `` ` ``) ともコメント開始記号 (U+002F `/`
+//   / U+002A `*`) とも一致しないため、ステート遷移を引き起こさず素通り
+//   するのが正しい挙動。本テストは「**ステート崩壊が起きていない**」
+//   ことを境界条件として担保する。
+//
+// Issue #638 重複範囲:
+//   Issue #638 「日本語文字列リテラル / 絵文字でクォート開閉が崩壊しない
+//   か」も本テスト群でカバーする (`'日本語'` / `"日本語"` /
+//   `` `日本語` `` / `'🎉token🎉'`)。Issue #638 は本 PR で実装吸収済み
+//   として close 提案する。
+//
+// 仕様確認 (CJK 全角クォート):
+//   `「」` (U+300C / U+300D) は BMP 内の単一コードユニットだが ASCII
+//   クォートではない。**ステート遷移を起こさず素通り**するのが期待
+//   される挙動 (これらをクォートとして解釈してしまうと、コメント中の
+//   日本語引用「これは bg.0 のこと」のような文言で stripComments が
+//   崩壊し旧 token 検知に false positive / false negative が出る)。
+// ====================================================================
+describe("stripComments / processChar - サロゲートペア境界", () => {
+  it("サロゲートペアを含む文字列リテラルを破損せず通せる", () => {
+    // `'𠮷'` (U+20BB7 サロゲートペア) を含む行が、開閉クォートを
+    // 正しく検出して inBlockComment=false で完了できる。
+    const { sanitized, inBlockComment } = stripComments(
+      "const name = '𠮷野家';",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    // サロゲートペアそのものが sanitized に保持される。
+    expect(sanitized).toContain("𠮷野家");
+    // 末尾セミコロンも保持される (= クォート開閉が正しく検出され、
+    // 後続の `;` がコード領域として扱われている)。
+    expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+  });
+
+  it("サロゲートペアを含む行末コメントを空白で埋められる", () => {
+    // `// 𠮷` 以降が空白置換され、サロゲートペアがコメント領域として
+    // 正しく剥がされる。
+    const { sanitized, inBlockComment } = stripComments(
+      "const a = 1; // 𠮷野家コメント",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    expect(sanitized.startsWith("const a = 1; ")).toBe(true);
+    // サロゲートペアもコメント領域なので残らない。
+    expect(sanitized).not.toContain("𠮷");
+    expect(sanitized).not.toContain("コメント");
+  });
+
+  it("エスケープ後に高サロゲート / 低サロゲートが来てもステート崩壊しない", () => {
+    // `\\𠮷` のように、バックスラッシュエスケープの直後に high
+    // surrogate が来るケース。`handleStringLiteral` のエスケープ処理
+    // (`advance: 1`) は次のコードユニットを「エスケープされた文字」
+    // として消費するため、high surrogate 単体が advance 対象になる。
+    // 低サロゲートが次イテレーションで素通りすることを確認する。
+    const state = makeState({ inSingle: true });
+    const out: string[] = [];
+    // `'𠮷'` は ["'", high, low, "'"]。バックスラッシュ + high の組合せ
+    // を `handleStringLiteral` 単体で再現する。
+    const high = "\uD842";
+    const low = "\uDFB7";
+    const r1 = handleStringLiteral("\\", high, out, state, "'");
+    expect(r1.advance).toBe(1);
+    expect(state.inSingle).toBe(true);
+    // 続く low surrogate は終端クォートでも何でもないので素通り。
+    const r2 = handleStringLiteral(low, "'", out, state, "'");
+    expect(r2.advance).toBe(0);
+    expect(state.inSingle).toBe(true);
+    expect(out.join("")).toBe(`\\${high}${low}`);
+  });
+
+  it("日本語文字列リテラル (シングル / ダブル / バッククォート) のクォート開閉を検出できる", () => {
+    // Issue #638 重複範囲。3 種類のクォートで日本語文字列リテラルが
+    // 正しく開閉検出されることを確認する。
+    for (const quote of ["'", '"', "`"] as const) {
+      const { sanitized, inBlockComment } = stripComments(
+        `const v = ${quote}日本語${quote};`,
+        { inBlockComment: false },
+      );
+      expect(inBlockComment).toBe(false);
+      expect(sanitized).toContain("日本語");
+      // 末尾セミコロンが残る = クォートが正しく閉じたとみなされている。
+      expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+    }
+  });
+
+  it("絵文字 (`'🎉token🎉'`) のクォート開閉を検出できる", () => {
+    // `🎉` は U+1F389 (サロゲートペア)。文字列リテラル内に複数含まれて
+    // もステートマシンが崩壊せず、後続の `;` がコード領域として扱われる。
+    const { sanitized, inBlockComment } = stripComments(
+      "const e = '🎉token🎉';",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    expect(sanitized).toContain("🎉token🎉");
+    expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+  });
+
+  it("CJK 全角クォート (`「」`) は ASCII クォート扱いされない (仕様確認)", () => {
+    // `「` (U+300C) / `」` (U+300D) は ASCII シングル / ダブル / バック
+    // クォートとは別の Unicode コードポイント。ステート遷移を起こさず
+    // 素通りすべきで、続く `// 旧 bg.0` が**行コメントとして剥がされる**
+    // ことが期待される (= 全角クォートを文字列リテラル開始と誤判定して
+    // 行コメントを保持してしまうと false negative になる)。
+    const { sanitized, inBlockComment } = stripComments(
+      "const v = 「日本語」; // 旧 bg.0",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    // 全角クォート自体はコード領域として保持される (≒ 元の文字列が残る)。
+    expect(sanitized).toContain("「日本語」");
+    // `// 旧 bg.0` 以降は空白置換されるため `bg.0` は sanitized に残らない。
+    expect(sanitized).not.toContain("bg.0");
+    expect(sanitized).not.toContain("旧");
+  });
+});
+
 describe("iterateMatches", () => {
   it("全マッチを onMatch コールバックで列挙できる", () => {
     const collected: string[] = [];

@@ -10,6 +10,15 @@ interface MetaInfoProps {
   variant?: "card" | "header" | "featured" | "bento";
 }
 
+// Issue #721 (PR #715 follow-up): 表示文言テンプレートを定数として外出し。
+// `"分で読了"` は単一ファイル内で完結する文言のため `i18nLiterals.ts` への
+// 横串集約はせず、ファイル内ローカル定数に留める (Issue #534 / #630 方針、
+// CLAUDE.md「ファイル内局所定数」と「横串共通定数」の使い分け基準に準拠)。
+// テンプレート関数形式は `Coordinate.tsx` の `COORDINATE_LABEL_TEMPLATE` /
+// `Resurface.tsx` の `RESURFACE_REASON_LABEL_*_TEMPLATE` に倣う。
+const READING_TIME_LABEL_TEMPLATE = (minutes: number): string =>
+  `${minutes}分で読了`;
+
 // スタイルをコンポーネント外に定数として定義
 const containerStyles = css({
   display: "flex",
@@ -208,7 +217,7 @@ export const MetaInfo = memo(
         {readingTimeMinutes !== undefined && (
           <div className={itemClassName} data-token-bg={styles.itemBg}>
             <Clock aria-hidden="true" size={styles.iconSize} />
-            <span>{readingTimeMinutes}分で読了</span>
+            <span>{READING_TIME_LABEL_TEMPLATE(readingTimeMinutes)}</span>
           </div>
         )}
       </div>

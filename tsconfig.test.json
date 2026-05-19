@@ -18,8 +18,8 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     // Incremental build (Issue #580): tsconfig.json と独立した .tsbuildinfo を出力。
-    // 本体と test で include は同じだが、設定差分により別ビルド状態を持つため
-    // ファイルを分離する。
+    // include は本体を継承する (extends: "./tsconfig.json" により本体の include がそのまま
+    // 適用される) が、設定差分により別ビルド状態を持つためファイルを分離する。
     "tsBuildInfoFile": "./.tsbuildinfo/tsconfig.test.tsbuildinfo"
   },
   // 本体 tsconfig が src/api/** を exclude しているのを、テスト側では取り消す

@@ -1,6 +1,61 @@
 import { useEffect } from "react";
 
 /**
+ * Biome 厳格化耐性メモ (Issue #652 / PR #623 follow-up)
+ *
+ * 本ファイルは `maxAllowedComplexity:8` 厳格化条件下でも違反 0 になるよう、
+ * `handleClick` 内のコピー成否分岐を `copyAndAnimate` ヘルパーへ抽出している。
+ * 再現手順:
+ *   1. `biome.jsonc` の `noExcessiveCognitiveComplexity` の `maxAllowedComplexity`
+ *      を 8 に下げる
+ *   2. `pnpm exec biome lint src/hooks/useCodeBlockCopy.ts` で違反 0 を確認
+ *   3. `pnpm test:run` で既存テスト全 pass を確認
+ *
+ * 公開 API シグネチャ (`useCodeBlockCopy` の引数・戻り値) は不変。
+ */
+
+/**
+ * コピー成功時の表示文言と復元までのディレイ (ms)。
+ */
+const COPY_SUCCESS_LABEL = "コピー済み!";
+const COPY_FAILURE_LABEL = "コピー失敗";
+const COPY_DEFAULT_LABEL = "コピー";
+const RESTORE_DELAY_MS = 2000;
+
+/**
+ * 指定 button 要素のテキストを一時的に label に切り替え、`delayMs` 後に
+ * `restoreTo` の文言へ戻すユーティリティ。
+ *
+ * コピー成功時 / 失敗時の表示切替を 1 つの関数に集約し、`handleClick` の
+ * cognitive complexity を引き下げる。
+ */
+const flashButtonLabel = (
+  target: HTMLElement,
+  transient: string,
+  restoreTo: string | null,
+  delayMs: number,
+): void => {
+  target.textContent = transient;
+  setTimeout(() => {
+    target.textContent = restoreTo;
+  }, delayMs);
+};
+
+/**
+ * クリップボードへのコピーと UI フィードバック (成功 / 失敗の文言切替) を
+ * 1 関数にまとめる。`handleClick` から try/catch 分岐を引き剥がすために抽出。
+ */
+const copyAndAnimate = async (target: HTMLElement, code: string): Promise<void> => {
+  try {
+    await navigator.clipboard.writeText(code);
+    const originalText = target.textContent;
+    flashButtonLabel(target, COPY_SUCCESS_LABEL, originalText, RESTORE_DELAY_MS);
+  } catch {
+    flashButtonLabel(target, COPY_FAILURE_LABEL, COPY_DEFAULT_LABEL, RESTORE_DELAY_MS);
+  }
+};
+
+/**
  * コードブロックのコピーボタンにイベントデリゲーションでクリックリスナーを設定するフック。
  *
  * クリック時、対象 button の `data-code` 属性値を `navigator.clipboard.writeText` に
@@ -23,30 +78,16 @@ export const useCodeBlockCopy = (
       return;
     }
 
-    const handleClick = async (event: MouseEvent) => {
+    const handleClick = (event: MouseEvent): void => {
       const target = event.target as HTMLElement;
       if (!target.classList.contains("copy-btn")) {
         return;
       }
-
       const code = target.getAttribute("data-code");
       if (!code) {
         return;
       }
-
-      try {
-        await navigator.clipboard.writeText(code);
-        const originalText = target.textContent;
-        target.textContent = "コピー済み!";
-        setTimeout(() => {
-          target.textContent = originalText;
-        }, 2000);
-      } catch {
-        target.textContent = "コピー失敗";
-        setTimeout(() => {
-          target.textContent = "コピー";
-        }, 2000);
-      }
+      void copyAndAnimate(target, code);
     };
 
     container.addEventListener("click", handleClick);

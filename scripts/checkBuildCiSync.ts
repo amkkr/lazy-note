@@ -81,20 +81,16 @@ const splitCommands = (script: string): string[] => {
  *   - `"tsc --project tsconfig.api.json"`
  *     → `["tsc", "--project", "tsconfig.api.json"]`
  *
- * シェルの quoting / escape は scope 外 (`build` / `build:ci` は単純な
- * 空白区切りの command 列にしか使われていないため、最小実装で十分)。
- * 将来 quoting が必要になったら本関数を拡張する。
- *
  * シェルクォート非対応の限界 (Issue #723 M-2):
  *   - 本実装は `"..."` / `'...'` のシェルクォートを解釈しない単純な空白
- *     split である。
+ *     split である (= shell quoting / escape は scope 外)。
  *   - そのため空白を含むパス (例: `"path with space/file.ts"`) は
  *     `["\"path", "with", "space/file.ts\""]` のように別 word に分割される。
  *   - 現状 `package.json` の `build` / `build:ci` script コマンドに空白入り
  *     パスは含まれない設計判断のため、この限界は許容している。
  *   - 将来空白入りパスを script に含める必要が出た場合は、`shell-quote` 等の
- *     外部ライブラリ導入を再検討する (現状はメモリ「外部ライブラリの追加は
- *     原則しない」方針との兼ね合いで inline 実装を優先)。
+ *     外部ライブラリ導入を再検討する (本プロジェクトの外部依存追加禁止方針
+ *     との兼ね合いで、現状は inline 実装を優先する)。
  *
  * @internal テスト専用 export. 本番コードから import しないこと
  */
@@ -153,18 +149,19 @@ const matchesAsSuffix = (
  *     も token 列単位の完全一致として自然に扱える。
  *
  * 案 A (word 単位 suffix match / 現採用) と案 B (regex `\b<token>$`) の比較
- * (Issue #701 / #723):
+ * (Issue #701 で採用判断、Issue #723 で JSDoc 化):
  *   - 案 A: 各 command を空白分割した token 配列の末尾を要素比較する方式
  *     (現実装)。
  *   - 案 B: `build` 側 command 文字列に対し正規表現 `\b<ciCommand>$` で
  *     末尾マッチを判定する方式。
  *   - 採用判断 (案 A):
- *     1. **JS `\b` の挙動が記号で意図せずマッチする可能性**: ECMAScript の
- *        `\b` は ASCII の `[A-Za-z0-9_]` 境界として定義されており、`-` や
- *        `.` 等の記号は word 文字扱いされない。そのため `\btsc\b` は
- *        `my-tsc-wrapper` の `-tsc-` 部分にもマッチしうる (案 B では別途
- *        前方境界の除外ロジックを足す必要がある)。案 A は token 配列の
- *        要素比較なので `tsc !== "my-tsc-wrapper"` と素直に分離できる。
+ *     1. **JS `\b` がハイフン区切り suffix で意図せずマッチする**:
+ *        ECMAScript の `\b` は ASCII の `[A-Za-z0-9_]` 境界として定義されて
+ *        おり、`-` や `.` 等の記号は word 文字扱いされない。そのため
+ *        `\btsc$` は `pnpm exec my-tsc` の末尾 `tsc` (`-` の直後で word
+ *        境界が成立) にもマッチしてしまい、本来 NG にしたい誤検出を素直に
+ *        排除できない。案 A は token 列 `[..., "my-tsc"]` の suffix が
+ *        `[tsc]` ではないため `my-tsc !== tsc` として自然に弾ける。
  *     2. **可読性**: token 配列の要素比較は手続きが直線的で、`offset` /
  *        ループ index を読めば挙動が一意に追える。案 B は `<ciCommand>`
  *        を正規表現に埋め込む際の escape 処理が必要になり、副次的な

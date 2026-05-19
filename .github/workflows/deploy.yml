@@ -53,14 +53,14 @@ jobs:
       #
       # 本体 cache の hashFiles から `src/**/*.{test,spec}.{ts,tsx}` を negation pattern で除外する
       # ことで、test 専用ファイルの変更が本体 cache key に波及しないようにする (Issue #640 の主目的)。
+      #
+      # NOTE: PR #731 (Issue #722 follow-up) で各 entry の restoreKeys を撤去した。経緯は ci.yml 側の
+      # 同 step コメント参照 (stale cache 起因の tsc --incremental + --noEmit 誤診断防止)。
       - name: Cache tsc main build info (Issue #640)
         uses: actions/cache@v5
         with:
           path: .tsbuildinfo/tsconfig.tsbuildinfo
           key: tsc-main-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', '!src/**/*.test.ts', '!src/**/*.test.tsx', '!src/**/*.spec.ts', '!src/**/*.spec.tsx', '!src/api/**') }}
-          restore-keys: |
-            tsc-main-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json') }}-
-            tsc-main-${{ runner.os }}-
 
       # test 側 cache: tsconfig.test.json は tsconfig.json を継承するため、本体ソースの変更でも
       # invalidate する必要がある (本体 + テストファイル両方を hash 対象に含める)。
@@ -69,9 +69,6 @@ jobs:
         with:
           path: .tsbuildinfo/tsconfig.test.tsbuildinfo
           key: tsc-test-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx') }}
-          restore-keys: |
-            tsc-test-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json') }}-
-            tsc-test-${{ runner.os }}-
 
       # scripts 側 cache: tsconfig.scripts.json は scripts/ のみを対象 (Issue #634)。
       - name: Cache tsc scripts build info (Issue #640)
@@ -79,9 +76,6 @@ jobs:
         with:
           path: .tsbuildinfo/tsconfig.scripts.tsbuildinfo
           key: tsc-scripts-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.scripts.json') }}-${{ hashFiles('scripts/**/*.ts', 'scripts/**/*.tsx') }}
-          restore-keys: |
-            tsc-scripts-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.scripts.json') }}-
-            tsc-scripts-${{ runner.os }}-
 
       # api 側 cache: tsconfig.api.json は src/api/ のみを対象 (Issue #667)。
       # ただし src/api/posts.ts は ../lib/markdownParser を import するため、src/lib も hash 対象に含める。
@@ -90,9 +84,6 @@ jobs:
         with:
           path: .tsbuildinfo/tsconfig.api.tsbuildinfo
           key: tsc-api-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.api.json') }}-${{ hashFiles('src/api/**/*.ts', 'src/api/**/*.tsx', 'src/lib/**/*.ts', 'src/lib/**/*.tsx', '!src/**/*.test.ts', '!src/**/*.test.tsx', '!src/**/*.spec.ts', '!src/**/*.spec.tsx') }}
-          restore-keys: |
-            tsc-api-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.api.json') }}-
-            tsc-api-${{ runner.os }}-
 
       - name: Build project
         run: pnpm run build

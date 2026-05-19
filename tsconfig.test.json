@@ -3,10 +3,17 @@
   // include は本体の ["src"] を継承する (Issue #634 で本体から "scripts" を除外したため、
   // ここでも src 配下のテストのみが対象となる)。
   // scripts 配下の __tests__ は tsconfig.scripts.json 側で型チェックする。
+  //
+  // 本体 tsconfig は src/api/** を exclude しているが (Issue #667)、
+  // テスト側は src/api/__tests__/posts.test.ts と src/lib/__tests__/*.ts (node:fs 等を
+  // 使うもの) を含めて型チェックする必要があるため、exclude を空配列で上書きし、
+  // types に "node" を追加して Node API を型付き参照可能にする。
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    // vite/client は src 配下のテストが import.meta.env 等を参照するため必要
-    "types": ["vitest/globals", "@testing-library/jest-dom", "vite/client"],
+    // vite/client は src 配下のテストが import.meta.env 等を参照するため必要。
+    // node は src/api/__tests__ や src/lib/__tests__ の一部が node:fs / process /
+    // __dirname 等を参照するため必要 (Issue #667)。
+    "types": ["vitest/globals", "@testing-library/jest-dom", "vite/client", "node"],
     // テストでは setup 用の helper 変数等で意図的に未使用なものを許容する
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -14,5 +21,8 @@
     // 本体と test で include は同じだが、設定差分により別ビルド状態を持つため
     // ファイルを分離する。
     "tsBuildInfoFile": "./.tsbuildinfo/tsconfig.test.tsbuildinfo"
-  }
+  },
+  // 本体 tsconfig が src/api/** を exclude しているのを、テスト側では取り消す
+  // (src/api/__tests__/posts.test.ts を型チェック対象に含めるため)。
+  "exclude": []
 }

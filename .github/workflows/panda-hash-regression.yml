@@ -56,21 +56,21 @@ jobs:
         # test を二重実行しないため pnpm exec で panda / vite build を呼ぶ。
         #
         # Issue #528: hash:true build step 側は package.json の `build:ci`
-        # (= `panda && tsc && vite build`) を呼ぶ形に統一済みだが、本 step
+        # を呼ぶ形に統一済みだが (実体は `pnpm run build:ci` を参照)、本 step
         # は意図的に `build:ci` を使わない。理由は直下 (Issue #625 DA #2) の
         # とおり baseline build からは tsc を省きたいため。`build:ci` に
         # 含まれる tsc を流用すると baseline 短縮のメリットが消える。
         # 短縮を維持するため本 step は `pnpm exec panda && pnpm exec vite
         # build` を直接呼ぶ運用を継続する。
         #
-        # Issue #625 (DA #2): baseline build からは `pnpm exec tsc` を意図的に
+        # Issue #625 (DA #2): baseline build からは tsc 系コマンドを意図的に
         # 省略する。本 step の目的は bundle size 計測のみで、型チェックは
         # bundle size と直交する。後段の hash:true build step
         # (`Build project with hash:true`) で同じ tree を tsc にかけるため
         # 型 regression は引き続き検知できる。
         # tsc を省くことで baseline build を 30 秒〜数十秒短縮できる。
-        # 注意: baseline (panda + vite build) と hash:true side (build:ci =
-        # panda + tsc + vite build) は実行するコマンド列が非対称になる。
+        # 注意: baseline (panda + vite build) と hash:true side
+        # (`pnpm run build:ci` で実体定義) は実行するコマンド列が非対称になる。
         # bundle size 比較は最終 bundle に tsc が影響しないため妥当だが、
         # 所要時間比較は非対称のため不可 (baseline は tsc を含まないため
         # hash:true より速くなる)。所要時間を将来比較したくなった場合は
@@ -192,16 +192,23 @@ jobs:
         # 走らせて build regression を切り分ける。
         if: steps.tests.outcome == 'success'
         continue-on-error: true
-        # pnpm build は内部で `pnpm run lint && pnpm run test:run && pnpm run
-        # type-check && panda && tsc && vite build` を呼ぶため、上の test step
-        # と二重実行になる。さらに build 内 test 失敗が build regression として
-        # 通知されると原因切り分けが崩れるため、ここでは test / lint を含まない
-        # 専用 script `build:ci` (= `panda && tsc && vite build`) を呼ぶ。
+        # pnpm build は内部で lint / test:run / type-check 系を経た上で
+        # panda + tsc + (tsc --project tsconfig.api.json) + vite build を呼ぶため、
+        # 上の test step と二重実行になる。さらに build 内 test 失敗が
+        # build regression として通知されると原因切り分けが崩れるため、
+        # ここでは test / lint を含まない専用 script `build:ci` を呼ぶ
+        # (実体は package.json の `build:ci` を参照。本番 `build` 経路の
+        # panda / tsc / vite build と同等のコマンド列に追従させている)。
         # Issue #528: 以前は `pnpm exec panda && pnpm exec tsc && pnpm exec vite
         # build` を直接書いていたが、本番 `build` script とのコマンド列 drift
         # を防ぐため package.json 側に `build:ci` を切り出して呼ぶ形に変更
-        # した。`build:ci` は本番 build 経路 (panda + tsc + vite build) と
-        # 等価な軽量版で、test / lint / type-check:scripts は意図的に含めない。
+        # した。`build:ci` は本番 build 経路と等価な軽量版で、test / lint /
+        # type-check:scripts は意図的に含めない。
+        # Issue #667: src/api/ を本体 tsc から分離した際、`build:ci` に
+        # `tsc --project tsconfig.api.json` step が追加された。本番 `build`
+        # も同じ tsc 列を踏むため drift は無く、本 step は `pnpm run build:ci`
+        # を呼ぶだけで自動追従する。コマンド列の正確な定義は package.json の
+        # `build:ci` を一次情報源として参照すること。
         run: pnpm run build:ci
 
       - name: Report build regression

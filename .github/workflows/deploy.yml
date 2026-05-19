@@ -35,10 +35,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Issue #655: ci.yml (lint-and-typecheck job) と同じ cache key を共有し、
-      # deploy 時の tsc (pnpm run build 内の `tsc` / `type-check` / `type-check:scripts`) の
+      # deploy 時の tsc (pnpm run build 内の `tsc` / `type-check` / `type-check:scripts` / `type-check:api`) の
       # cold ビルドを回避する。
       # ci.yml と key を共有する理由:
-      # - ci.yml の key 構成 (tsconfig.json / tsconfig.test.json / tsconfig.scripts.json の hash + src/scripts の hash)
+      # - ci.yml の key 構成 (tsconfig.json / tsconfig.test.json / tsconfig.scripts.json / tsconfig.api.json の hash + src/scripts の hash)
       #   は deploy 時の incremental cache に対しても valid (test 用 tsconfig の hash が変わっても src の
       #   .tsbuildinfo 自体は再利用可能であり、key が変わることで再生成されても害がない)
       # - deploy 頻度は master push 時のみで頻度が低く、cache 書き込み衝突リスクは小さい
@@ -48,6 +48,9 @@ jobs:
       # NOTE: Issue #654 (PR #669) で ci.yml の cache key に追加された `'scripts/**/*.tsx'` glob と
       # 整合させるため、ここにも同 glob を含める。これにより #654 / #655 のいずれが先にマージされても
       # ci.yml と deploy.yml の cache key が drift しない。
+      # NOTE: Issue #667 で新設した tsconfig.api.json も ci.yml と揃えて hashFiles に含める
+      # (src/api/ を本体 tsc から分離し、`build:ci` 内で `tsc --project tsconfig.api.json` を踏むため、
+      # tsconfig.api.json の変更でも .tsbuildinfo の invalidation が必要になる)。
       # **重要**: 本 cache step の `key` / `restore-keys` / `path` を変更する際は ci.yml
       # (lint-and-typecheck job) 側の同 step も同期して変更すること。逆も同様。drift すると
       # ci.yml が warm にした .tsbuildinfo を deploy.yml 側が再利用できず (またはその逆)、warm cache が
@@ -56,9 +59,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .tsbuildinfo
-          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts', 'scripts/**/*.tsx') }}
+          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json', 'tsconfig.api.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts', 'scripts/**/*.tsx') }}
           restore-keys: |
-            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json') }}-
+            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json', 'tsconfig.api.json') }}-
             tsc-${{ runner.os }}-
 
       - name: Build project

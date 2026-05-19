@@ -37,32 +37,62 @@ jobs:
       # Issue #655: ci.yml (lint-and-typecheck job) と同じ cache key を共有し、
       # deploy 時の tsc (pnpm run build 内の `tsc` / `type-check` / `type-check:scripts` / `type-check:api`) の
       # cold ビルドを回避する。
+      # Issue #640: PR #580 では 4 つの .tsbuildinfo を `.tsbuildinfo/` 1 entry でまとめていたため、
+      # test ファイル変更で本体 buildinfo の cache key まで invalidate される過剰 invalidation が
+      # 発生していた。これを cache entry を「本体 / test / scripts / api」の 4 つに分離することで、
+      # それぞれ独立した cache key で部分 invalidate を効かせる構造に変更する。
       # ci.yml と key を共有する理由:
-      # - ci.yml の key 構成 (tsconfig.json / tsconfig.test.json / tsconfig.scripts.json / tsconfig.api.json の hash + src/scripts の hash)
-      #   は deploy 時の incremental cache に対しても valid (test 用 tsconfig の hash が変わっても src の
-      #   .tsbuildinfo 自体は再利用可能であり、key が変わることで再生成されても害がない)
+      # - ci.yml の key 構成は deploy 時の incremental cache に対しても valid
       # - deploy 頻度は master push 時のみで頻度が低く、cache 書き込み衝突リスクは小さい
       #   (最悪ケース: ci.yml の同 key 書き込みと同時刻実行が衝突した際に片方の cache 書き込みが失われるが、
       #   `actions/cache` は cache miss → 再生成に degrade するだけで build correctness には影響しない)
       # - 別 key にすると ci.yml の build 成果を再利用できず deploy 時に毎回 cold ビルドになる
-      # NOTE: Issue #654 (PR #669) で ci.yml の cache key に追加された `'scripts/**/*.tsx'` glob と
-      # 整合させるため、ここにも同 glob を含める。これにより #654 / #655 のいずれが先にマージされても
-      # ci.yml と deploy.yml の cache key が drift しない。
-      # NOTE: Issue #667 で新設した tsconfig.api.json も ci.yml と揃えて hashFiles に含める
-      # (src/api/ を本体 tsc から分離し、`build:ci` 内で `tsc --project tsconfig.api.json` を踏むため、
-      # tsconfig.api.json の変更でも .tsbuildinfo の invalidation が必要になる)。
-      # **重要**: 本 cache step の `key` / `restore-keys` / `path` を変更する際は ci.yml
-      # (lint-and-typecheck job) 側の同 step も同期して変更すること。逆も同様。drift すると
-      # ci.yml が warm にした .tsbuildinfo を deploy.yml 側が再利用できず (またはその逆)、warm cache が
-      # 無駄になる。
-      - name: Cache tsc incremental build info (Issue #655)
+      # **重要**: 本 cache step 群を変更する際は ci.yml (lint-and-typecheck job) 側の同 step 群も
+      # 同期して変更すること。逆も同様。drift すると ci.yml が warm にした .tsbuildinfo を deploy.yml 側が
+      # 再利用できず (またはその逆) warm cache が無駄になる。
+      #
+      # 本体 cache の hashFiles から `src/**/*.{test,spec}.{ts,tsx}` を negation pattern で除外する
+      # ことで、test 専用ファイルの変更が本体 cache key に波及しないようにする (Issue #640 の主目的)。
+      - name: Cache tsc main build info (Issue #640)
         uses: actions/cache@v5
         with:
-          path: .tsbuildinfo
-          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json', 'tsconfig.api.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts', 'scripts/**/*.tsx') }}
+          path: .tsbuildinfo/tsconfig.tsbuildinfo
+          key: tsc-main-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', '!src/**/*.test.ts', '!src/**/*.test.tsx', '!src/**/*.spec.ts', '!src/**/*.spec.tsx', '!src/api/**') }}
           restore-keys: |
-            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json', 'tsconfig.api.json') }}-
-            tsc-${{ runner.os }}-
+            tsc-main-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json') }}-
+            tsc-main-${{ runner.os }}-
+
+      # test 側 cache: tsconfig.test.json は tsconfig.json を継承するため、本体ソースの変更でも
+      # invalidate する必要がある (本体 + テストファイル両方を hash 対象に含める)。
+      - name: Cache tsc test build info (Issue #640)
+        uses: actions/cache@v5
+        with:
+          path: .tsbuildinfo/tsconfig.test.tsbuildinfo
+          key: tsc-test-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx') }}
+          restore-keys: |
+            tsc-test-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json') }}-
+            tsc-test-${{ runner.os }}-
+
+      # scripts 側 cache: tsconfig.scripts.json は scripts/ のみを対象 (Issue #634)。
+      - name: Cache tsc scripts build info (Issue #640)
+        uses: actions/cache@v5
+        with:
+          path: .tsbuildinfo/tsconfig.scripts.tsbuildinfo
+          key: tsc-scripts-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.scripts.json') }}-${{ hashFiles('scripts/**/*.ts', 'scripts/**/*.tsx') }}
+          restore-keys: |
+            tsc-scripts-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.scripts.json') }}-
+            tsc-scripts-${{ runner.os }}-
+
+      # api 側 cache: tsconfig.api.json は src/api/ のみを対象 (Issue #667)。
+      # ただし src/api/posts.ts は ../lib/markdownParser を import するため、src/lib も hash 対象に含める。
+      - name: Cache tsc api build info (Issue #640)
+        uses: actions/cache@v5
+        with:
+          path: .tsbuildinfo/tsconfig.api.tsbuildinfo
+          key: tsc-api-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.api.json') }}-${{ hashFiles('src/api/**/*.ts', 'src/api/**/*.tsx', 'src/lib/**/*.ts', 'src/lib/**/*.tsx', '!src/**/*.test.ts', '!src/**/*.test.tsx', '!src/**/*.spec.ts', '!src/**/*.spec.tsx') }}
+          restore-keys: |
+            tsc-api-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.api.json') }}-
+            tsc-api-${{ runner.os }}-
 
       - name: Build project
         run: pnpm run build

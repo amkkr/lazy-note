@@ -438,6 +438,185 @@ describe("stripComments", () => {
   });
 });
 
+// ====================================================================
+// サロゲートペア / マルチバイト文字境界条件 (Issue #656, Issue #638 を吸収)
+//
+// 背景:
+//   `stripComments` / `processChar` / `handleStringLiteral` のステート
+//   マシンは `for (let i = 0; i < line.length; i += 1)` で UTF-16
+//   コードユニット単位走査する。サロゲートペア (`𠮷` = U+20BB7、絵文字
+//   `🎉` = U+1F389 等) は high surrogate (0xD800-0xDBFF) + low surrogate
+//   (0xDC00-0xDFFF) の 2 コードユニットに分割される。
+//
+//   サロゲート単体 (U+D800-U+DFFF の範囲) は ASCII クォート (U+0027
+//   `'` / U+0022 `"` / U+0060 `` ` ``) ともコメント開始記号 (U+002F `/`
+//   / U+002A `*`) とも一致しないため、ステート遷移を引き起こさず素通り
+//   するのが正しい挙動。本テストは「**ステート崩壊が起きていない**」
+//   ことを境界条件として担保する。
+//
+// Issue #638 重複範囲:
+//   Issue #638 「日本語文字列リテラル / 絵文字でクォート開閉が崩壊しない
+//   か」も本テスト群でカバーする (`'日本語'` / `"日本語"` /
+//   `` `日本語` `` / `'🎉token🎉'`)。Issue #638 は本 PR で実装吸収済み
+//   として close 提案する。
+//
+// 仕様確認 (CJK 全角クォート):
+//   `「」` (U+300C / U+300D) は BMP 内の単一コードユニットだが ASCII
+//   クォートではない。**ステート遷移を起こさず素通り**するのが期待
+//   される挙動 (これらをクォートとして解釈してしまうと、コメント中の
+//   日本語引用「これは bg.0 のこと」のような文言で stripComments が
+//   崩壊し旧 token 検知に false positive / false negative が出る)。
+//
+// Tripwire 性の範囲に関する注意 (DA #656 フォローアップ):
+//   本 describe の大半 (ケース 1-2, 4-6) は `stripComments` を経由する
+//   が、現状仕様 (= UTF-16 コードユニット単位走査でもサロゲートペアが
+//   境界を破壊しない) を**文書化する回帰テスト**として機能する。
+//   本体走査方式を変更 (例: `for` ループ → `for...of` 化、`Array.from`
+//   による code point 単位走査への切替等) しても、サロゲートペアが
+//   ASCII クォート / コメント開始記号と一致しない限り依然 pass する
+//   ケースが含まれるため、これらは**厳密な Tripwire ではなく、振る舞い
+//   仕様の固定 (= 仕様変更時に明示的に書き換えるべき固定点)** として
+//   読むこと。
+//
+//   一方、ケース 3 (`handleStringLiteral` 単体呼び出し) と末尾の統合
+//   ケース「エスケープ + サロゲートペアを含む文字列リテラル全体を
+//   stripComments で処理できる」は、`stripComments` 本体のループ
+//   実装方式変更 (advance 量の解釈変化等) を `sanitized` の観測で検知
+//   する**Tripwire 性**を持つ。
+// ====================================================================
+describe("stripComments / processChar - サロゲートペア境界", () => {
+  it("サロゲートペアを含む文字列リテラルを破損せず通せる", () => {
+    // `'𠮷'` (U+20BB7 サロゲートペア) を含む行が、開閉クォートを
+    // 正しく検出して inBlockComment=false で完了できる。
+    const { sanitized, inBlockComment } = stripComments(
+      "const name = '𠮷野家';",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    // サロゲートペアそのものが sanitized に保持される。
+    expect(sanitized).toContain("𠮷野家");
+    // 末尾セミコロンも保持される (= クォート開閉が正しく検出され、
+    // 後続の `;` がコード領域として扱われている)。
+    expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+  });
+
+  it("サロゲートペアを含む行末コメントを空白で埋めても元の長さが保存される", () => {
+    // `// 𠮷` 以降が空白置換され、サロゲートペアがコメント領域として
+    // 正しく剥がされる。
+    const original = "const a = 1; // 𠮷野家コメント";
+    const { sanitized, inBlockComment } = stripComments(original, {
+      inBlockComment: false,
+    });
+    expect(inBlockComment).toBe(false);
+    expect(sanitized.startsWith("const a = 1; ")).toBe(true);
+    // サロゲートペアもコメント領域なので残らない。
+    expect(sanitized).not.toContain("𠮷");
+    expect(sanitized).not.toContain("コメント");
+    // column 不変条件: コメント剥がしは UTF-16 コードユニット単位の長さを
+    // 保存する必要がある (後段の line/column 算出が `sanitized` の offset
+    // に依存するため)。サロゲートペアの片割れを欠落させると 1 ずれて
+    // column 整合が崩れる。
+    expect(sanitized.length).toBe(original.length);
+  });
+
+  it("エスケープ後に高サロゲート / 低サロゲートが来てもステート崩壊しない", () => {
+    // `\\𠮷` のように、バックスラッシュエスケープの直後に high
+    // surrogate が来るケース。`handleStringLiteral` のエスケープ処理
+    // (`advance: 1`) は次のコードユニットを「エスケープされた文字」
+    // として消費するため、high surrogate 単体が advance 対象になる。
+    // 低サロゲートが次イテレーションで素通りすることを確認する。
+    const state = makeState({ inSingle: true });
+    const out: string[] = [];
+    // `'𠮷'` は ["'", high, low, "'"]。バックスラッシュ + high の組合せ
+    // を `handleStringLiteral` 単体で再現する。
+    const high = "\uD842";
+    const low = "\uDFB7";
+    const r1 = handleStringLiteral("\\", high, out, state, "'");
+    expect(r1.advance).toBe(1);
+    expect(state.inSingle).toBe(true);
+    // 続く low surrogate は終端クォートでも何でもないので素通り。
+    const r2 = handleStringLiteral(low, "'", out, state, "'");
+    expect(r2.advance).toBe(0);
+    expect(state.inSingle).toBe(true);
+    expect(out.join("")).toBe(`\\${high}${low}`);
+  });
+
+  it("日本語文字列リテラル (シングル / ダブル / バッククォート) のクォート開閉を検出できる", () => {
+    // Issue #638 重複範囲。3 種類のクォートで日本語文字列リテラルが
+    // 正しく開閉検出されることを確認する。
+    for (const quote of ["'", '"', "`"] as const) {
+      const { sanitized, inBlockComment } = stripComments(
+        `const v = ${quote}日本語${quote};`,
+        { inBlockComment: false },
+      );
+      expect(inBlockComment).toBe(false);
+      expect(sanitized).toContain("日本語");
+      // 末尾セミコロンが残る = クォートが正しく閉じたとみなされている。
+      expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+    }
+  });
+
+  it("絵文字 (`'🎉token🎉'`) のクォート開閉を検出できる", () => {
+    // `🎉` は U+1F389 (サロゲートペア)。文字列リテラル内に複数含まれて
+    // もステートマシンが崩壊せず、後続の `;` がコード領域として扱われる。
+    const { sanitized, inBlockComment } = stripComments(
+      "const e = '🎉token🎉';",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    expect(sanitized).toContain("🎉token🎉");
+    expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+  });
+
+  it("CJK 全角クォート (`「」`) は ASCII クォート扱いされない (仕様確認)", () => {
+    // `「` (U+300C) / `」` (U+300D) は ASCII シングル / ダブル / バック
+    // クォートとは別の Unicode コードポイント。ステート遷移を起こさず
+    // 素通りすべきで、続く `// 旧 bg.0` が**行コメントとして剥がされる**
+    // ことが期待される (= 全角クォートを文字列リテラル開始と誤判定して
+    // 行コメントを保持してしまうと false negative になる)。
+    const { sanitized, inBlockComment } = stripComments(
+      "const v = 「日本語」; // 旧 bg.0",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    // 全角クォート自体はコード領域として保持される (≒ 元の文字列が残る)。
+    expect(sanitized).toContain("「日本語」");
+    // `// 旧 bg.0` 以降は空白置換されるため `bg.0` は sanitized に残らない。
+    expect(sanitized).not.toContain("bg.0");
+    expect(sanitized).not.toContain("旧");
+  });
+
+  it("エスケープ + サロゲートペアを含む文字列リテラル全体を stripComments で処理できる (統合 Tripwire)", () => {
+    // DA #656 フォローアップ: ケース 3 は `handleStringLiteral` を内部
+    // API として単体呼び出しするため、`stripComments` 本体のループ実装
+    // 方式変更 (例: `for...of` 化 / `Array.from` による code point 単位
+    // 走査への切替 / advance 量解釈の取り違え) からは切り離されている。
+    //
+    // 本ケースは「エスケープ (`\\`) + サロゲートペア (`𠮷`)」を含む
+    // 文字列リテラル全体を `stripComments` レベルで処理し、`sanitized`
+    // の文字列観測でステート遷移が崩壊していないことを担保する統合
+    // Tripwire として機能する。本体走査方式を変更した場合、
+    // `handleStringLiteral` の advance:1 解釈が UTF-16 / code point の
+    // どちらに基づくかでサロゲートペアの片割れが境界外にずれ、終端
+    // クォート検出が崩壊するため、本ケースが regression を fail で
+    // 検知する。
+    const original = "const v = '\\𠮷野家';";
+    const { sanitized, inBlockComment } = stripComments(original, {
+      inBlockComment: false,
+    });
+    expect(inBlockComment).toBe(false);
+    // エスケープ + サロゲートペアが sanitized に保持される
+    // (= ステート遷移が崩れていない / クォート終端検出が成立している)。
+    expect(sanitized).toContain("\\𠮷野家");
+    // 末尾セミコロンが残る = 終端クォートを正しく検出してコード領域に
+    // 復帰している。
+    expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+    // column 不変条件: `stripComments` は長さ保存が前提なので、
+    // サロゲートペア境界で 1 ずれていないことを併せて担保する。
+    expect(sanitized.length).toBe(original.length);
+  });
+});
+
 describe("iterateMatches", () => {
   it("全マッチを onMatch コールバックで列挙できる", () => {
     const collected: string[] = [];

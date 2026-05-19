@@ -3,14 +3,40 @@ name: Panda hash:true regression check
 # Issue #496 / Issue #475 の検証で、Tripwire テスト 647 件は `hash: true`
 # 有効化でも全 pass することが確認済み。ただし bundle size のメリットは
 # 小さい (gzip 後 +5.8%) ため本番は `hash: false` (デフォルト) で運用し、
-# regression 検知のため手動 (workflow_dispatch) でのみ実行する。
+# regression 検知のため定期 (schedule) / Panda 関連 PR (pull_request paths) /
+# 手動 (workflow_dispatch) の 3 系統で実行する。
 #
-# このworkflowは既存 CI に影響を与えないよう push / pull_request トリガーは
-# 持たず、workflow_dispatch のみで起動する。panda.config.ts の書き換えは
-# CI の working tree 上のみで行い、リポジトリには commit / push しない。
+# Issue #526: 元は `workflow_dispatch` のみだったため、手動実行しないと走らず
+# 「誰も実行しないまま機能が腐る」リスクがあった (Panda CSS のメジャー更新時や
+# Tripwire 命名規則整理 (Issue #477) 完了後など)。dependabot で `@pandacss/dev`
+# 更新 PR が頻繁に来るため、検知の頻度確保は重要。本 workflow では:
+#   - 案 A (schedule, 月初 cron): 月 1 回の定期検証で機能腐敗リスクを軽減
+#   - 案 B (pull_request paths): panda.config.ts / package.json / pnpm-lock.yaml
+#     変更 PR で即時検知し、dependabot の `@pandacss/dev` 更新 PR 等を捕捉
+# の併用方式 (案 A + 案 B) を採用する。CI billing への影響は「月 1 + 該当 PR」
+# 程度で、許容範囲。失敗時の通知は GitHub Actions の標準通知 (commit author
+# email / fail badge) で当面足りる。Slack / メール / Issue 自動起票は別
+# follow-up Issue で扱う (本 PR スコープ外)。
+#
+# panda.config.ts の書き換えは CI の working tree 上のみで行い、リポジトリには
+# commit / push しない。
 
 on:
   workflow_dispatch:
+  # 案 A: 月初 00:00 UTC に定期実行。@pandacss/dev のメジャー更新等で気づか
+  # ないうちに hash:true 耐性が劣化していないかを月 1 で検知する。cron は
+  # UTC 基準で動くため、JST では月初 09:00 相当 (DST なし)。
+  schedule:
+    - cron: "0 0 1 * *"
+  # 案 B: Panda の依存バージョン / 設定変更を伴う PR を即時検知する。
+  # dependabot による `@pandacss/dev` 更新 PR は package.json / pnpm-lock.yaml
+  # の変更を含むため、`pnpm-lock.yaml` を paths に含めることで捕捉できる。
+  # panda.config.ts は preflight / hash 設定の手動変更を検知するために追加。
+  pull_request:
+    paths:
+      - "panda.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
 
 # 本 workflow は repo を読むだけで write は不要。明示的に最小権限へ縛る。
 permissions:

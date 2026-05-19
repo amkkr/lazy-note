@@ -107,6 +107,10 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
   - CI で `hash:true` 実機検証を回すための workflow は `.github/workflows/panda-hash-regression.yml`（Issue #496 で追加済み）
   - GitHub Actions の "Panda hash:true regression check" workflow から手動 (workflow_dispatch) で実行できる
   - 実行内容: `pnpm test:run` と `panda + tsc + vite build` を `hash: true` で 1 回ずつ実行し、Tripwire 耐性の regression を検知する
+  - **自動実行トリガー（Issue #526）**: 上記 manual 実行に加え、以下 2 系統が自動実行する:
+    - **schedule (月初 00:00 UTC = `'0 0 1 * *'`)**: 月 1 回の定期検証で「機能が腐る」リスクを軽減
+    - **pull_request paths**: `panda.config.ts` / `package.json` / `pnpm-lock.yaml` 変更 PR で即時検知。dependabot の `@pandacss/dev` 更新 PR は `pnpm-lock.yaml` 変更を含むため自動捕捉される
+    - CI billing への影響は「月 1 + 該当 PR」程度で許容範囲。失敗時の通知は GitHub Actions 標準通知 (commit author email / fail badge) で当面足りる。Slack / メール / Issue 自動起票は別 follow-up Issue で扱う
 - **`build:ci` script と workflow の整合性メモ（Issue #528）**: hash:true build step は `package.json` の `build:ci` (= `panda && tsc && vite build`, test/lint/type-check:scripts を含まない軽量版) を呼ぶ。`build` script (本番経路) のコマンド列 (`panda && tsc && vite build` 部分) を変更する場合は `build:ci` も同期させること。**同期の有無は `scripts/checkBuildCiSync.ts` で自動検出される（Issue #685、`.github/workflows/ci.yml` の lint-and-typecheck job で実行）** ので、散文ルールが形骸化しても CI が drift を検知して fail する
   - baseline (hash:false) build step は bundle size 計測専用で tsc を意図的に省く運用 (Issue #625 DA #2) のため `build:ci` ではなく `pnpm exec panda && pnpm exec vite build` を直接呼ぶ非対称運用とする
 

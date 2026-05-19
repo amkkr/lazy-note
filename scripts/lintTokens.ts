@@ -475,14 +475,12 @@ const collectTargetFiles = (
     return results;
   }
 
-  // `visited` を明示渡しすることで「呼び出し単位で独立した Set を使う」
-  // 意図を呼び出し側に固定する (Issue #703 Minor 1 / リファクタ耐性向上)。
-  // 省略しても `walkDirectory` のデフォルト引数で新規 Set が生成されるため
-  // 動作は同じだが、`collectTargetFiles` 1 回分の走査が独立した visited
-  // スコープを持つことを明示することで、将来 `walkDirectory` のシグネチャ
-  // 変更 (例: visited を必須化 / デフォルト引数廃止) が起きても
-  // `collectTargetFiles` 側を書き換える必要がなくなる。
-  walkDirectory(target, results, onSkip, new Set<string>());
+  // Issue #722 で `walkDirectory` を「public 入口 (visited を意識しない 3 引数版)」と
+  // 「internal 再帰 `walkDirectoryRecursive` (visited 必須)」の 2 関数に分割した。
+  // `collectTargetFiles` 側は public 入口のみを呼べばよく、visited Set の生成 /
+  // 取り回し責務は `walkDirectory` 内に閉じ込められている (= 呼び出し側で
+  // visited 漏れによる無限ループ regression が起きない構造)。
+  walkDirectory(target, results, onSkip);
   return results;
 };
 

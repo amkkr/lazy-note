@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Issue #685: `package.json` の `build` script と `build:ci` script の
+ * Issue #685 / #701: `package.json` の `build` script と `build:ci` script の
  * drift を CI で機械的に検知するためのガードスクリプト。
  *
  * 背景:
@@ -10,9 +10,9 @@
  *   - 過去 (Issue #528) は CLAUDE.md 散文で「`build` 変更時は `build:ci`
  *     も同期させること」と運用ルール化していたが、散文ルールは時間経過で
  *     形骸化する。
- *   - 本スクリプトは `build` 文字列に `build:ci` の各 command (`panda` /
- *     `tsc` / `vite build`) が **順序を保って** 含まれているかを部分一致で
- *     判定し、ずれていれば exit 1 で fail-fast する。
+ *   - 本スクリプトは `build` 文字列に `build:ci` の各 command が
+ *     **順序を保って** 含まれているかを word-tokenize ベースで判定し、
+ *     ずれていれば exit 1 で fail-fast する。
  *
  * 設計方針:
  *   - 本リポの `build` / `build:ci` 構造に絞った最小実装。汎用的な script
@@ -20,6 +20,14 @@
  *   - 外部依存追加禁止 (`node:fs` / `node:path` のみ)。
  *   - 純粋関数 `checkSync(buildScript, buildCiScript)` をテスト用に export
  *     する。CLI エントリ (`main`) は副作用 (file IO / process.exit) に集約。
+ *
+ * Issue #701 (DA Major 指摘対応): 旧実装は `String#includes` の部分一致で
+ *   command を判定していたため、`build:ci` の `tsc` が `build` 側の
+ *   `pnpm exec my-tsc-wrapper` のような別 command にマッチしてしまう
+ *   誤検出があった。`tokenizeCommand` で空白分割し、build:ci の token 列が
+ *   build token の **末尾と完全一致** するかで判定するよう変更した。
+ *   これにより `pnpm exec tsc` (= 末尾 `[tsc]`) は OK のまま、
+ *   `pnpm exec my-tsc-wrapper` (= 末尾 `[my-tsc-wrapper]`) は NG になる。
  *
  * 使い方:
  *   - `pnpm exec tsx scripts/checkBuildCiSync.ts`
@@ -65,20 +73,73 @@ const splitCommands = (script: string): string[] => {
 };
 
 /**
- * `build` script 文字列の中に `build:ci` の各 command が「順序を保って」
- * 部分一致で出現するかを判定する。
+ * command 文字列を空白で分割し、空 token を除外した token 配列を返す。
  *
- * アルゴリズム:
- *   - `build` を `splitCommands` で token 配列化する。
- *   - `build:ci` の各 command を順に走査し、`build` token 列の中から
- *     部分一致 (`String#includes`) する次の token を線形検索する。
+ * 例:
+ *   - `"tsc"` → `["tsc"]`
+ *   - `"pnpm exec tsc"` → `["pnpm", "exec", "tsc"]`
+ *   - `"tsc --project tsconfig.api.json"`
+ *     → `["tsc", "--project", "tsconfig.api.json"]`
+ *
+ * シェルの quoting / escape は scope 外 (`build` / `build:ci` は単純な
+ * 空白区切りの command 列にしか使われていないため、最小実装で十分)。
+ * 将来 quoting が必要になったら本関数を拡張する。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const tokenizeCommand = (command: string): readonly string[] => {
+  return command
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0);
+};
+
+/**
+ * `buildTokens` (build 側 token の word-tokenize 結果) の末尾が
+ * `ciTokens` (build:ci 側 command の word-tokenize 結果) と完全一致するか
+ * を判定する。
+ *
+ * 「末尾完全一致」を採用するのは、`pnpm exec tsc` のような wrapper prefix
+ * を許容しつつ、`pnpm exec my-tsc-wrapper` ⊃ `tsc` のような部分一致誤検出
+ * を排除するため (Issue #701)。
+ */
+const matchesAsSuffix = (
+  buildTokens: readonly string[],
+  ciTokens: readonly string[],
+): boolean => {
+  if (ciTokens.length === 0 || ciTokens.length > buildTokens.length) {
+    return false;
+  }
+  const offset = buildTokens.length - ciTokens.length;
+  for (let i = 0; i < ciTokens.length; i += 1) {
+    if (buildTokens[offset + i] !== ciTokens[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
+ * `build` script 文字列の中に `build:ci` の各 command が「順序を保って」
+ * 出現するかを word-tokenize ベースで判定する。
+ *
+ * アルゴリズム (Issue #701 で部分一致 → word-tokenize 末尾一致へ変更):
+ *   - `build` / `build:ci` をそれぞれ `splitCommands` で `&&` 区切りの
+ *     command 配列にする。
+ *   - 各 command を `tokenizeCommand` で空白分割し、token 列に展開する。
+ *   - `build:ci` の各 command (token 列) を順に走査し、`build` 側の
+ *     command (token 列) の **末尾と完全一致** するものを線形検索する。
  *   - 全 `build:ci` command を順序を崩さず消費できれば ok。
  *   - 途中で見つからなくなった時点で reason 付き ng を返す。
  *
- * 部分一致 (`includes`) を採用する理由:
- *   - `build` 側に `pnpm run lint && ... && panda && tsc && vite build`
- *     のように prefix (`pnpm run`) や追加 flag が付くケースを許容するため。
- *   - 完全一致では `pnpm run build:ci` のような wrapper にも対応できない。
+ * 末尾完全一致を採用する理由 (Issue #701 DA Major 指摘対応):
+ *   - 旧実装は `String#includes` の部分一致で、`build:ci` の短い token
+ *     (例 `tsc`) が `build` 側の `pnpm exec my-tsc-wrapper` のような別
+ *     command にもマッチして誤検出していた。
+ *   - 末尾完全一致なら `pnpm exec tsc` (suffix = `[tsc]`) は OK のまま、
+ *     `pnpm exec my-tsc-wrapper` (suffix = `[my-tsc-wrapper]`) を NG に
+ *     できる。multi-token command (`tsc --project tsconfig.api.json` 等)
+ *     も token 列単位の完全一致として自然に扱える。
  *
  * 空配列ケース:
  *   - `buildCiScript` が空 (token 0 件): 検査する command が無いので ok。
@@ -98,20 +159,27 @@ const checkSync = (
     return { ok: true };
   }
 
-  const buildTokens = splitCommands(buildScript);
+  const buildTokenLists = splitCommands(buildScript).map((cmd) =>
+    tokenizeCommand(cmd),
+  );
   let cursor = 0;
   for (const ciCommand of ciCommands) {
+    const ciTokens = tokenizeCommand(ciCommand);
+    if (ciTokens.length === 0) {
+      // splitCommands で空 token は除外しているため通常到達しないが、
+      // tokenizeCommand 単独の戻り値型を信頼するためのガード。
+      continue;
+    }
     let matchedIndex = -1;
-    for (let i = cursor; i < buildTokens.length; i += 1) {
-      const token = buildTokens[i] ?? "";
-      if (token.includes(ciCommand)) {
+    for (let i = cursor; i < buildTokenLists.length; i += 1) {
+      const buildTokens = buildTokenLists[i] ?? [];
+      if (matchesAsSuffix(buildTokens, ciTokens)) {
         matchedIndex = i;
         break;
       }
     }
     if (matchedIndex === -1) {
-      const position =
-        cursor === 0 ? "" : " (前 command 以降の位置で)";
+      const position = cursor === 0 ? "" : " (前 command 以降の位置で)";
       return {
         ok: false,
         reason: `build:ci の command "${ciCommand}" が build script 内${position}に見つかりません。`,
@@ -171,13 +239,33 @@ const HINT_MESSAGE = [
   "     セクションの記述を併せて更新する",
 ].join("\n");
 
-const main = (): void => {
+/**
+ * CLI エントリポイント。`package.json` を読み、`checkSync` の結果に応じて
+ * stdout / stderr に出力し、drift / 構成不備時は `process.exit(1)` する。
+ *
+ * Issue #701 で `buildCiScript === ""` (構成不備) を明示的に fail させる
+ * 分岐を追加した。`checkSync` 自体は「空 build:ci なら ok」を返す純粋関数
+ * だが、CLI ガードとしての契約は「build:ci が定義されており非空」を要求する。
+ *
+ * @param packageJsonPath - 通常は `PACKAGE_JSON_PATH`。テスト時のみ別 path
+ *   を渡せるよう optional 引数として公開する (既存呼び出しの互換性維持)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const main = (packageJsonPath: string = PACKAGE_JSON_PATH): void => {
   let scripts: PackageScripts;
   try {
-    scripts = loadPackageScripts(PACKAGE_JSON_PATH);
+    scripts = loadPackageScripts(packageJsonPath);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`checkBuildCiSync FATAL: ${message}`);
+    process.exit(1);
+  }
+
+  if (scripts.buildCi.trim().length === 0) {
+    console.error(
+      'checkBuildCiSync FATAL: package.json の scripts["build:ci"] が空文字列です (構成不備)。',
+    );
     process.exit(1);
   }
 
@@ -214,4 +302,10 @@ if (isDirectInvocation()) {
 }
 
 export type { CheckResult, PackageScripts };
-export { checkSync, loadPackageScripts, splitCommands };
+export {
+  checkSync,
+  loadPackageScripts,
+  main,
+  splitCommands,
+  tokenizeCommand,
+};

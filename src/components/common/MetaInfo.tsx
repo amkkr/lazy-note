@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { css } from "../../../styled-system/css";
+import { AUTHOR_FALLBACK, DATE_FALLBACK } from "../../lib/i18nLiterals";
 import { Calendar, Clock, PenLine } from "../atoms/icons";
 
 interface MetaInfoProps {
@@ -198,11 +199,11 @@ export const MetaInfo = memo(
       >
         <div className={itemClassName} data-token-bg={styles.itemBg}>
           <Calendar aria-hidden="true" size={styles.iconSize} />
-          <span>{createdAt || "日付未設定"}</span>
+          <span>{createdAt || DATE_FALLBACK}</span>
         </div>
         <div className={itemClassName} data-token-bg={styles.itemBg}>
           <PenLine aria-hidden="true" size={styles.iconSize} />
-          <span>{author || "匿名"}</span>
+          <span>{author || AUTHOR_FALLBACK}</span>
         </div>
         {readingTimeMinutes !== undefined && (
           <div className={itemClassName} data-token-bg={styles.itemBg}>

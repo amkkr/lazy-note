@@ -38,3 +38,35 @@
  * 同義反復になり、文言変更時の regression を検知できなくなるため)。
  */
 export const UNTITLED_POST = "無題の記事" as const;
+
+/**
+ * 著者欠落時のフォールバック文言。
+ *
+ * 参照元 (2 箇所):
+ * - `src/components/atoms/IndexRow.tsx`
+ * - `src/components/common/MetaInfo.tsx`
+ *
+ * 当初 PR #711 (Issue #692) で IndexRow.tsx の局所定数として導入したが、
+ * MetaInfo.tsx でも同一文言を利用していたため、本モジュールへ横串集約
+ * (Issue #706 / Issue #629 follow-up)。
+ *
+ * テストファイルからは **import しない** (期待値リテラルを共有すると
+ * 同義反復になり、文言変更時の regression を検知できなくなるため)。
+ */
+export const AUTHOR_FALLBACK = "匿名" as const;
+
+/**
+ * 日付欠落時のフォールバック文言。
+ *
+ * 参照元 (2 箇所):
+ * - `src/components/atoms/IndexRow.tsx`
+ * - `src/components/common/MetaInfo.tsx`
+ *
+ * 当初 PR #711 (Issue #692) で IndexRow.tsx の局所定数として導入したが、
+ * MetaInfo.tsx でも同一文言を利用していたため、本モジュールへ横串集約
+ * (Issue #706 / Issue #629 follow-up)。
+ *
+ * テストファイルからは **import しない** (期待値リテラルを共有すると
+ * 同義反復になり、文言変更時の regression を検知できなくなるため)。
+ */
+export const DATE_FALLBACK = "日付未設定" as const;

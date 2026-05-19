@@ -281,17 +281,24 @@ describe("walkDirectory", () => {
     it("symlink ループで onSkip が呼ばれ件数集計できる", () => {
       // 自己参照 symlink (`self -> self`) を作成。
       // `realpathSync` は ELOOP を投げるため `tryRealpath` で skip + 通知される。
+      //
+      // Issue #703 Minor 2 で「少なくとも 1 回」を `toHaveBeenCalledTimes(1)`
+      // に厳密化した。実測 (macOS / Node 22 系) では:
+      //   - tmpDir 配下の entry `self` を `tryStat(self)` で stat した時点で
+      //     ELOOP を errno として返し、`onSkip` が 1 回だけ呼ばれる
+      //   - entryStats が undefined のため再帰 `walkDirectory(self, ...)` には
+      //     入らず、追加の通知は発生しない
+      // 将来「2 回通知する実装」(例: stat 失敗 → 再帰 → realpath 失敗で再通知)
+      // への退行を Tripwire として検知するため、回数 / path / reason まで詰めて
+      // assert する。
       symlinkSync(join(tmpDir, "self"), join(tmpDir, "self"));
       const results: string[] = [];
       const onSkip = vi.fn();
       expect(() =>
         walkDirectory(tmpDir, results, onSkip),
       ).not.toThrow();
-      // 自己参照 symlink について `onSkip` が少なくとも 1 回呼ばれる
-      // (realpath 失敗 or symlink ループ判定で)。
-      expect(onSkip).toHaveBeenCalled();
-      const skippedPaths = onSkip.mock.calls.map((c) => c[0] as string);
-      expect(skippedPaths).toContain(join(tmpDir, "self"));
+      expect(onSkip).toHaveBeenCalledTimes(1);
+      expect(onSkip).toHaveBeenCalledWith(join(tmpDir, "self"), "ELOOP");
     });
 
     it("ディレクトリ間 symlink ループ (`dir-a -> dir-b`, `dir-b -> dir-a`) で skip できる", () => {
@@ -351,6 +358,40 @@ describe("walkDirectory", () => {
       const results: string[] = [];
       expect(() => walkDirectory(tmpDir, results)).not.toThrow();
       expect(results).toContain(join(tmpDir, "real.ts"));
+    });
+
+    it("ファイル symlink で同一実体が 2 経路から push される (重複 scan 容認)", () => {
+      // tmpDir/
+      //   sub/
+      //     real.ts            # 実体ファイル
+      //   alias.ts -> sub/real.ts  # 同一実体への file symlink
+      //
+      // `walkDirectory` の `visited` Set はディレクトリ実体のみを管理し、
+      // ファイルは記録対象外という設計 (lintTokens.ts JSDoc 参照)。
+      // この設計により、同一実体ファイルを別の symlink から参照しても
+      // **両方とも `results` に push される** ことを明示的に Tripwire 化する。
+      //
+      // 設計上の意図 (Issue #703 Minor 3):
+      //   ディレクトリは visited で重複排除し、ファイルは容認する非対称な
+      //   方針を取っているのは、「同一実体ファイルを複数 symlink で参照
+      //   している場合に片方が落ちる」副作用を避けるため。両方が走査される
+      //   ことで、どちらのパスから旧 token が引っかかっても CI ログで原因
+      //   経路を追跡できるようになる。
+      //
+      //   将来この設計を変更 (= ファイルも実体重複排除する) する場合、
+      //   本テストが fail することで意図的な仕様変更であることを開発者に
+      //   再確認させる Tripwire として機能する。
+      const subDir = join(tmpDir, "sub");
+      mkdirSync(subDir);
+      const realPath = join(subDir, "real.ts");
+      const aliasPath = join(tmpDir, "alias.ts");
+      writeFileSync(realPath, "x", "utf8");
+      symlinkSync(realPath, aliasPath);
+      const results: string[] = [];
+      walkDirectory(tmpDir, results);
+      // 同一実体への 2 経路が両方含まれることを担保。
+      expect(results).toContain(realPath);
+      expect(results).toContain(aliasPath);
     });
 
     it("visited Set を呼び出し間で再利用しない (各 collectTargetFiles 呼び出しが独立)", () => {

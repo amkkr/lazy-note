@@ -162,8 +162,15 @@ jobs:
         if: steps.baseline_build.outcome == 'failure'
         run: |
           # メッセージ内ではバックティックではなく単引用符でコード片を引用する
-          # (ダブルクォート内の `...` は bash のコマンド置換として解釈されるため)。
-          echo "::warning::baseline (hash:false) build が失敗したため、後段の bundle size report で baseline 列は n/a に縮退します。hash:true 単独の数値は引き続き出力されますが、'+X.X% (gzip)' 等の対比は得られません。原因切り分けは baseline_build step のログを参照してください。"
+          # (ダブルクォート内の `...` は bash のコマンド置換として解釈される
+          # ため)。長文 annotation は変数に分割代入してから 1 行で echo する
+          # (annotation 本体に改行を含めると GitHub Actions 上の表示が崩れる)。
+          msg="baseline (hash:false) build が失敗したため、"
+          msg+="後段の bundle size report で baseline 列は n/a に縮退します。"
+          msg+="hash:true 単独の数値は引き続き出力されますが、"
+          msg+="'+X.X% (gzip)' 等の対比は得られません。"
+          msg+="原因切り分けは baseline_build step のログを参照してください。"
+          echo "::warning::${msg}"
 
       - name: Enable Panda hash:true (temporary in-CI patch)
         # panda.config.ts の defineConfig 内 `preflight: true` 行 (末尾カンマ
@@ -190,14 +197,31 @@ jobs:
           if grep -qE '^[ \t]*hash:[ \t]*true,?[ \t]*$' panda.config.ts; then
             echo "panda.config.ts already has hash:true; skip patch."
           else
-            sed -i 's/^\([ \t]*\)preflight: true,\?$/\1preflight: true,\n\1hash: true,/' panda.config.ts
+            # sed expression は単引用符内で組み立てて変数化し、行幅を抑える。
+            # 元の式: 's/^\([ \t]*\)preflight: true,\?$/
+            #          \1preflight: true,\n\1hash: true,/'
+            sed_pattern='^\([ \t]*\)preflight: true,\?$'
+            sed_replace='\1preflight: true,\n\1hash: true,'
+            sed -i "s/${sed_pattern}/${sed_replace}/" panda.config.ts
           fi
           if ! grep -qE '^[ \t]*hash:[ \t]*true,?[ \t]*$' panda.config.ts; then
             # shellcheck disable=SC2028
             # Ubuntu runner の bash は POSIX 準拠 echo で `\t` を Tab に展開せず
             # リテラルのまま出力する (Issue #607)。正規表現 `[ \t]` を
             # エラーメッセージにそのまま表示したいので printf 化はしない。
-            echo "::error::panda.config.ts への hash:true 挿入に失敗しました。preflight 行の書式が想定 (^[ \\t]*preflight: true,?[ \\t]*$) と異なる可能性があります。確認ポイント: (1) preflight 行の末尾カンマ有無 (sed の置換失敗) / (2) preflight 行がコメントアウトされていないか / (3) 別記法 (例: preflight: { enabled: true } 等の object 表記) に変わっていないか / (4) 行頭/行末に空白/タブ以外の文字 (YAML マーカー '-' / CR-LF の CR 混入など) が紛れていないか。"
+            # annotation 本体は変数に分割代入し、1 行で echo する。
+            msg="panda.config.ts への hash:true 挿入に失敗しました。"
+            msg+="preflight 行の書式が想定 "
+            msg+="(^[ \\t]*preflight: true,?[ \\t]*$) と異なる可能性があります。"
+            msg+="確認ポイント: "
+            msg+="(1) preflight 行の末尾カンマ有無 (sed の置換失敗) / "
+            msg+="(2) preflight 行がコメントアウトされていないか / "
+            msg+="(3) 別記法 (例: preflight: { enabled: true } 等の "
+            msg+="object 表記) に変わっていないか / "
+            msg+="(4) 行頭/行末に空白/タブ以外の文字 "
+            msg+="(YAML マーカー '-' / CR-LF の CR 混入など) "
+            msg+="が紛れていないか。"
+            echo "::error::${msg}"
             # Issue #572: 失敗時に panda.config.ts の preflight 周辺行 (L15-30)
             # を dump し、上記 (1)-(4) のどれが原因かを実機の現物で切り分け
             # 可能にする。正常系では本ブロックには到達しない (exit 1 で job
@@ -227,7 +251,15 @@ jobs:
         # continue-on-error 適用後 (success 扱い) になるため outcome を使う。
         if: steps.tests.outcome == 'failure'
         run: |
-          echo "::error::Tripwire テストの hash 耐性に regression があります。data-* 属性が hash 化に追従していない可能性があります。詳細は Issue #496 / Issue #475 / CLAUDE.md の `Panda hash:true の運用判断` を参照してください。"
+          # annotation 本体は変数に分割代入してから 1 行で echo する。
+          # ダブルクォート内のバッククォートは bash のコマンド置換として解釈
+          # されるため、コード片の引用は単引用符に置き換える (L165 と同じ
+          # 方針)。
+          msg="Tripwire テストの hash 耐性に regression があります。"
+          msg+="data-* 属性が hash 化に追従していない可能性があります。"
+          msg+="詳細は Issue #496 / Issue #475 / "
+          msg+="CLAUDE.md の 'Panda hash:true の運用判断' を参照してください。"
+          echo "::error::${msg}"
           exit 1
 
       - name: Build project with hash:true
@@ -258,7 +290,11 @@ jobs:
       - name: Report build regression
         if: steps.tests.outcome == 'success' && steps.build.outcome == 'failure'
         run: |
-          echo "::error::hash:true でビルドが失敗しました。Panda 生成物または hook class との整合に regression があります。hash 化された class 名と手書き hook class (index-row-*/copy-btn 等) の衝突可能性も確認してください。"
+          msg="hash:true でビルドが失敗しました。"
+          msg+="Panda 生成物または hook class との整合に regression が"
+          msg+="あります。hash 化された class 名と手書き hook class "
+          msg+="(index-row-*/copy-btn 等) の衝突可能性も確認してください。"
+          echo "::error::${msg}"
           exit 1
 
       - name: Report bundle size (raw / gzip, baseline vs hash:true)
@@ -412,7 +448,8 @@ jobs:
               echo "|------|--------:|---------:|";
               # 視認性のため raw サイズ降順で並べる。`sort -k` を使うため
               # 一旦 raw / gz / path を tab 区切りで出してから整形する。
-              # runs-on: ubuntu-latest 前提で GNU sort/coreutils 機能 (`-k1,1nr`) を使う。
+              # runs-on: ubuntu-latest 前提で GNU sort/coreutils 機能
+              # (`-k1,1nr`) を使う。
               for f in "${js_files[@]}"; do
                 raw=$(stat -c '%s' "$f")
                 gz=$(gzip -c "$f" | wc -c)
@@ -433,9 +470,14 @@ jobs:
           # チャンク (大きい順) を見比べる用途には十分使える。baseline build
           # が失敗 / 空 emit の場合は明細を空メッセージに縮退する。CSS は
           # hash:true 側と揃えて open、JS は閉じた状態で出す。
+          # <details> サマリ行は yamllint line-length に収めるため変数化する。
+          baseline_css_summary='<summary>Per-file CSS (baseline, hash:false)'
+          baseline_css_summary+='</summary>'
+          baseline_js_summary='<summary>Per-file JS (baseline, hash:false)'
+          baseline_js_summary+='</summary>'
           {
             echo "";
-            echo "<details open><summary>Per-file CSS (baseline, hash:false)</summary>";
+            echo "<details open>${baseline_css_summary}";
             echo "";
             if (( ${#baseline_css_files[@]} == 0 )); then
               echo "_(no baseline CSS assets; baseline build may have failed)_";
@@ -451,7 +493,7 @@ jobs:
             echo "";
             echo "</details>";
             echo "";
-            echo "<details><summary>Per-file JS (baseline, hash:false)</summary>";
+            echo "<details>${baseline_js_summary}";
             echo "";
             if (( ${#baseline_js_files[@]} == 0 )); then
               echo "_(no baseline JS assets; baseline build may have failed)_";
@@ -459,7 +501,8 @@ jobs:
               echo "| File | raw (B) | gzip (B) |";
               echo "|------|--------:|---------:|";
               # hash:true 側と同じく raw 降順で並べて主要 chunk を上に出す。
-              # runs-on: ubuntu-latest 前提で GNU sort/coreutils 機能 (`-k1,1nr`) を使う。
+              # runs-on: ubuntu-latest 前提で GNU sort/coreutils 機能
+              # (`-k1,1nr`) を使う。
               for f in "${baseline_js_files[@]}"; do
                 raw=$(stat -c '%s' "$f")
                 gz=$(gzip -c "$f" | wc -c)
@@ -501,7 +544,9 @@ jobs:
           # 欠落していると hash:true (両 kind 集計) との比較が不公平になる
           # ため、安全側に倒して n/a に縮退する。
           total_baseline_valid=1
-          if (( ${#baseline_css_files[@]} == 0 || ${#baseline_js_files[@]} == 0 )); then
+          base_css_count=${#baseline_css_files[@]}
+          base_js_count=${#baseline_js_files[@]}
+          if (( base_css_count == 0 || base_js_count == 0 )); then
             total_baseline_valid=0
           fi
           if (( total_baseline_valid == 0 )); then
@@ -548,10 +593,10 @@ jobs:
           {
             echo "| total | raw  (B)  | ${br} | ${hr} | ${dr} |";
             echo "| total | gzip (B) | ${bg} | ${hg} | ${dg} |";
-            if (( ${#baseline_css_files[@]} == 0 && ${#baseline_js_files[@]} == 0 )); then
+            if (( base_css_count == 0 && base_js_count == 0 )); then
               echo "";
               echo "_(baseline build produced no assets; baseline = n/a)_";
-            elif (( ${#baseline_css_files[@]} == 0 || ${#baseline_js_files[@]} == 0 )); then
+            elif (( base_css_count == 0 || base_js_count == 0 )); then
               echo "";
               echo "_(baseline produced only one kind; missing = n/a)_";
             fi

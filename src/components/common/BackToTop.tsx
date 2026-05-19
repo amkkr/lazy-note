@@ -3,6 +3,23 @@ import { css } from "../../../styled-system/css";
 import { useScrollPosition } from "../../hooks/useScrollPosition";
 import { focusRingStyles } from "../../styles/focusRing";
 
+/**
+ * BackToTop の表示文言定数 (Issue #707)。
+ *
+ * Issue #630 のロードマップに沿って、表示文言を JSX 直書きからファイル内
+ * トップレベル定数に外出しする。PR #627 (Anchor 系) と同じ方針で、リテラル
+ * 定数には `as const` を付与して literal type を温存する。
+ *
+ * `BACK_TO_TOP_ARROW` は button 内の装飾矢印 (Unicode 文字 `↑`) を表す。
+ * SVG / アイコンフォントではなく純粋な glyph のため `ICON` ではなく
+ * `ARROW` と命名する。button には `aria-label={BACK_TO_TOP_ARIA_LABEL}`
+ * で SR 向けラベルを付与しており、矢印自体は視覚装飾扱い。JSX 側では
+ * `<span aria-hidden="true">` で wrap し、accessible name 計算で
+ * textContent が二重発話されないようにする (Issue #707 本文要件)。
+ */
+const BACK_TO_TOP_ARIA_LABEL = "ページトップへ戻る" as const;
+const BACK_TO_TOP_ARROW = "↑" as const;
+
 const SHOW_THRESHOLD = 300;
 
 // Editorial Citrus トークン (R-2b / Issue #389、Issue #421 で border/hover を改訂)
@@ -77,13 +94,13 @@ export const BackToTop = () => {
         type="button"
         className={`${buttonStyles} ${focusRingStyles}`}
         onClick={handleClick}
-        aria-label="ページトップへ戻る"
+        aria-label={BACK_TO_TOP_ARIA_LABEL}
         data-token-bg="bg.surface"
         data-token-border="border.subtle"
         data-token-hover-bg="bg.muted"
         data-focus-ring="default"
       >
-        ↑
+        <span aria-hidden="true">{BACK_TO_TOP_ARROW}</span>
       </button>
     </Transition>
   );

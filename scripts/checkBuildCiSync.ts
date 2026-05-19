@@ -85,6 +85,17 @@ const splitCommands = (script: string): string[] => {
  * 空白区切りの command 列にしか使われていないため、最小実装で十分)。
  * 将来 quoting が必要になったら本関数を拡張する。
  *
+ * シェルクォート非対応の限界 (Issue #723 M-2):
+ *   - 本実装は `"..."` / `'...'` のシェルクォートを解釈しない単純な空白
+ *     split である。
+ *   - そのため空白を含むパス (例: `"path with space/file.ts"`) は
+ *     `["\"path", "with", "space/file.ts\""]` のように別 word に分割される。
+ *   - 現状 `package.json` の `build` / `build:ci` script コマンドに空白入り
+ *     パスは含まれない設計判断のため、この限界は許容している。
+ *   - 将来空白入りパスを script に含める必要が出た場合は、`shell-quote` 等の
+ *     外部ライブラリ導入を再検討する (現状はメモリ「外部ライブラリの追加は
+ *     原則しない」方針との兼ね合いで inline 実装を優先)。
+ *
  * @internal テスト専用 export. 本番コードから import しないこと
  */
 const tokenizeCommand = (command: string): readonly string[] => {

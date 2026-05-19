@@ -92,7 +92,7 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
   - 採用例: `AnchorPage` の節目一覧（`<li data-tone={milestone.tone}>`）と各記事の座標一覧（`<span data-tone={coordinate.tone}>`、**`Coordinate` コンポーネント経由ではなく `AnchorPage` 内に直接書かれた `<span>`** が吐く）（Issue #493 で導入、Issue #541 で規約化、Issue #571 で判断基準を補強）
 - **識別子属性（`data-post-id` 等）**: ドメインモデルの**識別子**（id / slug 等）をそのまま反映する Tripwire 属性。`data-variant` / ドメイン固有 enum 属性が**分類軸**（変動しうるラベル / カテゴリ）を表現するのに対し、こちらは**個体の同一性**を構造的に観測可能にする目的で使う（例: 順序検証 Tripwire を textContent ベースから構造属性ベースに切り替えるため）。命名規約は以下:
   - **命名はドメイン prefix 必須**（`data-post-id` / 将来追加されるなら `data-milestone-id` 等）。`data-id` のような prefix なし汎用名は**単独で使わない**（複数ドメインで衝突する / 後発で prefix を付け足すコストが高くなるため、最初からドメイン語彙で占有する）
-  - **属性値は信頼できる識別子に限る**: ID 採番ロジック（timestamp / UUID 等）や fixture 側で生成された値のみを吐く。ユーザー入力起源の値（タイトル文字列 / 任意 slug 等）は使わない（XSS / DOM クエリ混乱の温床になりうるため）
+  - **属性値は信頼できる識別子に限る**: ID 採番ロジック（timestamp / UUID 等）や fixture 側で生成された値のみを吐く。ユーザー入力起源の値（タイトル文字列 / 任意 slug 等）は使わない。理由: (1) タイトル変更等で値が揺れると Tripwire テストが壊れやすくなる（DOM クエリ安定性 / Tripwire 信頼性の毀損） / (2) 空白・特殊文字・記号が混入すると `querySelector` の CSS セレクタとして破綻する（CSS セレクタとして安全な文字種に限る必要がある） / (3) 個体の同一性を担保する識別子としての一意性保証も失われる（なお React の JSX エスケープにより data 属性値の XSS リスクは基本的に発生しないため、ここでは安全性ではなく安定性・一意性を理由とする）
   - **enum 属性との切り分け**: 値の集合が有限・離散（= 分類）なら enum 属性 / 値の集合が個体単位で一意（= 識別）なら識別子属性、を機械的基準にする
   - 採用例: `AnchorPage` の記事一覧（`<li data-post-id={entry.post.id}>`、値は `PostSummary.id` = `YYYYMMDDhhmmss` timestamp 文字列）（Issue #624 / PR #697 で導入、Issue #696 で規約化）
 

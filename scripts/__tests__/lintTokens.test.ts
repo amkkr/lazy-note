@@ -903,6 +903,49 @@ describe("extractSanitizedLine", () => {
   });
 });
 
+/**
+ * `extractSanitizedLine` のディフェンシブガード
+ * (`return sanitized.slice(start, Math.max(start, nextStart - 1));`)
+ * に対する Tripwire (Issue #657 / PR #635 follow-up)。
+ *
+ * 本体 `lintTokens.ts` の JSDoc では「`sanitized=""` で `lineStartOffsets=[0]`
+ * の場合」「将来 `lineStartOffsets` 計算ロジックが改変され `start > nextStart - 1`
+ * に崩れた場合の安全網」と意図を明記しているが、JSDoc コメント単独では
+ * 将来のリファクタで `Math.max` ガードが落とされても regression を検知できない。
+ *
+ * そのため以下 2 ケースを Tripwire 化し、ガード意図を構造的に固定する:
+ *
+ * 1. 空文字入力 + `lineStartOffsets=[0]` で `lineIndex=0`:
+ *    `nextStart = sanitized.length + 1 = 1`, `nextStart - 1 = 0`,
+ *    `start = 0` で `slice(0, 0) = ""` となる末尾行ケースを担保する
+ *    (`sanitizeFile` が空文字を返した状況で `scanLineScope` から呼ばれる経路)
+ *
+ * 2. `lineStartOffsets` が想定外の逆順 (例: `[5, 2]`) に崩れた場合:
+ *    `start=5`, `nextStart-1=1` で `start > nextStart - 1` となる。
+ *    `Math.max(start, nextStart - 1) = start` により `slice(start, start) = ""`
+ *    が返り、ガードがない場合の `slice(start, nextStart - 1)` 経路で
+ *    意図しない非空結果や例外が出ないことを担保する。
+ *    (補足: 現行 JS の `String.prototype.slice` は end < start でも空を返すが、
+ *     ここでの目的はガード「式そのもの」の意図を Tripwire 化することにある。
+ *     将来 slice 相当ロジックを別実装に差し替える際にも安全性を保ち続けるため、
+ *     `Math.max` の存在を構造的に固定する)
+ */
+describe("extractSanitizedLine 防御ガード Tripwire (Issue #657)", () => {
+  it("空文字列入力で lineStartOffsets=[0] の場合に空文字列を返す", () => {
+    // `sanitizeFile("")` が返す形 (`sanitized=""`, `lineStartOffsets=[0]`) と
+    // 同等の入力で、`scanLineScope` の末尾行抽出経路を再現する。
+    expect(extractSanitizedLine("", [0], 0)).toBe("");
+  });
+
+  it("lineStartOffsets が逆順でも例外を投げず空文字列を返す", () => {
+    // `lineStartOffsets` が想定外の逆順に崩れた場合のディフェンシブガード動作。
+    // `Math.max(start, nextStart - 1)` により start を下回らない end が
+    // 採用され、空文字列が安全に返ることを Tripwire 化する。
+    expect(() => extractSanitizedLine("abcdef", [5, 2], 0)).not.toThrow();
+    expect(extractSanitizedLine("abcdef", [5, 2], 0)).toBe("");
+  });
+});
+
 describe("scanFileScope / scanLineScope", () => {
   const bgKeyPattern: LintPattern = {
     name: "test-bg-key",

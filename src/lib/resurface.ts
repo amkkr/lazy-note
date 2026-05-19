@@ -203,6 +203,33 @@ const resolveAndSortPosts = (posts: readonly PostSummary[]): ResolvedPost[] => {
 };
 
 /**
+ * 1 件の候補に対し「today と同月同日」「yearsAgo >= 1」を満たすかを評価し、
+ * 一致時は yearsAgo を、不一致時は null を返す純粋関数。
+ *
+ * `pickSameMonthDay` 本体の cognitive complexity を 8 以下に抑えるために抽出
+ * (Issue #652)。
+ */
+const matchSameMonthDay = (
+  resolved: ResolvedPost,
+  todayDate: Date,
+): number | null => {
+  const postMonth = resolved.publishedDate.getUTCMonth();
+  const postDay = resolved.publishedDate.getUTCDate();
+  if (
+    postMonth !== todayDate.getUTCMonth() ||
+    postDay !== todayDate.getUTCDate()
+  ) {
+    return null;
+  }
+  const yearsAgo =
+    todayDate.getUTCFullYear() - resolved.publishedDate.getUTCFullYear();
+  if (yearsAgo < 1) {
+    return null;
+  }
+  return yearsAgo;
+};
+
+/**
  * 候補リストから「today と同月同日」の最も新しい年の記事を 1 件選ぶ。
  *
  * - 同月同日 = JST 暦上の (月, 日) が today と一致
@@ -210,27 +237,20 @@ const resolveAndSortPosts = (posts: readonly PostSummary[]): ResolvedPost[] => {
  *   最も小さい (= 最も新しい年) を選ぶ
  * - yearsAgo >= 1 のもののみ (今日以前の過去記事)
  *
+ * Biome 厳格化耐性メモ (Issue #652 / PR #623 follow-up):
+ * - 本関数は `maxAllowedComplexity:8` 厳格化条件下でも違反 0 になるよう、
+ *   per-candidate の判定を `matchSameMonthDay` ヘルパーへ抽出している。
+ *
  * @returns {{ resolved, yearsAgo } | null}
  */
 const pickSameMonthDay = (
   candidates: readonly ResolvedPost[],
   todayDate: Date,
 ): { readonly resolved: ResolvedPost; readonly yearsAgo: number } | null => {
-  const todayMonth = todayDate.getUTCMonth();
-  const todayDay = todayDate.getUTCDate();
-  const todayYear = todayDate.getUTCFullYear();
-
   let best: { resolved: ResolvedPost; yearsAgo: number } | null = null;
   for (const r of candidates) {
-    const postMonth = r.publishedDate.getUTCMonth();
-    const postDay = r.publishedDate.getUTCDate();
-    const postYear = r.publishedDate.getUTCFullYear();
-
-    if (postMonth !== todayMonth || postDay !== todayDay) {
-      continue;
-    }
-    const yearsAgo = todayYear - postYear;
-    if (yearsAgo < 1) {
+    const yearsAgo = matchSameMonthDay(r, todayDate);
+    if (yearsAgo === null) {
       continue;
     }
     // 最も新しい年 = yearsAgo が最小
@@ -309,6 +329,96 @@ const pickMilestoneAnniversary = (
 };
 
 /**
+ * 沈黙トリガー発動時の浮上対象を選定する純粋関数。
+ *
+ * - pastCandidates が空のとき null を返す (最新自身は選ばない方針)
+ * - 1 年前の同月同日記事を優先し、無ければ最古記事 (pastCandidates の末尾) を選ぶ
+ *
+ * `selectResurfaced` 本体から沈黙分岐を引き剥がし、cognitive complexity を 8 以下に
+ * 抑えるために抽出 (Issue #652)。
+ */
+const pickSilenceTarget = (
+  pastCandidates: readonly ResolvedPost[],
+  todayDate: Date,
+  lastPostDaysAgo: number,
+): ResurfacedEntry | null => {
+  if (pastCandidates.length === 0) {
+    // 過去候補が無い (= 全候補が excludeIds に含まれている等) 場合、浮上できない。
+    // 最新自身は選ばない方針 (Resurface は「過去の声」のみを差し出すため)。
+    return null;
+  }
+
+  // 沈黙時の選定: 1年前の同月同日 → 最古
+  const yearAgo = pickSameMonthDay(pastCandidates, todayDate);
+  if (yearAgo !== null && yearAgo.yearsAgo === 1) {
+    return {
+      post: yearAgo.resolved.post,
+      reason: {
+        kind: "silence",
+        lastPostDaysAgo,
+        sub: "yearAgo",
+      },
+    };
+  }
+
+  // 1年前候補が無ければ最古記事 (resolved の末尾)
+  const oldest = pastCandidates[pastCandidates.length - 1];
+  return {
+    post: oldest.post,
+    reason: {
+      kind: "silence",
+      lastPostDaysAgo,
+      sub: "oldest",
+    },
+  };
+};
+
+/**
+ * 沈黙トリガーが発動しない場合の浮上対象を選定する純粋関数。
+ *
+ * 優先順位:
+ *   (1) 暦の節目 (今日と同月同日の過去記事)
+ *   (2) 節目記念日 (節目からちょうど N 年経過した日の記事)
+ *   (3) どれも該当しない → null
+ *
+ * `selectResurfaced` 本体から非沈黙時の分岐を引き剥がし、cognitive complexity を
+ * 8 以下に抑えるために抽出 (Issue #652)。
+ */
+const pickNonSilenceTarget = (
+  pastCandidates: readonly ResolvedPost[],
+  milestones: readonly Milestone[],
+  todayDate: Date,
+): ResurfacedEntry | null => {
+  // (2) 暦の節目: 今日と同月同日の過去記事
+  const calendarHit = pickSameMonthDay(pastCandidates, todayDate);
+  if (calendarHit !== null) {
+    return {
+      post: calendarHit.resolved.post,
+      reason: {
+        kind: "calendar",
+        yearsAgo: calendarHit.yearsAgo,
+      },
+    };
+  }
+
+  // (3) 節目記念日 (節目からちょうど N 年経過した日に書かれた記事)
+  const milestoneHit = pickMilestoneAnniversary(pastCandidates, milestones);
+  if (milestoneHit !== null) {
+    return {
+      post: milestoneHit.resolved.post,
+      reason: {
+        kind: "milestoneAnniversary",
+        label: milestoneHit.label,
+        yearsSinceMilestone: milestoneHit.yearsSinceMilestone,
+      },
+    };
+  }
+
+  // (4) どれも該当しない
+  return null;
+};
+
+/**
  * Resurface の浮上対象を選定する純粋関数。
  *
  * 優先順位:
@@ -317,6 +427,13 @@ const pickMilestoneAnniversary = (
  *   (2) 暦の節目 (今日と同月同日の過去記事)
  *   (3) 座標上の意味 (節目記念日 = 節目からちょうど N 年経過した日の記事)
  *   (4) どれも該当しない → null
+ *
+ * Biome 厳格化耐性メモ (Issue #652 / PR #623 follow-up):
+ * - 本関数は `maxAllowedComplexity:8` 厳格化条件下でも違反 0 になるよう、
+ *   沈黙分岐を `pickSilenceTarget` / 非沈黙分岐を `pickNonSilenceTarget` の
+ *   2 ヘルパーへ抽出している。本体は `(1) 候補集合の構築` → `(2) 沈黙判定で分岐
+ *   委譲` の 2 ステップで完結する構造になる。優先順位 (1)-(4) の仕様は既存
+ *   `resurface.test.ts` で固定済み。
  *
  * @param posts - 全記事の PostSummary 配列 (順序不問、内部で publishedAt 解決順に並び替える)
  * @param milestones - 登録された節目の配列 (空配列許可)
@@ -358,67 +475,11 @@ export const selectResurfaced = (
     .slice(1)
     .filter((r) => !excludeIdSet.has(r.post.id));
 
-  // (1) 沈黙トリガー判定
   const lastPostDaysAgo = diffInDays(newest.publishedDate, todayDate);
   const isSilence = lastPostDaysAgo >= threshold;
 
   if (isSilence) {
-    if (pastCandidates.length === 0) {
-      // 過去候補が無い (= 全候補が excludeIds に含まれている等) 場合、浮上できない。
-      // 最新自身は選ばない方針 (Resurface は「過去の声」のみを差し出すため)。
-      return null;
-    }
-
-    // 沈黙時の選定: 1年前の同月同日 → 最古
-    const yearAgo = pickSameMonthDay(pastCandidates, todayDate);
-    if (yearAgo !== null && yearAgo.yearsAgo === 1) {
-      return {
-        post: yearAgo.resolved.post,
-        reason: {
-          kind: "silence",
-          lastPostDaysAgo,
-          sub: "yearAgo",
-        },
-      };
-    }
-
-    // 1年前候補が無ければ最古記事 (resolved の末尾)
-    const oldest = pastCandidates[pastCandidates.length - 1];
-    return {
-      post: oldest.post,
-      reason: {
-        kind: "silence",
-        lastPostDaysAgo,
-        sub: "oldest",
-      },
-    };
+    return pickSilenceTarget(pastCandidates, todayDate, lastPostDaysAgo);
   }
-
-  // (2) 暦の節目: 今日と同月同日の過去記事 (沈黙でないとき)
-  const calendarHit = pickSameMonthDay(pastCandidates, todayDate);
-  if (calendarHit !== null) {
-    return {
-      post: calendarHit.resolved.post,
-      reason: {
-        kind: "calendar",
-        yearsAgo: calendarHit.yearsAgo,
-      },
-    };
-  }
-
-  // (3) 節目記念日 (節目からちょうど N 年経過した日に書かれた記事)
-  const milestoneHit = pickMilestoneAnniversary(pastCandidates, milestones);
-  if (milestoneHit !== null) {
-    return {
-      post: milestoneHit.resolved.post,
-      reason: {
-        kind: "milestoneAnniversary",
-        label: milestoneHit.label,
-        yearsSinceMilestone: milestoneHit.yearsSinceMilestone,
-      },
-    };
-  }
-
-  // (4) どれも該当しない
-  return null;
+  return pickNonSilenceTarget(pastCandidates, milestones, todayDate);
 };

@@ -234,6 +234,41 @@ export interface ComputeCoordinatesOptions {
 }
 
 /**
+ * 1 つの (milestone, publishedDate) ペアを評価し、Coordinate に変換する純粋関数。
+ *
+ * 戻り値が undefined の場合は以下のいずれかに該当する:
+ *   - `excludeHeavy: true` で tone === "heavy" の節目だった
+ *   - milestone.date の形式不正 (`toMilestoneCalendarDate` が null を返す)
+ *   - publishedAt より後 (未来) の節目だった
+ *
+ * `computeCoordinates` の本体から条件分岐を引き剥がし、cognitive complexity を
+ * 8 以下に抑えるために抽出 (Issue #652)。
+ */
+const tryBuildCoordinate = (
+  milestone: Milestone,
+  publishedDate: Date,
+  excludeHeavy: boolean,
+): Coordinate | undefined => {
+  if (excludeHeavy && milestone.tone === "heavy") {
+    return undefined;
+  }
+  const milestoneDate = toMilestoneCalendarDate(milestone.date);
+  if (milestoneDate === null) {
+    return undefined;
+  }
+  const days = diffInDays(milestoneDate, publishedDate);
+  if (days < 0) {
+    return undefined;
+  }
+  return {
+    kind: "coordinate",
+    label: milestone.label,
+    tone: milestone.tone,
+    daysSince: days,
+  };
+};
+
+/**
  * 層1=座標: publishedAt と登録節目の差分日数を計算する
  *
  * - publishedAt より後 (未来) の節目は結果から **除外 (filter)** する
@@ -247,6 +282,12 @@ export interface ComputeCoordinatesOptions {
  *   (`toMilestoneCalendarDate` の JSDoc / テスト「Milestone.date 不正値の仕様」参照)
  * - `options.excludeHeavy` が true のとき、tone === "heavy" の節目を結果から
  *   除外する。未指定または false のときは heavy を含めて返す (Issue #532)
+ *
+ * Biome 厳格化耐性メモ (Issue #652 / PR #623 follow-up):
+ * - 本関数は `maxAllowedComplexity:8` 厳格化条件下でも違反 0 になるよう、
+ *   per-milestone の評価を `tryBuildCoordinate` ヘルパーへ抽出している。
+ *   入力順保持 / 未来除外 / 形式不正除外 / excludeHeavy 除外の全仕様は
+ *   既存 `anchors.test.ts` で固定済み。
  *
  * @param publishedAt - 記事の公開日時 (ISO 8601 文字列)
  * @param milestones - 登録された節目の配列
@@ -265,23 +306,10 @@ export const computeCoordinates = (
 
   const coordinates: Coordinate[] = [];
   for (const milestone of milestones) {
-    if (excludeHeavy && milestone.tone === "heavy") {
-      continue;
+    const coordinate = tryBuildCoordinate(milestone, publishedDate, excludeHeavy);
+    if (coordinate !== undefined) {
+      coordinates.push(coordinate);
     }
-    const milestoneDate = toMilestoneCalendarDate(milestone.date);
-    if (milestoneDate === null) {
-      continue;
-    }
-    const days = diffInDays(milestoneDate, publishedDate);
-    if (days < 0) {
-      continue;
-    }
-    coordinates.push({
-      kind: "coordinate",
-      label: milestone.label,
-      tone: milestone.tone,
-      daysSince: days,
-    });
   }
   return coordinates;
 };

@@ -135,8 +135,8 @@ type HasAnchorDiscriminator<T> = T extends {
  * フィールド単位での Anchor 型ガード判定
  *
  * - `readonly T[]` の場合は要素型 T に対して判定を再帰する
- * - `T | null` の場合は非 null 部分のみで判定する
- * - 上記の組み合わせ (`readonly T[] | null` 等) も同様にハンドリングする
+ * - `T | undefined` の場合は非 undefined 部分のみで判定する
+ * - 上記の組み合わせ (`readonly T[] | undefined` 等) も同様にハンドリングする
  *
  * 戻り値:
  *   - フィールドが Anchor 型らしくない → そのフィールド型をそのまま返す
@@ -150,7 +150,7 @@ type EnforceAnchorDiscriminatorField<T> = T extends readonly (infer U)[]
       ? T
       : never
     : T
-  : T extends null
+  : T extends undefined
     ? T
     : IsAnchorShape<T> extends true
       ? HasAnchorDiscriminator<T> extends true
@@ -174,7 +174,7 @@ type EnforceAnchorDiscriminatorFields<T> = {
  *
  * - coordinates: 登録済み節目から算出された座標
  * - siteOpeningElapsed: milestones.json 不在時のフォールバック (最古記事日付からの経過)
- * - previousPost: 直近記事 (タイトル + 日付)。存在しない場合は null
+ * - previousPost: 直近記事 (タイトル + 日付)。存在しない場合は undefined
  *
  * 型レベルガード (Issue #556):
  *   - 直下にある `_ignitionInputAnchorFieldGuardCheck` の宣言で、
@@ -189,8 +189,8 @@ type EnforceAnchorDiscriminatorFields<T> = {
  */
 export interface IgnitionInput {
   readonly coordinates: readonly Coordinate[];
-  readonly siteOpeningElapsed: Elapsed | null;
-  readonly previousPost: PreviousPost | null;
+  readonly siteOpeningElapsed: Elapsed | undefined;
+  readonly previousPost: PreviousPost | undefined;
   readonly publishedAt: string;
 }
 
@@ -296,12 +296,12 @@ export const buildIgnitionComment = (input: IgnitionInput): string => {
     lines.push(`・${safeLabel}から ${coord.daysSince} 日目${toneSuffix}`);
   }
 
-  if (input.siteOpeningElapsed !== null) {
+  if (input.siteOpeningElapsed !== undefined) {
     const safeLabel = escapeHtmlCommentLabel(input.siteOpeningElapsed.label);
     lines.push(`・${safeLabel}から ${input.siteOpeningElapsed.daysSince} 日目`);
   }
 
-  if (input.previousPost !== null) {
+  if (input.previousPost !== undefined) {
     const safeTitle = escapeHtmlCommentLabel(input.previousPost.title);
     const days = computeElapsed(
       input.publishedAt,
@@ -335,7 +335,7 @@ export const buildIgnitionComment = (input: IgnitionInput): string => {
 /**
  * milestones.json をロードする
  *
- * - ファイルが存在しない場合は null を返す (フォールバック判定用)。
+ * - ファイルが存在しない場合は undefined を返す (フォールバック判定用)。
  * - 期待スキーマは `Milestone[]`。値検証は `src/lib/milestonesSchema.ts` の
  *   `parseMilestones` (lenient) に委譲する (Issue #547)。
  *   - JSON parse 失敗 / 配列でない / 各要素の date / label / tone が型違反 /
@@ -344,13 +344,13 @@ export const buildIgnitionComment = (input: IgnitionInput): string => {
  *     (どちらも「節目情報無し」として Cast 経路は静かに進む)
  *
  * @param filePath - milestones.json の絶対パス
- * @returns 読み込んだ Milestone 配列。ファイル不在時は null
+ * @returns 読み込んだ Milestone 配列。ファイル不在時は undefined
  */
 export const loadMilestones = (
   filePath: string,
-): readonly Milestone[] | null => {
+): readonly Milestone[] | undefined => {
   if (!existsSync(filePath)) {
-    return null;
+    return undefined;
   }
   const raw = readFileSync(filePath, "utf8");
   let parsed: unknown;
@@ -404,7 +404,7 @@ export const extractMarkdownTitle = (
  * 新規作成中の記事の 1 つ前 (= 直近の既存記事) を取得する
  *
  * - newFileName より文字列辞書順で前にあるファイルのうち、最新のものを返す。
- * - 該当が無い場合は null。
+ * - 該当が無い場合は undefined。
  *
  * @param datasourcesDir - datasources 配下の絶対パス
  * @param newFileName - これから作成するファイル名 (例: 20260515091200.md)
@@ -412,16 +412,20 @@ export const extractMarkdownTitle = (
 export const findPreviousPost = (
   datasourcesDir: string,
   newFileName: string,
-): PreviousPost | null => {
+): PreviousPost | undefined => {
   const files = listPostFileNames(datasourcesDir);
   const candidates = files.filter((file) => file < newFileName);
   if (candidates.length === 0) {
-    return null;
+    return undefined;
   }
   const latest = candidates[candidates.length - 1];
+  // inferPublishedAt は外部 (src/lib/anchors.ts) の API で戻り値が
+  // `string | null` であるため、ここでの null 比較は外部 API との整合上
+  // 維持する (Issue #622)。`== null` のゆるい比較で undefined も拾える
+  // 形に揃える。
   const publishedAt = inferPublishedAt(latest);
-  if (publishedAt === null) {
-    return null;
+  if (publishedAt == null) {
+    return undefined;
   }
   const filePath = join(datasourcesDir, latest);
   const content = readFileSync(filePath, "utf8");
@@ -434,7 +438,7 @@ export const findPreviousPost = (
  *
  * - 既存記事の最古のファイル名から ISO 8601 を推定し、その日付を
  *   サイト開設日として `computeElapsed` を呼ぶ。
- * - 既存記事が 0 件の場合は null (火種にサイト開設行を出さない)。
+ * - 既存記事が 0 件の場合は undefined (火種にサイト開設行を出さない)。
  *
  * @param datasourcesDir - datasources 配下の絶対パス
  * @param publishedAt - 新規作成中の記事の publishedAt (ISO 8601)
@@ -442,15 +446,19 @@ export const findPreviousPost = (
 export const computeSiteOpeningFallback = (
   datasourcesDir: string,
   publishedAt: string,
-): Elapsed | null => {
+): Elapsed | undefined => {
   const files = listPostFileNames(datasourcesDir);
   if (files.length === 0) {
-    return null;
+    return undefined;
   }
   const oldest = files[0];
+  // inferPublishedAt は外部 (src/lib/anchors.ts) の API で戻り値が
+  // `string | null` であるため、ここでの null 比較は外部 API との整合上
+  // 維持する (Issue #622)。`== null` のゆるい比較で undefined も拾える
+  // 形に揃える。
   const oldestIso = inferPublishedAt(oldest);
-  if (oldestIso === null) {
-    return null;
+  if (oldestIso == null) {
+    return undefined;
   }
   return computeElapsed(publishedAt, oldestIso.slice(0, 10), "サイト開設");
 };
@@ -490,9 +498,9 @@ ${params.ignitionComment}## 本文
  * - tone:heavy は明示マークを付け、執筆者の意識喚起を狙う。
  */
 export const formatMilestonesSummary = (
-  milestones: readonly Milestone[] | null,
+  milestones: readonly Milestone[] | undefined,
 ): string => {
-  if (milestones === null) {
+  if (milestones === undefined) {
     return [
       "ℹ️  datasources/milestones.json は未作成です。",
       "    社会復帰・サイト開設・喪失体験など、自分の節目を JSON で登録すると",
@@ -558,7 +566,11 @@ const createNewPost = (): void => {
     const publishedAt = inferPublishedAt(fileName);
 
     let ignitionComment = "";
-    if (publishedAt !== null) {
+    // inferPublishedAt は外部 (src/lib/anchors.ts) の API で戻り値が
+    // `string | null` であるため、ここでの null 比較は外部 API との整合上
+    // 維持する (Issue #622)。`== null` のゆるい比較で undefined も拾える
+    // 形に揃える。
+    if (publishedAt != null) {
       const milestonesPath = join(datasourcesDir, "milestones.json");
       const milestones = loadMilestones(milestonesPath);
 
@@ -567,11 +579,11 @@ const createNewPost = (): void => {
         : [];
 
       // milestones.json に「サイト開設」が登録済みなら座標経由で出る。
-      // 未登録時 (= null) のみ最古記事日付からのフォールバックを使う。
+      // 未登録時 (= undefined) のみ最古記事日付からのフォールバックを使う。
       const siteOpeningElapsed =
-        milestones === null
+        milestones === undefined
           ? computeSiteOpeningFallback(datasourcesDir, publishedAt)
-          : null;
+          : undefined;
 
       const previousPost = findPreviousPost(datasourcesDir, fileName);
 

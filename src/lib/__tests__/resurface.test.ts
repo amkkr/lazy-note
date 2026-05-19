@@ -267,7 +267,7 @@ describe("selectResurfaced: どれも該当しないケース", () => {
   });
 
   it("posts に inferPublishedAt 解決不能な ID が含まれていても落ちず、解決可能な記事のみで判定する", () => {
-    // ID "invalid-id" は inferPublishedAt が null を返すため除外
+    // ID "invalid-id" は inferPublishedAt が undefined を返すため除外
     const posts = [makePost("20250101120000"), makePost("invalid-id")];
     const result = selectResurfaced(posts, [], "2025-02-01");
 

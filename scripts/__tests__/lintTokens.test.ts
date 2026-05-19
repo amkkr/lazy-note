@@ -16,7 +16,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   collectTargetFiles,
   extractSanitizedLine,
@@ -27,12 +27,14 @@ import {
   iterateMatches,
   type LintPattern,
   processChar,
+  reportSkippedTargets,
   type ScanState,
   sanitizeFile,
   scanFile,
   scanFileScope,
   scanLineScope,
   shouldSkipEntry,
+  type SkipRecord,
   stripComments,
   tryStat,
   type Violation,
@@ -75,6 +77,52 @@ describe("tryStat", () => {
     symlinkSync(join(tmpDir, "nonexistent-target"), link);
     expect(() => tryStat(link)).not.toThrow();
     expect(tryStat(link)).toBeUndefined();
+  });
+
+  // ====================================================================
+  // skip 通知コールバック (Issue #637)
+  //
+  // tryStat は ENOENT / EACCES / EMFILE 等を一律 silent skip するが、
+  // permission tampering を疑う場合に件数を可視化したい。
+  // onSkip コールバックでパスと reason (errno code) を呼び出し側に
+  // 通知できることを検証する。
+  // ====================================================================
+  describe("onSkip コールバック", () => {
+    it("存在しないパスでは onSkip が ENOENT reason 付きで呼ばれる", () => {
+      const onSkip = vi.fn();
+      const missing = join(tmpDir, "missing-file");
+      const result = tryStat(missing, onSkip);
+      expect(result).toBeUndefined();
+      expect(onSkip).toHaveBeenCalledTimes(1);
+      expect(onSkip).toHaveBeenCalledWith(missing, "ENOENT");
+    });
+
+    it("broken symlink でも onSkip が ENOENT reason 付きで呼ばれる", () => {
+      const onSkip = vi.fn();
+      const link = join(tmpDir, "broken-link");
+      symlinkSync(join(tmpDir, "nonexistent-target"), link);
+      tryStat(link, onSkip);
+      expect(onSkip).toHaveBeenCalledTimes(1);
+      const callArgs = onSkip.mock.calls[0];
+      expect(callArgs?.[0]).toBe(link);
+      // ENOENT が一般的だが、OS / Node によって ELOOP 等が返る可能性も
+      // 残しておく (errno code が何かしら文字列で来ることだけを保証)。
+      expect(typeof callArgs?.[1]).toBe("string");
+      expect(String(callArgs?.[1]).length).toBeGreaterThan(0);
+    });
+
+    it("存在するファイルでは onSkip は呼ばれない", () => {
+      const file = join(tmpDir, "exists.ts");
+      writeFileSync(file, "x", "utf8");
+      const onSkip = vi.fn();
+      tryStat(file, onSkip);
+      expect(onSkip).not.toHaveBeenCalled();
+    });
+
+    it("onSkip 未指定 (省略) でも従来通り undefined を返す (silent skip)", () => {
+      // 後方互換: onSkip を渡さなくても従来通り静かに skip できる。
+      expect(tryStat(join(tmpDir, "missing-no-cb"))).toBeUndefined();
+    });
   });
 });
 
@@ -168,6 +216,167 @@ describe("walkDirectory", () => {
     const results: string[] = [];
     walkDirectory(tmpDir, results);
     expect(results).toContain(join(sub, "deep.ts"));
+  });
+
+  // ====================================================================
+  // skip 通知コールバック伝播 (Issue #637)
+  //
+  // walkDirectory 内で tryStat が失敗した場合、main() 側で件数集計
+  // できるよう onSkip コールバックがそのまま伝播することを検証する。
+  // ====================================================================
+  it("broken symlink で onSkip が呼ばれ件数集計できる", () => {
+    writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+    symlinkSync(join(tmpDir, "missing-target"), join(tmpDir, "dangling"));
+    const results: string[] = [];
+    const onSkip = vi.fn();
+    walkDirectory(tmpDir, results, onSkip);
+    expect(results).toContain(join(tmpDir, "real.ts"));
+    // dangling symlink 1 件分の skip 通知が来る。
+    expect(onSkip).toHaveBeenCalledTimes(1);
+    expect(onSkip).toHaveBeenCalledWith(
+      join(tmpDir, "dangling"),
+      expect.any(String),
+    );
+  });
+
+  it("onSkip 未指定でも従来通り skip 件を集めずに走査を継続する", () => {
+    writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+    symlinkSync(join(tmpDir, "missing-target"), join(tmpDir, "dangling"));
+    const results: string[] = [];
+    expect(() => walkDirectory(tmpDir, results)).not.toThrow();
+    expect(results).toContain(join(tmpDir, "real.ts"));
+  });
+
+  // ====================================================================
+  // symlink ループ防止 (Issue #658)
+  //
+  // PR #635 (Issue #621) で broken symlink は `tryStat` 経由で握り潰す
+  // ようになったが、symlink ループ (`a -> b`, `b -> a` 等) は `tryStat`
+  // が Stats を返すため `isDirectory()` 判定後に再帰呼び出しで無限ループに
+  // 陥る潜在リスクがあった。
+  //
+  // 案 1: `realpathSync` で正規化したパスを `Set<string>` で記録し、
+  // 重複したら skip + `onSkip` 通知。本テスト群は以下を担保する:
+  //   - シンプル symlink ループで無限ループせず skip される
+  //   - `onSkip` が想定通り呼ばれる (件数集計可能)
+  //   - 非ループ symlink (`a -> b`, `b` は通常ディレクトリ) は通常通り走査
+  //   - broken symlink は既存挙動 (skip) を維持する
+  // ====================================================================
+  describe("symlink ループ防止 (Issue #658)", () => {
+    it("シンプル symlink ループ (`a -> b`, `b -> a`) で無限ループせず skip できる", () => {
+      // tmpDir/
+      //   real.ts            # 通常ファイル (走査対象)
+      //   a -> b             # symlink ループ
+      //   b -> a             # symlink ループ
+      writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+      symlinkSync(join(tmpDir, "b"), join(tmpDir, "a"));
+      symlinkSync(join(tmpDir, "a"), join(tmpDir, "b"));
+      const results: string[] = [];
+      // 無限ループに陥らず正常終了することを担保する
+      // (vitest デフォルトの testTimeout 5s 内に完了)。
+      expect(() => walkDirectory(tmpDir, results)).not.toThrow();
+      expect(results).toContain(join(tmpDir, "real.ts"));
+    });
+
+    it("symlink ループで onSkip が呼ばれ件数集計できる", () => {
+      // 自己参照 symlink (`self -> self`) を作成。
+      // `realpathSync` は ELOOP を投げるため `tryRealpath` で skip + 通知される。
+      symlinkSync(join(tmpDir, "self"), join(tmpDir, "self"));
+      const results: string[] = [];
+      const onSkip = vi.fn();
+      expect(() =>
+        walkDirectory(tmpDir, results, onSkip),
+      ).not.toThrow();
+      // 自己参照 symlink について `onSkip` が少なくとも 1 回呼ばれる
+      // (realpath 失敗 or symlink ループ判定で)。
+      expect(onSkip).toHaveBeenCalled();
+      const skippedPaths = onSkip.mock.calls.map((c) => c[0] as string);
+      expect(skippedPaths).toContain(join(tmpDir, "self"));
+    });
+
+    it("ディレクトリ間 symlink ループ (`dir-a -> dir-b`, `dir-b -> dir-a`) で skip できる", () => {
+      // tmpDir/
+      //   real.ts
+      //   loop/
+      //     dir-a -> ../loop/dir-b
+      //     dir-b -> ../loop/dir-a
+      const loopDir = join(tmpDir, "loop");
+      mkdirSync(loopDir);
+      writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+      symlinkSync(join(loopDir, "dir-b"), join(loopDir, "dir-a"));
+      symlinkSync(join(loopDir, "dir-a"), join(loopDir, "dir-b"));
+      const results: string[] = [];
+      const onSkip = vi.fn();
+      expect(() =>
+        walkDirectory(tmpDir, results, onSkip),
+      ).not.toThrow();
+      expect(results).toContain(join(tmpDir, "real.ts"));
+      // ループ symlink が onSkip 通知される (realpath 失敗 or 訪問済み判定)。
+      expect(onSkip).toHaveBeenCalled();
+    });
+
+    it("非ループ symlink (`link -> normalDir`) は通常通り走査できる", () => {
+      // tmpDir/
+      //   normal/
+      //     deep.ts          # 通常ファイル
+      //   link -> normal     # 非ループ symlink
+      //
+      // 期待挙動: 同一実体を指す経路 (`normal/deep.ts` / `link/deep.ts`) は
+      // visited で重複排除され、**いずれか 1 経路で 1 回だけ** results に
+      // 入る。どちらの経路が先に走査されるかは `readdirSync` の OS 依存の
+      // 順序に依存するため、ここでは「1 件含まれる」ことだけを担保する。
+      const normalDir = join(tmpDir, "normal");
+      mkdirSync(normalDir);
+      writeFileSync(join(normalDir, "deep.ts"), "x", "utf8");
+      symlinkSync(normalDir, join(tmpDir, "link"));
+      const results: string[] = [];
+      walkDirectory(tmpDir, results);
+      // 経路に依らず `deep.ts` が 1 件だけ集まる (= 二重カウントされない)。
+      const deepHits = results.filter((p) => p.endsWith("deep.ts"));
+      expect(deepHits).toHaveLength(1);
+      // 集まった経路は実体パス or symlink 経路のどちらかで、basename は
+      // `deep.ts`。`normal` または `link` 配下のいずれかであること。
+      const hit = deepHits[0] ?? "";
+      expect(
+        hit === join(normalDir, "deep.ts") ||
+          hit === join(tmpDir, "link", "deep.ts"),
+      ).toBe(true);
+    });
+
+    it("broken symlink (実体なし) は既存挙動通り skip される", () => {
+      // 回帰テスト: PR #635 (Issue #621) で導入した broken symlink skip
+      // 挙動を Issue #658 の実装が壊していないことを確認する。
+      writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+      symlinkSync(join(tmpDir, "missing-target"), join(tmpDir, "dangling"));
+      const results: string[] = [];
+      expect(() => walkDirectory(tmpDir, results)).not.toThrow();
+      expect(results).toContain(join(tmpDir, "real.ts"));
+    });
+
+    it("visited Set を呼び出し間で再利用しない (各 collectTargetFiles 呼び出しが独立)", () => {
+      // tmpDir/
+      //   t1/
+      //     real.ts
+      //   t2 -> t1            # t2 は t1 への symlink
+      // 連続して walkDirectory(t1) と walkDirectory(t2) を呼んだとき、
+      // visited のスコープが呼び出し単位なので両方とも走査される
+      // (= 「symlink で同じ実体を指す独立ターゲットを別々に集計したい」
+      //   要件を担保する)。
+      const t1 = join(tmpDir, "t1");
+      mkdirSync(t1);
+      writeFileSync(join(t1, "real.ts"), "x", "utf8");
+      symlinkSync(t1, join(tmpDir, "t2"));
+
+      const r1: string[] = [];
+      walkDirectory(t1, r1);
+      expect(r1).toContain(join(t1, "real.ts"));
+
+      const r2: string[] = [];
+      walkDirectory(join(tmpDir, "t2"), r2);
+      // t2 経由でも実体ファイルを集められる (= visited が呼び出し間で
+      // 共有されていない)。
+      expect(r2.length).toBeGreaterThan(0);
+    });
   });
 });
 
@@ -361,6 +570,185 @@ describe("stripComments", () => {
   });
 });
 
+// ====================================================================
+// サロゲートペア / マルチバイト文字境界条件 (Issue #656, Issue #638 を吸収)
+//
+// 背景:
+//   `stripComments` / `processChar` / `handleStringLiteral` のステート
+//   マシンは `for (let i = 0; i < line.length; i += 1)` で UTF-16
+//   コードユニット単位走査する。サロゲートペア (`𠮷` = U+20BB7、絵文字
+//   `🎉` = U+1F389 等) は high surrogate (0xD800-0xDBFF) + low surrogate
+//   (0xDC00-0xDFFF) の 2 コードユニットに分割される。
+//
+//   サロゲート単体 (U+D800-U+DFFF の範囲) は ASCII クォート (U+0027
+//   `'` / U+0022 `"` / U+0060 `` ` ``) ともコメント開始記号 (U+002F `/`
+//   / U+002A `*`) とも一致しないため、ステート遷移を引き起こさず素通り
+//   するのが正しい挙動。本テストは「**ステート崩壊が起きていない**」
+//   ことを境界条件として担保する。
+//
+// Issue #638 重複範囲:
+//   Issue #638 「日本語文字列リテラル / 絵文字でクォート開閉が崩壊しない
+//   か」も本テスト群でカバーする (`'日本語'` / `"日本語"` /
+//   `` `日本語` `` / `'🎉token🎉'`)。Issue #638 は本 PR で実装吸収済み
+//   として close 提案する。
+//
+// 仕様確認 (CJK 全角クォート):
+//   `「」` (U+300C / U+300D) は BMP 内の単一コードユニットだが ASCII
+//   クォートではない。**ステート遷移を起こさず素通り**するのが期待
+//   される挙動 (これらをクォートとして解釈してしまうと、コメント中の
+//   日本語引用「これは bg.0 のこと」のような文言で stripComments が
+//   崩壊し旧 token 検知に false positive / false negative が出る)。
+//
+// Tripwire 性の範囲に関する注意 (DA #656 フォローアップ):
+//   本 describe の大半 (ケース 1-2, 4-6) は `stripComments` を経由する
+//   が、現状仕様 (= UTF-16 コードユニット単位走査でもサロゲートペアが
+//   境界を破壊しない) を**文書化する回帰テスト**として機能する。
+//   本体走査方式を変更 (例: `for` ループ → `for...of` 化、`Array.from`
+//   による code point 単位走査への切替等) しても、サロゲートペアが
+//   ASCII クォート / コメント開始記号と一致しない限り依然 pass する
+//   ケースが含まれるため、これらは**厳密な Tripwire ではなく、振る舞い
+//   仕様の固定 (= 仕様変更時に明示的に書き換えるべき固定点)** として
+//   読むこと。
+//
+//   一方、ケース 3 (`handleStringLiteral` 単体呼び出し) と末尾の統合
+//   ケース「エスケープ + サロゲートペアを含む文字列リテラル全体を
+//   stripComments で処理できる」は、`stripComments` 本体のループ
+//   実装方式変更 (advance 量の解釈変化等) を `sanitized` の観測で検知
+//   する**Tripwire 性**を持つ。
+// ====================================================================
+describe("stripComments / processChar - サロゲートペア境界", () => {
+  it("サロゲートペアを含む文字列リテラルを破損せず通せる", () => {
+    // `'𠮷'` (U+20BB7 サロゲートペア) を含む行が、開閉クォートを
+    // 正しく検出して inBlockComment=false で完了できる。
+    const { sanitized, inBlockComment } = stripComments(
+      "const name = '𠮷野家';",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    // サロゲートペアそのものが sanitized に保持される。
+    expect(sanitized).toContain("𠮷野家");
+    // 末尾セミコロンも保持される (= クォート開閉が正しく検出され、
+    // 後続の `;` がコード領域として扱われている)。
+    expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+  });
+
+  it("サロゲートペアを含む行末コメントを空白で埋めても元の長さが保存される", () => {
+    // `// 𠮷` 以降が空白置換され、サロゲートペアがコメント領域として
+    // 正しく剥がされる。
+    const original = "const a = 1; // 𠮷野家コメント";
+    const { sanitized, inBlockComment } = stripComments(original, {
+      inBlockComment: false,
+    });
+    expect(inBlockComment).toBe(false);
+    expect(sanitized.startsWith("const a = 1; ")).toBe(true);
+    // サロゲートペアもコメント領域なので残らない。
+    expect(sanitized).not.toContain("𠮷");
+    expect(sanitized).not.toContain("コメント");
+    // column 不変条件: コメント剥がしは UTF-16 コードユニット単位の長さを
+    // 保存する必要がある (後段の line/column 算出が `sanitized` の offset
+    // に依存するため)。サロゲートペアの片割れを欠落させると 1 ずれて
+    // column 整合が崩れる。
+    expect(sanitized.length).toBe(original.length);
+  });
+
+  it("エスケープ後に高サロゲート / 低サロゲートが来てもステート崩壊しない", () => {
+    // `\\𠮷` のように、バックスラッシュエスケープの直後に high
+    // surrogate が来るケース。`handleStringLiteral` のエスケープ処理
+    // (`advance: 1`) は次のコードユニットを「エスケープされた文字」
+    // として消費するため、high surrogate 単体が advance 対象になる。
+    // 低サロゲートが次イテレーションで素通りすることを確認する。
+    const state = makeState({ inSingle: true });
+    const out: string[] = [];
+    // `'𠮷'` は ["'", high, low, "'"]。バックスラッシュ + high の組合せ
+    // を `handleStringLiteral` 単体で再現する。
+    const high = "\uD842";
+    const low = "\uDFB7";
+    const r1 = handleStringLiteral("\\", high, out, state, "'");
+    expect(r1.advance).toBe(1);
+    expect(state.inSingle).toBe(true);
+    // 続く low surrogate は終端クォートでも何でもないので素通り。
+    const r2 = handleStringLiteral(low, "'", out, state, "'");
+    expect(r2.advance).toBe(0);
+    expect(state.inSingle).toBe(true);
+    expect(out.join("")).toBe(`\\${high}${low}`);
+  });
+
+  it("日本語文字列リテラル (シングル / ダブル / バッククォート) のクォート開閉を検出できる", () => {
+    // Issue #638 重複範囲。3 種類のクォートで日本語文字列リテラルが
+    // 正しく開閉検出されることを確認する。
+    for (const quote of ["'", '"', "`"] as const) {
+      const { sanitized, inBlockComment } = stripComments(
+        `const v = ${quote}日本語${quote};`,
+        { inBlockComment: false },
+      );
+      expect(inBlockComment).toBe(false);
+      expect(sanitized).toContain("日本語");
+      // 末尾セミコロンが残る = クォートが正しく閉じたとみなされている。
+      expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+    }
+  });
+
+  it("絵文字 (`'🎉token🎉'`) のクォート開閉を検出できる", () => {
+    // `🎉` は U+1F389 (サロゲートペア)。文字列リテラル内に複数含まれて
+    // もステートマシンが崩壊せず、後続の `;` がコード領域として扱われる。
+    const { sanitized, inBlockComment } = stripComments(
+      "const e = '🎉token🎉';",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    expect(sanitized).toContain("🎉token🎉");
+    expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+  });
+
+  it("CJK 全角クォート (`「」`) は ASCII クォート扱いされない (仕様確認)", () => {
+    // `「` (U+300C) / `」` (U+300D) は ASCII シングル / ダブル / バック
+    // クォートとは別の Unicode コードポイント。ステート遷移を起こさず
+    // 素通りすべきで、続く `// 旧 bg.0` が**行コメントとして剥がされる**
+    // ことが期待される (= 全角クォートを文字列リテラル開始と誤判定して
+    // 行コメントを保持してしまうと false negative になる)。
+    const { sanitized, inBlockComment } = stripComments(
+      "const v = 「日本語」; // 旧 bg.0",
+      { inBlockComment: false },
+    );
+    expect(inBlockComment).toBe(false);
+    // 全角クォート自体はコード領域として保持される (≒ 元の文字列が残る)。
+    expect(sanitized).toContain("「日本語」");
+    // `// 旧 bg.0` 以降は空白置換されるため `bg.0` は sanitized に残らない。
+    expect(sanitized).not.toContain("bg.0");
+    expect(sanitized).not.toContain("旧");
+  });
+
+  it("エスケープ + サロゲートペアを含む文字列リテラル全体を stripComments で処理できる (統合 Tripwire)", () => {
+    // DA #656 フォローアップ: ケース 3 は `handleStringLiteral` を内部
+    // API として単体呼び出しするため、`stripComments` 本体のループ実装
+    // 方式変更 (例: `for...of` 化 / `Array.from` による code point 単位
+    // 走査への切替 / advance 量解釈の取り違え) からは切り離されている。
+    //
+    // 本ケースは「エスケープ (`\\`) + サロゲートペア (`𠮷`)」を含む
+    // 文字列リテラル全体を `stripComments` レベルで処理し、`sanitized`
+    // の文字列観測でステート遷移が崩壊していないことを担保する統合
+    // Tripwire として機能する。本体走査方式を変更した場合、
+    // `handleStringLiteral` の advance:1 解釈が UTF-16 / code point の
+    // どちらに基づくかでサロゲートペアの片割れが境界外にずれ、終端
+    // クォート検出が崩壊するため、本ケースが regression を fail で
+    // 検知する。
+    const original = "const v = '\\𠮷野家';";
+    const { sanitized, inBlockComment } = stripComments(original, {
+      inBlockComment: false,
+    });
+    expect(inBlockComment).toBe(false);
+    // エスケープ + サロゲートペアが sanitized に保持される
+    // (= ステート遷移が崩れていない / クォート終端検出が成立している)。
+    expect(sanitized).toContain("\\𠮷野家");
+    // 末尾セミコロンが残る = 終端クォートを正しく検出してコード領域に
+    // 復帰している。
+    expect(sanitized.trimEnd().endsWith(";")).toBe(true);
+    // column 不変条件: `stripComments` は長さ保存が前提なので、
+    // サロゲートペア境界で 1 ずれていないことを併せて担保する。
+    expect(sanitized.length).toBe(original.length);
+  });
+});
+
 describe("iterateMatches", () => {
   it("全マッチを onMatch コールバックで列挙できる", () => {
     const collected: string[] = [];
@@ -480,5 +868,50 @@ describe("scanFile", () => {
       },
     ]);
     expect(violations).toEqual([]);
+  });
+});
+
+// ====================================================================
+// reportSkippedTargets (Issue #637)
+//
+// main() 末尾で呼ばれる skip 件数ログ出力の挙動を検証する。
+// - 件数 0 のときは何も出さない (通常 CI ログのノイズを増やさない)
+// - 件数 > 0 のときは件数行 + 各 skip パス / reason を warn ログとして出す
+// ====================================================================
+describe("reportSkippedTargets", () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it("skip 件数 0 のときは console.warn を呼ばない", () => {
+    reportSkippedTargets([]);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it("skip 件数 > 0 のときは件数行 + パス / reason を warn 出力できる", () => {
+    const skipped: SkipRecord[] = [
+      { path: "/repo/src/a.ts", reason: "EACCES" },
+      { path: "/repo/src/b.ts", reason: "EMFILE" },
+    ];
+    reportSkippedTargets(skipped);
+    // 件数行 1 + 各 skip 1 行ずつ = 計 3 回呼ばれる。
+    expect(warnSpy).toHaveBeenCalledTimes(3);
+    // 件数行に件数が含まれること。
+    const headerCall = warnSpy.mock.calls[0]?.[0];
+    expect(String(headerCall)).toContain("2 path(s) skipped");
+    // 各 skip 行に reason とパス (の一部) が含まれること。
+    const detailCalls = warnSpy.mock.calls
+      .slice(1)
+      .map((c: unknown[]) => String(c[0]));
+    expect(detailCalls.join("\n")).toContain("EACCES");
+    expect(detailCalls.join("\n")).toContain("EMFILE");
+    expect(detailCalls.join("\n")).toContain("a.ts");
+    expect(detailCalls.join("\n")).toContain("b.ts");
   });
 });

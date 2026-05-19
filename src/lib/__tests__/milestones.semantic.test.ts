@@ -19,13 +19,46 @@
  * 配列順は本番 JSON と完全に一致させる。
  *
  * 非スコープ:
- * - Zod 等の schema 検証による型レベル担保は Issue #547 で別途対応する
+ * - ランタイム schema 検証 (型 / 値域 / tone enum) は Issue #547 で
+ *   `src/lib/milestonesSchema.ts` (`parseMilestones` / `validateMilestonesStrict`)
+ *   として inline 自作実装済み (Zod 等の外部ライブラリは CLAUDE.md
+ *   「外部ライブラリの追加は原則しない」に従い不採用)。
+ *   本ファイルは schema 検証では捕まらない「label rename / 日付変更 / tone 変更」
+ *   という意味的変更を検知する責務に特化する。
  */
 
 import { describe, expect, it } from "vitest";
 import milestonesJson from "../../../datasources/milestones.json";
+import {
+  buildPulseForbiddenVocabRegex,
+  PULSE_FORBIDDEN_VOCAB,
+} from "../../test/forbiddenVocab";
 import type { Milestone } from "../anchors";
 
+/**
+ * 注意: 本ファイルの EXPECTED_MILESTONES は本番 milestones.json と同一の inline fixture。
+ * 共通化すると silent pass リスクが復活する (冒頭 JSDoc の「背景」参照:
+ * rename / 日付変更 / tone 変更を inline fixture で固定することで silent pass を
+ * 防ぐ意図) ため意図的に重複させているが、milestone 件数が 5 件 (目安) を超えた
+ * 場合は以下の代替案を再評価する。「5 件」は現状 3 件、本ファイル内の inline fixture
+ * 視認性の境界として目安に設定したもので、厳密な閾値ではない。
+ *
+ * - 案 1: src/test/fixtures/expectedMilestones.ts に外出しし、Coordinate.allPosts.test.tsx /
+ *   AnchorPage.allPosts.test.tsx の testMilestones から再利用 (silent pass リスクは残るが
+ *   メンテ負荷削減)。
+ *   ただし案 1 を選ぶ場合、「本番 JSON と意味的にずれていないか」を inline fixture で
+ *   検証する本ファイルの設計思想自体が成立しなくなるため、本ファイルの存在意義自体を
+ *   再検討する必要がある (fixture を共有した時点で、本番 JSON 更新と fixture 更新が
+ *   同じ PR で必ず連動する保証が失われる)。
+ * - 案 2: Issue #547 で実装済みの validateMilestonesStrict (src/lib/milestonesSchema.ts) を
+ *   milestones.semantic.test.ts 側で活用し、本番 milestones.json を直接 strict 検証することで
+ *   fixture を廃止する (Issue #547 はランタイム schema 検証として完了済み。ただし strict 検証は
+ *   型 / 値域 / tone enum のみを担保し、label rename や日付変更は検知できないため、
+ *   本ファイルの意味的スナップショット責務をそのまま代替できるわけではない。
+ *   テスト側への適用は別途検討)。
+ *
+ * (Issue #631 / PR #628 / Issue #615 follow-up)
+ */
 const EXPECTED_MILESTONES: readonly Milestone[] = [
   {
     date: "2025-08-05",
@@ -67,5 +100,37 @@ describe("datasources/milestones.json 意味的スナップショット (Issue #
     const actualDates = actualMilestones.map((m) => m.date);
     const expectedDates = EXPECTED_MILESTONES.map((m) => m.date);
     expect(actualDates).toEqual(expectedDates);
+  });
+});
+
+/**
+ * Pulse 思想禁則語彙の単体 Tripwire (Issue #624 AC1)。
+ *
+ * 背景:
+ * 本番 `datasources/milestones.json` の `label` に Pulse 思想の禁則語彙
+ * (例: 「投稿頻度」「平均間隔」「執筆ペース」等。`src/test/forbiddenVocab.ts`
+ * に集約) が混入すると、AnchorPage / Coordinate / Resurface などの組合せ
+ * Tripwire で初めて検知される構造だった。これは「label そのものの妥当性」を
+ * 描画層で間接的に検査することになり、責務が不適切に表示層側へ流出していた。
+ *
+ * 本 Tripwire は「label レベルの禁則語彙混入」を **データ層単体テスト** で
+ * 直接検出する。これにより:
+ * - `AnchorPage.allPosts.test.tsx` が本番 `milestones.json` を直接 import する
+ *   特例 (Issue #618 案A の限定 import) を撤去できる (Issue #624 AC2 で実施)
+ * - 表示層 Tripwire は `testMilestones` 固定 fixture ベースに完全に統一できる
+ *
+ * 出典: Issue #624 (Issue #618 案A の follow-up = 案C)。
+ */
+describe("datasources/milestones.json Pulse 思想禁則語彙 Tripwire (Issue #624)", () => {
+  const actualMilestones = milestonesJson as readonly Milestone[];
+  const forbiddenRegex = buildPulseForbiddenVocabRegex();
+
+  it("全 milestone の label に Pulse 思想禁則語彙が含まれない", () => {
+    for (const milestone of actualMilestones) {
+      expect(
+        milestone.label,
+        `milestone.label "${milestone.label}" が Pulse 禁則語彙 (${PULSE_FORBIDDEN_VOCAB.join(" / ")}) に該当する`,
+      ).not.toMatch(forbiddenRegex);
+    }
   });
 });

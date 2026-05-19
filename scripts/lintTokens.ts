@@ -44,7 +44,13 @@
  * - false positive が出た場合は `EXCLUDED_FILE_SUFFIXES` 経由で除外する。
  */
 
-import { readdirSync, readFileSync, type Stats, statSync } from "node:fs";
+import {
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  type Stats,
+  statSync,
+} from "node:fs";
 import { basename, extname, join, relative, resolve } from "node:path";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
@@ -97,6 +103,8 @@ const EXCLUDED_FILE_SUFFIXES = [
  *     panda.config.ts のような複数行にまたがるオブジェクトリテラル
  *     (例: `bg: {\n  "0": { value: ... }\n}`) を検出するため。
  *     コメント除去はファイル単位で適用する。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 interface LintPattern {
   readonly name: string;
@@ -105,6 +113,7 @@ interface LintPattern {
   readonly scope?: "line" | "file";
 }
 
+/** @internal テスト専用 export. 本番コードから import しないこと */
 const LINT_PATTERNS: readonly LintPattern[] = [
   {
     name: "old-bg-numeric",
@@ -181,6 +190,7 @@ const LINT_PATTERNS: readonly LintPattern[] = [
   },
 ] as const;
 
+/** @internal テスト専用 export. 本番コードから import しないこと */
 interface Violation {
   readonly file: string;
   readonly line: number;
@@ -189,6 +199,18 @@ interface Violation {
   readonly description: string;
   readonly snippet: string;
 }
+
+/**
+ * skip された対象 (パスと reason) を呼び出し側に通知するコールバック。
+ *
+ * - `path`: stat に失敗した絶対パス
+ * - `reason`: 失敗の理由。Node の `NodeJS.ErrnoException.code`
+ *   (`ENOENT` / `EACCES` / `EMFILE` 等) をそのまま渡す。code が取得
+ *   できない例外は `"unknown"` にフォールバックする
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+type SkipCallback = (path: string, reason: string) => void;
 
 /**
  * `statSync` を try/catch でラップし、対象が存在しない場合は undefined を返す。
@@ -205,13 +227,69 @@ interface Violation {
  *     責務が「読める範囲のソースを走査して旧 token 検出する」ことであり、
  *     部分的な stat 失敗を理由に CI を落とすより、走査を継続して
  *     検出可能な違反を確実に拾うほうが価値が高いため
- *   - 結果として、走査されなかったファイル数を別途検知したい場合は
- *     呼び出し側で件数 / ログを別管理する必要がある (現状未実装)
+ *
+ * 可視化 (Issue #637):
+ *   攻撃者が permission を細工して特定ファイルを Tripwire 走査から外す
+ *   経路への防御として、`onSkip` callback で skip 件数を呼び出し側に
+ *   通知できる。呼び出し側 (`walkDirectory` / `main()`) は件数を集計し、
+ *   `main()` 末尾で stderr に件数 / パス一覧を warn ログとして出力する
+ *   ことで、CI ログから不審な skip 異常を一目で検知可能にする。
+ *
+ *   `onSkip` を渡さない呼び出しは従来通り「静かに skip」を維持する。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
-const tryStat = (target: string): Stats | undefined => {
+const tryStat = (
+  target: string,
+  onSkip?: SkipCallback,
+): Stats | undefined => {
   try {
     return statSync(target);
-  } catch {
+  } catch (error) {
+    if (onSkip) {
+      const reason =
+        error && typeof error === "object" && "code" in error
+          ? String((error as NodeJS.ErrnoException).code ?? "unknown")
+          : "unknown";
+      onSkip(target, reason);
+    }
+    return undefined;
+  }
+};
+
+/**
+ * `realpathSync` を try/catch でラップし、失敗時は undefined を返す補助関数。
+ *
+ * 用途 (Issue #658 / 案 1):
+ *   `walkDirectory` の symlink ループ防止 (`a -> b`, `b -> a` のような循環) に
+ *   使う。訪問済みパス管理 (`Set<string>`) のキーは「実体パス」に正規化された
+ *   ものを使う必要があり、`realpathSync` で symlink を辿り切って絶対パスに変換する。
+ *
+ * 例外ポリシー (`tryStat` と同じ理由で全例外を握り潰す):
+ *   - ENOENT (broken symlink で実体が存在しない) → undefined を返し、呼び出し側
+ *     で安全側 skip させる。Tripwire スクリプトの責務は「読める範囲を走査
+ *     する」ことなので、realpath 失敗で CI を落とすより skip するほうが妥当
+ *   - ELOOP (symlink ループ深度上限到達) / EACCES (権限不足) 等も同様に undefined
+ *   - `onSkip` callback が渡されていれば errno code を reason として通知する
+ *
+ * CLAUDE.md「null vs undefined」方針に従い、戻り値型は `string | undefined`。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const tryRealpath = (
+  target: string,
+  onSkip?: SkipCallback,
+): string | undefined => {
+  try {
+    return realpathSync(target);
+  } catch (error) {
+    if (onSkip) {
+      const reason =
+        error && typeof error === "object" && "code" in error
+          ? String((error as NodeJS.ErrnoException).code ?? "unknown")
+          : "unknown";
+      onSkip(target, reason);
+    }
     return undefined;
   }
 };
@@ -220,6 +298,8 @@ const tryStat = (target: string): Stats | undefined => {
  * 走査対象ファイルとして受理可能か判定する。
  * - 拡張子が `TARGET_EXTENSIONS` に含まれること
  * - `EXCLUDED_FILE_SUFFIXES` のいずれにも該当しないこと
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const isAcceptableFile = (filePath: string): boolean => {
   if (!TARGET_EXTENSIONS.has(extname(filePath))) {
@@ -237,6 +317,8 @@ const isAcceptableFile = (filePath: string): boolean => {
  * 非 `.test.ts` ファイル) が `EXCLUDED_FILE_SUFFIXES` (suffix だけで
  * 判定) を素通りしてしまい、テストコード中の旧 token 言及で CI が
  * 落ちる潜在バグになる (Issue #413 / DA 重大 2 対応)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const shouldSkipEntry = (entry: string): boolean => {
   return (
@@ -252,22 +334,63 @@ const shouldSkipEntry = (entry: string): boolean => {
  * `tryStat` 経由で取得し、stat 失敗エントリは静かにスキップする
  * (Issue #621 / M1)。
  *
+ * symlink ループ防止 (Issue #658):
+ *   `a -> b`, `b -> a` のような symlink 循環下では `tryStat` が Stats を返す
+ *   ため `isDirectory()` 判定後に再帰呼び出しで無限ループに陥る潜在リスクが
+ *   ある。そこで `realpathSync` で正規化したディレクトリ実体パスを
+ *   `visited: Set<string>` に記録し、既訪問なら skip する (案 1)。
+ *
+ *   - `visited` のスコープは `walkDirectory` 呼び出し単位 (= `collectTargetFiles`
+ *     1 回分)。呼び出し間で再利用しないことで、`TARGET_PATHS` の各ターゲット
+ *     が独立した走査を行えるようにする (例: `src/` と `scripts/` の両方が
+ *     `tmp/cache` を symlink で指していても両方を走査対象にする)
+ *   - `realpathSync` が失敗 (broken symlink / ELOOP 等) した場合は安全側 skip
+ *     + `onSkip` 通知 (`tryRealpath` 経由)
+ *   - ファイルは再帰呼び出しを伴わないため visited 記録対象外 (= ループ
+ *     リスクなし)。記録すると同一実体ファイルを複数の symlink 経由で参照
+ *     しているケースで片方が落ちる副作用が出るため、ディレクトリのみ管理する
+ *
  * @param results **in-out**: 検出した受理可能ファイルのパスを末尾に push する
  *   (Issue #621 / N1)
+ * @param onSkip 省略可。stat / realpath 失敗 / symlink ループで skip した場合に
+ *   呼ばれるコールバック (Issue #637 / Issue #658)。`main()` が件数集計用に渡す
+ * @param visited 省略可。訪問済みディレクトリ実体パスの `Set` (Issue #658)。
+ *   省略時は呼び出しごとに新規生成され、当該呼び出し内でのみ共有される
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
-const walkDirectory = (current: string, results: string[]): void => {
+const walkDirectory = (
+  current: string,
+  results: string[],
+  onSkip?: SkipCallback,
+  visited: Set<string> = new Set<string>(),
+): void => {
+  // 現在ディレクトリを訪問済みに記録する。`current` 自身も symlink 経由で
+  // 渡された可能性があるため、`realpathSync` で実体パスに正規化する。
+  // realpath 失敗時は安全側 skip (broken symlink / 権限不足等)。
+  const currentReal = tryRealpath(current, onSkip);
+  if (currentReal === undefined) {
+    return;
+  }
+  if (visited.has(currentReal)) {
+    // symlink ループ等で既訪問パスに再到達した場合は skip + 通知。
+    onSkip?.(current, "ELOOP");
+    return;
+  }
+  visited.add(currentReal);
+
   const entries = readdirSync(current);
   for (const entry of entries) {
     if (shouldSkipEntry(entry)) {
       continue;
     }
     const fullPath = join(current, entry);
-    const entryStats = tryStat(fullPath);
+    const entryStats = tryStat(fullPath, onSkip);
     if (!entryStats) {
       continue;
     }
     if (entryStats.isDirectory()) {
-      walkDirectory(fullPath, results);
+      walkDirectory(fullPath, results, onSkip, visited);
       continue;
     }
     if (entryStats.isFile() && isAcceptableFile(fullPath)) {
@@ -286,10 +409,15 @@ const walkDirectory = (current: string, results: string[]): void => {
  *   (scripts/ から実行する都合、`src/` 配下に限ればこれらは出てこないが
  *   将来 PROJECT_ROOT 走査に変えたとき耐えるためガードを入れておく)。
  * - 走査対象が存在しない場合は空配列を返す (例: e2e/ 未配置構成でも壊れない)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
-const collectTargetFiles = (target: string): string[] => {
+const collectTargetFiles = (
+  target: string,
+  onSkip?: SkipCallback,
+): string[] => {
   const results: string[] = [];
-  const stats = tryStat(target);
+  const stats = tryStat(target, onSkip);
   if (!stats) {
     return results;
   }
@@ -306,7 +434,7 @@ const collectTargetFiles = (target: string): string[] => {
     return results;
   }
 
-  walkDirectory(target, results);
+  walkDirectory(target, results, onSkip);
   return results;
 };
 
@@ -337,6 +465,8 @@ interface CommentStripResult {
 /**
  * `stripComments` の状態機械内部状態。
  * 状態ごとのハンドラ間で受け渡される、行内の文字種コンテキスト。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 interface ScanState {
   inBlockComment: boolean;
@@ -349,6 +479,8 @@ interface ScanState {
  * 1 文字処理後の進行情報。
  * `advance` は追加で消費すべきインデックス数 (0 もしくは 1)。
  * `terminated` が true の場合、その時点で行の処理を打ち切る (行コメント検出時)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 interface StepResult {
   readonly advance: number;
@@ -379,6 +511,8 @@ const NO_ADVANCE: StepResult = { advance: 0, terminated: false };
  *
  * @param out **in-out**: 処理後の sanitized 文字を末尾に push する (push only)
  * @param state **in-out**: `inBlockComment` を必要に応じて mutate する
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const handleBlockComment = (
   ch: string,
@@ -402,6 +536,8 @@ const handleBlockComment = (
  * `handleStringLiteral` から閉じクォート文字を直接フィールドキーへ変換できる
  * ようにし、呼び出し側で都度 `closer` クロージャを生成していた micro-allocation
  * を排除する (Issue #621 / M2, M3)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 type QuoteChar = "'" | '"' | "`";
 type QuoteStateField = "inSingle" | "inDouble" | "inBacktick";
@@ -422,6 +558,8 @@ const QUOTE_FIELD: Readonly<Record<QuoteChar, QuoteStateField>> = {
  *
  * @param out **in-out**: sanitized 文字を末尾に push する (push only)
  * @param state **in-out**: 終端クォート検出時に対応する `in*` フラグを下ろす
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const handleStringLiteral = (
   ch: string,
@@ -450,6 +588,8 @@ const handleStringLiteral = (
  *
  * @param out **in-out**: sanitized 文字 / 空白を末尾に push する (push only)
  * @param state **in-out**: 検出した状態遷移に応じて `in*` フラグを mutate する
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const handleDefault = (
   ch: string,
@@ -494,6 +634,8 @@ const handleDefault = (
  *
  * @param out **in-out**: 配下ハンドラへそのまま渡される push only バッファ
  * @param state **in-out**: 配下ハンドラへそのまま渡される共有状態
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const processChar = (
   ch: string,
@@ -517,6 +659,7 @@ const processChar = (
   return handleDefault(ch, next, out, state, remainingLength);
 };
 
+/** @internal テスト専用 export. 本番コードから import しないこと */
 const stripComments = (
   line: string,
   state: CommentStripState,
@@ -548,6 +691,8 @@ const stripComments = (
  *
  * `scope: "file"` パターンの match.index (ファイル全体オフセット) から
  * 行番号 / カラム位置 / 元行 snippet を逆引きするのに使う。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 interface SanitizedFile {
   /** コメント領域を空白に置換したファイル全体テキスト */
@@ -558,6 +703,7 @@ interface SanitizedFile {
   readonly lineStartOffsets: number[];
 }
 
+/** @internal テスト専用 export. 本番コードから import しないこと */
 const sanitizeFile = (content: string): SanitizedFile => {
   const lines = content.split(/\r?\n/);
   const sanitizedLines: string[] = [];
@@ -584,6 +730,8 @@ const sanitizeFile = (content: string): SanitizedFile => {
 /**
  * sanitized 全体オフセットから「何行目の何カラム目か」を逆引きする。
  * lineStartOffsets は昇順なので二分探索で O(log n)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const offsetToLineColumn = (
   offset: number,
@@ -613,6 +761,8 @@ const offsetToLineColumn = (
 /**
  * regex.exec を反復し、ヒットごとに `onMatch` を呼ぶ汎用イテレータ。
  * 0 幅マッチによる無限ループを避けるため、lastIndex を強制前進させる。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const iterateMatches = (
   pattern: RegExp,
@@ -635,6 +785,8 @@ const iterateMatches = (
  * panda.config.ts の `bg: { "0": ... }` のような複数行構造を検出するために使う。
  *
  * @param violations **in-out**: 検出した違反を末尾に push する (Issue #621 / N1)
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const scanFileScope = (
   filePath: string,
@@ -673,6 +825,8 @@ const scanFileScope = (
  *   (将来 `lineStartOffsets` 計算ロジックを書き換えた際の安全網) に対して
  *   slice の end が start を下回って空でない結果を返してしまうケースを
  *   防ぐためのディフェンシブガードである。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const extractSanitizedLine = (
   sanitized: string,
@@ -689,6 +843,8 @@ const extractSanitizedLine = (
  * 行ごとに sanitized 行を取り出して RegExp を実行し、行 / カラムを直接記録する。
  *
  * @param violations **in-out**: 検出した違反を末尾に push する (Issue #621 / N1)
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const scanLineScope = (
   filePath: string,
@@ -730,6 +886,8 @@ const scanLineScope = (
  *   match.index から逆引きで行 / カラムを出す。
  * - 大文字小文字は区別する (token 名は確定的にケースが決まっている)。
  * - 行コメント / ブロックコメント内は検査対象から除外する (Issue #413)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 const scanFile = (
   filePath: string,
@@ -755,11 +913,49 @@ const formatViolation = (v: Violation): string => {
   return `${relPath}:${v.line}:${v.column}  [${v.patternName}] ${v.description}\n    ${v.snippet}`;
 };
 
+/** @internal テスト専用 export. 本番コードから import しないこと */
+interface SkipRecord {
+  readonly path: string;
+  readonly reason: string;
+}
+
+/**
+ * skip 集計結果を stderr に warn ログとして出力する (Issue #637)。
+ *
+ * - 件数 0 の場合は何も出力しない (通常 CI ログのノイズを増やさない)
+ * - 件数 > 0 の場合は件数とパス一覧 / reason を 1 行ずつ出力する
+ *   ことで、CI ログで grep / scroll 時に skip 異常が一目で分かるようにする
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const reportSkippedTargets = (skipped: readonly SkipRecord[]): void => {
+  if (skipped.length === 0) {
+    return;
+  }
+  console.warn(
+    `lint:tokens WARN: ${skipped.length} path(s) skipped during stat. ` +
+      "permission tampering を疑う場合は以下を確認してください:",
+  );
+  for (const record of skipped) {
+    const relPath = relative(PROJECT_ROOT, record.path);
+    console.warn(`  - [${record.reason}] ${relPath}`);
+  }
+};
+
 const main = (): void => {
   const files: string[] = [];
+  const skipped: SkipRecord[] = [];
+  const onSkip: SkipCallback = (path, reason) => {
+    skipped.push({ path, reason });
+  };
   for (const target of TARGET_PATHS) {
-    files.push(...collectTargetFiles(target));
+    files.push(...collectTargetFiles(target, onSkip));
   }
+
+  // skip 件数の可視化 (Issue #637)。
+  // 0 files ガードや旧 token 検出より先に出すことで、構成不備で exit 2/1
+  // した場合でも skip 異常が CI ログに残るようにする。
+  reportSkippedTargets(skipped);
 
   // 0 files scanned ガード (Issue #413 / DA 致命 2 対応)。
   // `LINT_TOKENS_SRC_DIR=/nonexistent` のような誤設定や `TARGET_PATHS` の
@@ -841,6 +1037,8 @@ export type {
   QuoteChar,
   SanitizedFile,
   ScanState,
+  SkipCallback,
+  SkipRecord,
   StepResult,
   Violation,
 };
@@ -855,12 +1053,14 @@ export {
   LINT_PATTERNS,
   offsetToLineColumn,
   processChar,
+  reportSkippedTargets,
   sanitizeFile,
   scanFile,
   scanFileScope,
   scanLineScope,
   shouldSkipEntry,
   stripComments,
+  tryRealpath,
   tryStat,
   walkDirectory,
 };

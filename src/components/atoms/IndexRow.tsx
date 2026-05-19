@@ -9,6 +9,15 @@ import type { PostSummary } from "../../lib/markdown";
 import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { Link } from "./Link";
 
+// 著者欠落時 (`AUTHOR_FALLBACK`) / 日付欠落時 (`DATE_FALLBACK`) のフォールバック
+// 文言は `MetaInfo.tsx` でも同一文言を利用していたため、Issue #706 で
+// `src/lib/i18nLiterals.ts` に横串集約済み。本ファイルではそこから import 参照する。
+
+// メタ情報 (著者 / 日付) 間の視覚区切り。Em ダッシュ (U+2014) を使う。
+// aria-hidden の装飾要素として扱う (R-4 / Issue #395 (vi) に従い UI 用絵文字は
+// 使用しない)。IndexRow 固有の表示のため i18nLiterals.ts への集約はしない。
+const INDEX_ROW_META_SEPARATOR = "—" as const;
+
 interface IndexRowProps {
   post: PostSummary;
   /**
@@ -230,7 +239,7 @@ export const IndexRow = memo(({ post, index }: IndexRowProps) => {
       <span className={indexMetaStyles}>
         <span>{post.author || AUTHOR_FALLBACK}</span>
         <span className={indexMetaSeparatorStyles} aria-hidden="true">
-          —
+          {INDEX_ROW_META_SEPARATOR}
         </span>
         <span>{post.createdAt || DATE_FALLBACK}</span>
       </span>

@@ -37,6 +37,12 @@
       "complexity": {
         "noBannedTypes": "error",
         "noEmptyTypeParameters": "error",
+        // `noExcessiveCognitiveComplexity` は biome default (maxAllowedComplexity:15) のまま運用。
+        // ただし scripts/calculateContrast.ts は CI ハードゲート (G2) の中核のため、
+        // ファイル単体で予防検証値 `maxAllowedComplexity:8` を目標値として運用している。
+        // 採用根拠 / 引き上げ・引き下げ判断基準 / 再現手順は SSoT として
+        // scripts/calculateContrast.ts 冒頭 JSDoc "Biome 厳格化耐性" セクションに集約。
+        // grep キー: `Issue #623` / `Issue #653`
         "noExcessiveCognitiveComplexity": "error",
         "noExtraBooleanCast": "error",
         "noForEach": "info", // Allow forEach usage despite Biome flagging it for performance reasons as we need it in our project

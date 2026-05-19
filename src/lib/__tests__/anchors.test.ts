@@ -58,32 +58,32 @@ describe("inferPublishedAt: ファイル名からの ISO 8601 推定 (JST 固定
   });
 
   describe("異常系・境界値", () => {
-    it("ゼロ埋めの 00000000000000.md は null を返す", () => {
-      expect(inferPublishedAt("00000000000000.md")).toBeNull();
+    it("ゼロ埋めの 00000000000000.md は undefined を返す", () => {
+      expect(inferPublishedAt("00000000000000.md")).toBeUndefined();
     });
 
-    it("上限超過の 99999999999999.md は null を返す", () => {
-      expect(inferPublishedAt("99999999999999.md")).toBeNull();
+    it("上限超過の 99999999999999.md は undefined を返す", () => {
+      expect(inferPublishedAt("99999999999999.md")).toBeUndefined();
     });
 
-    it("数字以外を含む abc.md は null を返す", () => {
-      expect(inferPublishedAt("abc.md")).toBeNull();
+    it("数字以外を含む abc.md は undefined を返す", () => {
+      expect(inferPublishedAt("abc.md")).toBeUndefined();
     });
 
-    it("13 桁しか無い 2025010112000.md は null を返す", () => {
-      expect(inferPublishedAt("2025010112000.md")).toBeNull();
+    it("13 桁しか無い 2025010112000.md は undefined を返す", () => {
+      expect(inferPublishedAt("2025010112000.md")).toBeUndefined();
     });
 
-    it("15 桁の 202501011200001.md は null を返す", () => {
-      expect(inferPublishedAt("202501011200001.md")).toBeNull();
+    it("15 桁の 202501011200001.md は undefined を返す", () => {
+      expect(inferPublishedAt("202501011200001.md")).toBeUndefined();
     });
 
-    it("空文字列は null を返す", () => {
-      expect(inferPublishedAt("")).toBeNull();
+    it("空文字列は undefined を返す", () => {
+      expect(inferPublishedAt("")).toBeUndefined();
     });
 
-    it("拡張子のみの .md は null を返す", () => {
-      expect(inferPublishedAt(".md")).toBeNull();
+    it("拡張子のみの .md は undefined を返す", () => {
+      expect(inferPublishedAt(".md")).toBeUndefined();
     });
 
     /**
@@ -92,7 +92,7 @@ describe("inferPublishedAt: ファイル名からの ISO 8601 推定 (JST 固定
      * させても文字列は再構築されないため、推定値はそのまま "2025-02-29T..."
      * を返す。anchors.ts 単独の境界値仕様としてここで固定する。
      *
-     * 将来 isIso8601 側を厳密化する場合は本テストの期待値を null に反転する。
+     * 将来 isIso8601 側を厳密化する場合は本テストの期待値を undefined に反転する。
      */
     it("非閏年 2/29 ファイル名 20250229120000.md は 2025-02-29T12:00:00+09:00 を返す (実在しない日付だが文字列再構築のため許容)", () => {
       expect(inferPublishedAt("20250229120000.md")).toBe(
@@ -119,7 +119,7 @@ describe("inferPublishedAt: ファイル名からの ISO 8601 推定 (JST 固定
 
       for (const file of files) {
         const result = inferPublishedAt(file);
-        expect(result, `ファイル ${file} の推定に失敗`).not.toBeNull();
+        expect(result, `ファイル ${file} の推定に失敗`).toBeDefined();
         expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/);
       }
     });
@@ -508,8 +508,8 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       const publishedAt = inferPublishedAt("20250229120000.md");
       expect(publishedAt).toBe("2025-02-29T12:00:00+09:00");
 
-      // null チェック: 上の expect で確定済みだが TypeScript narrowing のため
-      if (publishedAt === null) {
+      // undefined チェック: 上の expect で確定済みだが TypeScript narrowing のため
+      if (publishedAt === undefined) {
         throw new Error("unreachable");
       }
 
@@ -766,7 +766,7 @@ describe("Issue #489 AC: 実データ統合 (milestones.json × 全記事)", () 
     const isoList: string[] = [];
     for (const fileName of fileNames) {
       const iso = inferPublishedAt(fileName);
-      if (iso !== null) {
+      if (iso !== undefined) {
         isoList.push(iso);
       }
     }

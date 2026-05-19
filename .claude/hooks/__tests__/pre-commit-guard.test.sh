@@ -308,13 +308,72 @@ add_case "X03" "block" "fix-required" \
   "--git-dir=<nonexistent> is blocked (attack-surface safeguard)"
 
 # --- Co-Authored-By 検出 (regression sanity) ---------------------------------
+# Issue #648 / DA Must 対応: 検出 fixture を構造的 (メールドメイン / [bot] suffix)
+# に置換した。block 対象は以下:
+#   - `<...@anthropic.com>` / `<...@openai.com>` / `<...@cursor.{sh,com}>`
+#   - `[bot]` suffix + vendor email
+# 以下は block されない (誤検知排除):
+#   - 人名 substring 衝突 (Claudette / Codexa)
+#   - 本文中の説明 (`fix: Co-Authored-By: Claude の挙動を確認`)
+#   - 人間メールの Co-Authored-By
+#   - subject に "copilot" 等が出現するだけのケース (= 行単位 AND で除外)
 add_case "CA01" "block" "sanity" \
-  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: x <x@x>\"" \
-  "Co-Authored-By in -m blocks"
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>\"" \
+  "Co-Authored-By with @anthropic.com email blocks"
 
 add_case "CA02" "pass" "sanity" \
   "$WORKTREE" "echo Co-Authored-By > /tmp/x.txt && $GIT commit" \
   "Co-Authored-By in unrelated arg does not block"
+
+add_case "CA03" "pass" "sanity" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Taro Yamada <taro@example.com>\"" \
+  "Co-Authored-By with human email in -m does not block (Issue #648)"
+
+add_case "CA04" "block" "sanity" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: github-copilot[bot] <copilot@github.com>\"" \
+  "Co-Authored-By with copilot [bot] suffix blocks (Issue #648)"
+
+add_case "CA05" "block" "sanity" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nco-authored-by: Claude <noreply@anthropic.com>\"" \
+  "Case-insensitive co-authored-by header with AI email blocks (Issue #648)"
+
+# --- Issue #648 DA Must 対応: 誤検知防止 Tripwire ----------------------------
+# M3: 人名 substring 衝突 (実在人名 / 架空人名) で誤 block しないこと
+add_case "CA06" "pass" "false-positive-guard" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Claudette Colvin <ccolvin@example.com>\"" \
+  "human name 'Claudette' substring does not block (Issue #648 M3)"
+
+add_case "CA07" "pass" "false-positive-guard" \
+  "$WORKTREE" "$GIT commit -m \"feat\\n\\nCo-Authored-By: Codexa Smith <codexa@example.com>\"" \
+  "human name 'Codexa' substring does not block (Issue #648 M3)"
+
+# M3: 本文中 / subject 中の言及で誤 block しないこと
+add_case "CA08" "pass" "false-positive-guard" \
+  "$WORKTREE" "$GIT commit -m \"fix: Co-Authored-By: Claude の挙動を確認\"" \
+  "mention of 'Co-Authored-By: Claude' in subject does not block (Issue #648 M3)"
+
+# M1: subject に AI vendor 名があるだけで body は人間のケースで shell hook
+# が誤 block しないこと (旧実装は literal 全体 OR 検出で誤 block していた)
+add_case "CA09" "pass" "false-positive-guard" \
+  "$WORKTREE" "$GIT commit -m \"feat: refactor copilot integration\\n\\nCo-Authored-By: Taro <taro@example.com>\"" \
+  "subject mentioning 'copilot' + human Co-Authored-By does not block (Issue #648 M1)"
+
+# --- Issue #648 DA Must M2: 実改行 (literal LF) 入り -m -----------------------
+# heredoc / printf 等で実改行が展開されたケース。旧実装は NORMALIZED 段で
+# `tr ';&|()`' '\n'` する前提だったため、-m 引数内の実改行で git 以外の行が
+# 大量に発生し検知漏れしていた。新実装は -m / --message の値を python3 で
+# pre-extract して実改行を保ったまま行単位 AND 判定する。
+#
+# bash の $'...' (C-style escape) で実 LF を埋め込んだ literal を投入する。
+# `g..it commit -m $'feat\n\nCo-Authored-By: Claude <noreply@anthropic.com>'`
+add_case "CA10" "block" "literal-newline" \
+  "$WORKTREE" "$GIT commit -m \$'feat\nfix\n\nCo-Authored-By: Claude <noreply@anthropic.com>'" \
+  "literal LF in -m with AI email blocks (Issue #648 M2)"
+
+# 人間メールの場合は実改行入りでも pass する (誤検知防止)
+add_case "CA11" "pass" "literal-newline" \
+  "$WORKTREE" "$GIT commit -m \$'feat\nfix\n\nCo-Authored-By: Taro <taro@example.com>'" \
+  "literal LF in -m with human email does not block (Issue #648 M2)"
 
 # --- rebase / force push (regression sanity) ---------------------------------
 add_case "RB01" "block" "sanity" \
@@ -440,8 +499,130 @@ for entry in "${TESTS[@]}"; do
 done
 
 echo "----------------------------------------"
+
+# -----------------------------------------------------------------------------
+# Phase 3: preflight (core.hooksPath 設定漏れ検知) のテスト (Issue #647 DA Must / S1)
+# -----------------------------------------------------------------------------
+# preflight は stderr に warning を出すだけで decision:block には影響しないため、
+# Phase 1 / 2 の枠組みでは検証できない。専用ハーネスとして stderr に
+# `[pre-commit-guard] WARNING:` が含まれるかを直接判定する。
+#
+# テストケース:
+#   PF01 core.hooksPath が `.githooks` (相対) → warning 出ない (= 既存挙動)
+#   PF02 core.hooksPath 未設定 → warning 出る、stdout 空、exit 0
+#   PF03 core.hooksPath が `other-dir` (別ディレクトリ) → warning 出る
+#   PF04 core.hooksPath が `<repo>/.githooks` (絶対パス) → warning 出ない
+#                  ← M1: worktree 環境では絶対パスでの設定が一般的
+#   PF05 git リポ外 (cwd=/tmp) → warning 出ない (= preflight 全体 skip)
+#                  ← M2: 任意ディレクトリ実行時の暴発を防ぐ
+
+run_preflight_case() {
+  local id="$1"
+  local cwd="$2"
+  local expect_warning="$3"   # "yes" or "no"
+  local label="$4"
+
+  # 最小限の git コマンド (= preflight が起動する条件) を投入
+  local json
+  json=$(python3 -c '
+import json, sys
+print(json.dumps({"tool_input": {"command": sys.argv[1]}}))
+' "$GIT status")
+
+  local stdout stderr exit_code
+  local stderr_file
+  stderr_file=$(mktemp -t pre-commit-guard-stderr.XXXXXX)
+  stdout=$(cd "$cwd" && printf "%s" "$json" | "$HOOK_PATH" 2>"$stderr_file")
+  exit_code=$?
+  stderr=$(cat "$stderr_file")
+  rm -f "$stderr_file"
+
+  local has_warning="no"
+  if printf "%s" "$stderr" | grep -q '\[pre-commit-guard\] WARNING:'; then
+    has_warning="yes"
+  fi
+
+  # PF02 の追加検証: 未設定ケースは stdout が空 / exit 0 でなければ NG
+  # (preflight 自体は処理を止めない契約)
+  local extra_ok=1
+  if [ "$id" = "PF02" ]; then
+    if [ -n "$stdout" ] || [ "$exit_code" -ne 0 ]; then
+      extra_ok=0
+    fi
+  fi
+
+  if [ "$has_warning" = "$expect_warning" ] && [ "$extra_ok" -eq 1 ]; then
+    printf "  %-22s %-22s OK   (warning=%s)         %s\n" \
+      "$id" "[preflight]" "$has_warning" "$label"
+    return 0
+  fi
+
+  printf "  %-22s %-22s FAIL expected_warning=%s actual=%s exit=%d  %s\n" \
+    "$id" "[preflight]" "$expect_warning" "$has_warning" "$exit_code" "$label"
+  return 1
+}
+
+# preflight 専用に、core.hooksPath を per-case で切り替えられる隔離リポを用意する。
+# 既存の $MAIN_REPO は他テストとの兼ね合いで core.hooksPath=$GITHOOKS_DIR (本リポの)
+# が固定されているため、preflight 検証では別リポを作る。
+PREFLIGHT_REPO="$TEST_ROOT/preflight-repo"
+git init -q -b master "$PREFLIGHT_REPO"
+(
+  cd "$PREFLIGHT_REPO"
+  git config user.email test@example.com
+  git config user.name test-user
+  mkdir -p .githooks
+  : > .githooks/pre-commit
+  chmod +x .githooks/pre-commit
+  mkdir -p other-dir
+)
+
+preflight_fail=0
+
+# PF01: core.hooksPath=.githooks (相対) → warning 出ない
+(cd "$PREFLIGHT_REPO" && git config core.hooksPath .githooks)
+if ! run_preflight_case "PF01" "$PREFLIGHT_REPO" "no" "core.hooksPath=.githooks (relative) — no warning"; then
+  preflight_fail=$((preflight_fail + 1))
+fi
+
+# PF02: core.hooksPath 未設定 → warning 出る、stdout 空、exit 0
+(cd "$PREFLIGHT_REPO" && git config --unset core.hooksPath 2>/dev/null || true)
+if ! run_preflight_case "PF02" "$PREFLIGHT_REPO" "yes" "core.hooksPath unset — warning, stdout empty, exit 0"; then
+  preflight_fail=$((preflight_fail + 1))
+fi
+
+# PF03: core.hooksPath=other-dir → warning 出る
+(cd "$PREFLIGHT_REPO" && git config core.hooksPath other-dir)
+if ! run_preflight_case "PF03" "$PREFLIGHT_REPO" "yes" "core.hooksPath=other-dir — warning"; then
+  preflight_fail=$((preflight_fail + 1))
+fi
+
+# PF04: core.hooksPath=<absolute>/.githooks → warning 出ない (M1)
+(cd "$PREFLIGHT_REPO" && git config core.hooksPath "$PREFLIGHT_REPO/.githooks")
+if ! run_preflight_case "PF04" "$PREFLIGHT_REPO" "no" "core.hooksPath=<absolute>/.githooks — no warning (M1)"; then
+  preflight_fail=$((preflight_fail + 1))
+fi
+
+# PF05: git リポ外 → warning 出ない (M2)
+# /tmp 自身が外側で git init されていないことを念のため確認しつつ、
+# 任意の非リポ ディレクトリで実行する。
+NON_REPO_DIR=$(mktemp -d -t pre-commit-guard-nonrepo.XXXXXX)
+if ! run_preflight_case "PF05" "$NON_REPO_DIR" "no" "outside git repo — no warning (M2)"; then
+  preflight_fail=$((preflight_fail + 1))
+fi
+rm -rf "$NON_REPO_DIR" 2>/dev/null || true
+
+echo "----------------------------------------"
+
+preflight_total=5
+preflight_ok=$((preflight_total - preflight_fail))
+ok_count=$((ok_count + preflight_ok))
+fail_count=$((fail_count + preflight_fail))
+
+total_count=$(( ${#TESTS[@]} + preflight_total ))
+
 printf "TOTAL: %d  OK: %d  FAIL: %d\n" \
-  "${#TESTS[@]}" "$ok_count" "$fail_count"
+  "$total_count" "$ok_count" "$fail_count"
 
 if [ "$fail_count" -gt 0 ]; then
   exit 1

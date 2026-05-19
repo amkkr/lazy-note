@@ -15,6 +15,20 @@ import { MetaInfo } from "../common/MetaInfo";
 import { PostNavigation } from "../common/PostNavigation";
 import { TableOfContents } from "../common/TableOfContents";
 
+// Issue #695: 表示文言テンプレートを定数として外出し。将来の i18n 化や
+// 文言調整の影響範囲をファイル内 1 箇所に局所化する。
+// (i18n フレームワークは導入しない方針 — 単純な template リテラルに留める)
+//
+// 矢印「←」はテキストの一部として 1 定数に連結したまま保持する。理由:
+// - 現状 JSX は `<Link>← TOPに戻る</Link>` の単一テキストノードで構成されており、
+//   矢印を別 span で装飾扱いしていない (= aria-hidden で SR から隠す構造ではない)。
+// - 連結のまま 1 定数化する方が JSX 側の変更を最小化でき、テンプレート文字列
+//   としての可読性も保たれる。
+// - 将来矢印をアイコンコンポーネント化する等の構造変更が入る場合は、その時点で
+//   再度分離を検討する (現時点では YAGNI)。
+const POST_DETAIL_NAV_ARIA_LABEL = "ページナビゲーション" as const;
+const POST_DETAIL_BACK_TO_TOP_LABEL = "← TOPに戻る" as const;
+
 interface PostDetailPageProps {
   post: Post;
   olderPost: PostSummary | null;
@@ -69,14 +83,14 @@ export const PostDetailPage = ({
 
   // Coordinate (Issue #491): post.id (= ファイル名 YYYYMMDDhhmmss) から
   // publishedAt を ISO 8601 (JST +09:00) として逆算する。タイムスタンプ形式に
-  // 適合しない id (例: テスト用 "test-post") の場合は null となり、Coordinate
+  // 適合しない id (例: テスト用 "test-post") の場合は undefined となり、Coordinate
   // は何も描画しない (= 撤退可能性の一形態として無害な早期 return が成立する)。
   const publishedAt = inferPublishedAt(post.id);
   return (
     <>
       {/* Navigation */}
       <nav
-        aria-label="ページナビゲーション"
+        aria-label={POST_DETAIL_NAV_ARIA_LABEL}
         data-token-border="border.subtle"
         className={css({
           background: "bg.surface",
@@ -102,7 +116,7 @@ export const PostDetailPage = ({
           })}
         >
           <Link to="/" variant="navigation">
-            ← TOPに戻る
+            {POST_DETAIL_BACK_TO_TOP_LABEL}
           </Link>
         </div>
       </nav>
@@ -179,7 +193,7 @@ export const PostDetailPage = ({
                * milestones 空・showCoordinate=false のいずれかで何も描画
                * しない (Coordinate 内部で early return)。
                */}
-              {publishedAt !== null && (
+              {publishedAt !== undefined && (
                 <Coordinate
                   publishedAt={publishedAt}
                   milestones={milestones}

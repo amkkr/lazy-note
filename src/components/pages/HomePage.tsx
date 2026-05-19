@@ -10,6 +10,19 @@ import { EmptyState } from "../common/EmptyState";
 import { Pagination } from "../common/Pagination";
 import { Resurface } from "../common/Resurface";
 
+/**
+ * HomePage の表示文言定数 (Issue #694)。
+ *
+ * Issue #630 のロードマップに沿って、表示文言を JSX 直書きからファイル内
+ * トップレベル定数に外出しする。PR #627 (Anchor 系) と同じ方針で、リテラル
+ * 定数には `as const` を付与して literal type を温存する。
+ */
+const HOMEPAGE_EMPTY_STATE_TITLE = "新しい記事をお楽しみに" as const;
+const HOMEPAGE_EMPTY_STATE_DESCRIPTION =
+  "まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。" as const;
+const HOMEPAGE_BENTO_ARIA_LABEL = "注目の記事" as const;
+const HOMEPAGE_INDEX_HEADING = "Index" as const;
+
 interface HomePageProps {
   posts: PostSummary[];
   currentPage: number;
@@ -199,8 +212,8 @@ export const HomePage = memo(
         <div className={containerStyles}>
           <EmptyState
             icon={FileText}
-            title="新しい記事をお楽しみに"
-            description="まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。"
+            title={HOMEPAGE_EMPTY_STATE_TITLE}
+            description={HOMEPAGE_EMPTY_STATE_DESCRIPTION}
           />
         </div>
       );
@@ -214,7 +227,7 @@ export const HomePage = memo(
 
           {/* Bento: 2-7 記事目 */}
           {bentoPosts.length > 0 && (
-            <section className={bentoGridStyles} aria-label="注目の記事">
+            <section className={bentoGridStyles} aria-label={HOMEPAGE_BENTO_ARIA_LABEL}>
               {bentoPosts.map((post, idx) => (
                 <BentoCard key={post.id} post={post} size={bentoSizes[idx]} />
               ))}
@@ -228,7 +241,7 @@ export const HomePage = memo(
           {indexPosts.length > 0 && (
             <section aria-labelledby="index-section-heading">
               <h3 id="index-section-heading" className={indexHeadingStyles}>
-                Index
+                {HOMEPAGE_INDEX_HEADING}
               </h3>
               <ul className={indexListStyles} data-token-border="border.subtle">
                 {indexPosts.map((post, idx) => (

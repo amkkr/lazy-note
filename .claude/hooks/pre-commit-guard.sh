@@ -172,6 +172,84 @@ if [ -z "$GIT_INVOCATIONS" ]; then
   exit 0
 fi
 
+# ------------------------------------------------------------------
+# preflight: core.hooksPath 設定漏れ検知 (Issue #647)
+# ------------------------------------------------------------------
+# PR #646 で真の防御を git ネイティブ hook (`.githooks/`) に移行したが、
+# `git config core.hooksPath .githooks` を実行しない開発者には native hook
+# が発火せず、設定漏れリスクが残る。本 preflight はその設定漏れを stderr
+# に通知する (block ではなく notify)。
+#
+# 設計判断:
+#   - git 系コマンドを含む呼び出しの段階でのみ警告を出す。`ls` 等の無関係な
+#     Bash ツール呼び出しでまで毎回出すと開発者疲弊するため、`GIT_INVOCATIONS`
+#     抽出後 (= git 操作が確実に対象になっているタイミング) に評価する。
+#   - 評価対象の git config は本 hook プロセスの cwd から見たもの (= 通常は
+#     リポジトリ本体 or worktree から)。worktree の場合も `git config` は
+#     親リポと同じ config を参照するため動作する。
+#   - 値が空 (= 未設定) または「リポジトリルートの .githooks に解決されない値」
+#     であれば warning。worktree 環境では `core.hooksPath` が絶対パスで
+#     設定されているケースが多いため、相対 / 絶対の両方で正しく判定するため
+#     repo root を基準に正規化した絶対パスで比較する (Issue #647 DA Must M1)。
+#   - hook プロセスが git リポジトリ外で実行された場合 (例: `cd /tmp && git status`
+#     を Bash ツールで実行する etc.) は warning を出さず preflight 全体を skip
+#     する (Issue #647 DA Must M2)。
+#   - exit せず処理続行 (block しない)。受入基準: warning は stderr、commit
+#     は block しない。
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  HOOKS_PATH_CURRENT=$(git config --get core.hooksPath 2>/dev/null || true)
+  _HOOKS_OK=0
+  if [ -n "$HOOKS_PATH_CURRENT" ]; then
+    # repo root 基準で「期待される .githooks の絶対パス」を組み立てる。
+    # worktree でも `--show-toplevel` は当該 worktree の作業ツリーを返すが、
+    # `core.hooksPath` は通常 main repo 基準の path で設定されるため、
+    # main の作業ツリー (`--path-format=absolute --git-common-dir` の親) も
+    # 候補に含めて両方一致を許す。
+    _REPO_TOP=$(git rev-parse --show-toplevel 2>/dev/null || true)
+    _GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
+    _MAIN_TOP=""
+    if [ -n "$_GIT_COMMON_DIR" ]; then
+      # --git-common-dir は worktree でも main repo の .git を返す
+      # (例: /path/to/repo/.git)。その親が main repo の作業ツリー。
+      _MAIN_TOP=$(cd "$_GIT_COMMON_DIR/.." 2>/dev/null && pwd -P || true)
+    fi
+    # 設定値の resolve: 相対の場合は cwd 基準で解決される。git の挙動に合わせ、
+    # `cd <value> && pwd -P` を試す。存在しなければ生値のまま比較する
+    # (= ディレクトリとして存在しない値は false positive 扱いで warning)。
+    _HOOKS_RESOLVED=$(cd "$HOOKS_PATH_CURRENT" 2>/dev/null && pwd -P || true)
+    for _expected in "$_REPO_TOP" "$_MAIN_TOP"; do
+      if [ -z "$_expected" ]; then
+        continue
+      fi
+      _EXPECTED_ABS="$_expected/.githooks"
+      if [ "$_HOOKS_RESOLVED" = "$_EXPECTED_ABS" ]; then
+        _HOOKS_OK=1
+        break
+      fi
+      # 念のため basename 一致 + 相対値 ".githooks" のケースもサポート
+      if [ "$HOOKS_PATH_CURRENT" = ".githooks" ]; then
+        _HOOKS_OK=1
+        break
+      fi
+    done
+  fi
+  if [ "$_HOOKS_OK" != "1" ]; then
+    if [ -z "$HOOKS_PATH_CURRENT" ]; then
+      _hp_display="(未設定)"
+    else
+      _hp_display="$HOOKS_PATH_CURRENT"
+    fi
+    {
+      printf '\n'
+      printf '[pre-commit-guard] WARNING: core.hooksPath が .githooks に設定されていません (現在値: %s)\n' "$_hp_display"
+      printf '[pre-commit-guard]   → master/main 直 commit や Co-Authored-By を block する git ネイティブ hook が発火しません\n'
+      printf '[pre-commit-guard]   → リポジトリルートで次のコマンドを実行してください:\n'
+      printf '[pre-commit-guard]       git config core.hooksPath .githooks\n'
+      printf '\n'
+    } >&2
+  fi
+fi
+
 # rebase 禁止
 if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+rebase([[:space:]]|$)'; then
   block "git rebase は禁止されています。コンフリクト解決は git merge を使用してください。"
@@ -480,21 +558,85 @@ if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+(commit|push)([[
   fi
 fi
 
-# git commit の場合、コマンド引数の -m / --message メッセージに Co-Authored-By が含まれないかチェック
-# （本文に Co-Authored-By という単語が単に言及されるだけのケースと区別するため、
-#  git commit 呼び出しを含むときのみ、かつそのコマンド自体のテキスト内に含まれるかを見る）
+# git commit の場合、コマンド引数の -m / --message メッセージに
+# **AI bot 由来の** Co-Authored-By が含まれないかチェックする (Issue #648)。
 #
-# 検出 regex は SSOT (.githooks/_lib.sh の COAUTHOR_LITERAL_PATTERN) を利用する
-# (Issue #649 / Moderate 4)。case-insensitive 検出に統一することで、
-# 旧実装で素通りしていた `co-authored-by:` (小文字) も block する。
+# Issue #648 以前は「すべての Co-Authored-By を block」していたが、人間 pair
+# programming や dependabot 取り込み等の正当ユースケースを巻き添えにしていた。
+# 本 hook は SSOT (.githooks/_lib.sh の literal_contains_ai_coauthor) に判定を
+# 委譲し、AI bot fixture (email ドメイン / [bot] suffix) を含む Co-Authored-By
+# のみを block する。真の防御は commit-msg hook 側で行う。
 #
-# shell コマンド literal 段階では `\n` で囲まれた literal 改行も含めて
-# `co-authored-by:` の sub-string を保守的に検出する (COAUTHOR_LITERAL_PATTERN)。
-# 本文向けの厳密判定 (前置 [[:space:]] 要求) は commit-msg hook 側で行う。
+# Issue #648 DA Must 対応:
+#   - M1: literal 判定を **行単位 AND** にして native hook と挙動を揃える
+#         (subject に "copilot" 等が出現しても誤 block しない)
+#   - M2: `-m`/`--message` の引数値を python3 で pre-extract し、**実改行を
+#         保持したまま** literal_contains_ai_coauthor に流す。これにより
+#         heredoc / printf '\n' / コマンド置換で生成された改行入り message も
+#         shell hook 層で検知できる。
+#   - M3: 検出 fixture を構造的判定 (メールドメイン / [bot] suffix) に置換
+#         (_lib.sh の COAUTHOR_AI_BOT_RE)。人名 substring (Claudette /
+#         Codexa) や 説明文中の言及は誤検知しない。
 if printf '%s\n' "$GIT_INVOCATIONS" | grep -Eq '^git[[:space:]]+commit([[:space:]]|$)'; then
+  # `-m <msg>` / `-m<msg>` / `--message=<msg>` / `--message <msg>` の値を
+  # 実改行を保ったまま COMMAND から抽出する。複数 -m があれば NUL 区切りで
+  # 順に出力 (git は順に append する挙動)。
+  # 抽出失敗時 (クォート不整合等) は空文字を返し、後段の判定で fall through。
+  MESSAGE_VALUES=$(printf '%s' "$COMMAND" | python3 -c '
+import shlex
+import sys
+
+data = sys.stdin.read()
+try:
+    toks = shlex.split(data, posix=True)
+except ValueError:
+    sys.exit(0)
+
+# `git commit` 引数の -m / --message 値だけを順に出す。複数 -m がある場合は
+# git の append 挙動に合わせて全て出す (各値は LF で区切る)。
+# 厳密な「commit セグメント特定」は行わず、全 token を線形に走査する。
+# shell hook は誤検知より見逃し回避を優先するため、保守的に全 -m を集める。
+values = []
+i = 0
+n = len(toks)
+while i < n:
+    t = toks[i]
+    if t == "-m" or t == "--message":
+        if i + 1 < n:
+            values.append(toks[i + 1])
+        i += 2
+        continue
+    if t.startswith("-m") and len(t) > 2:
+        values.append(t[2:])
+        i += 1
+        continue
+    if t.startswith("--message="):
+        values.append(t.split("=", 1)[1])
+        i += 1
+        continue
+    i += 1
+
+if values:
+    # 各 message を実 LF で連結し、さらに sentinel LF を入れて行単位
+    # 判定がぶれないようにする。
+    sys.stdout.write("\n".join(values))
+' 2>/dev/null || true)
+
+  # 1) 抽出した message 本体 (= 実改行を保持) を literal_contains_ai_coauthor
+  #    に流す。M2 対応: heredoc / printf 経由で改行が物理的に展開された場合に
+  #    対応する。
+  if [ -n "$MESSAGE_VALUES" ]; then
+    if printf '%s' "$MESSAGE_VALUES" | literal_contains_ai_coauthor; then
+      block "コミットメッセージに AI bot 由来の Co-Authored-By を含めることは禁止されています (検出: fixture-based email/bot-suffix)。"
+    fi
+  fi
+
+  # 2) フォールバック: 抽出できなかった場合 (`-F file` 経由等) は、従来通り
+  #    commit 行全体 literal で判定する。literal 内に `\n` (2 文字
+  #    backslash+n) リテラルがあるケース (Bash ツール経由の典型) はここで拾える。
   COMMIT_LINE=$(printf '%s\n' "$GIT_INVOCATIONS" | grep -E '^git[[:space:]]+commit([[:space:]]|$)' | head -n1)
-  if printf '%s' "$COMMIT_LINE" | grep -qiE "$COAUTHOR_LITERAL_PATTERN"; then
-    block "コミットメッセージに Co-Authored-By を含めることは禁止されています。"
+  if printf '%s' "$COMMIT_LINE" | literal_contains_ai_coauthor; then
+    block "コミットメッセージに AI bot 由来の Co-Authored-By を含めることは禁止されています (検出: fixture-based email/bot-suffix)。"
   fi
 fi
 

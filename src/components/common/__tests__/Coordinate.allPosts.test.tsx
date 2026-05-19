@@ -287,7 +287,7 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
     it("milestones が空配列なら全 16 記事で非表示になる", () => {
       for (const postId of postIds) {
         const publishedAt = inferPublishedAt(postId);
-        if (publishedAt === null) {
+        if (publishedAt === undefined) {
           continue;
         }
 
@@ -308,7 +308,7 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
 
       for (const postId of postIds) {
         const publishedAt = inferPublishedAt(postId);
-        if (publishedAt === null) {
+        if (publishedAt === undefined) {
           continue;
         }
 
@@ -329,7 +329,7 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
 
       for (const postId of postIds) {
         const publishedAt = inferPublishedAt(postId);
-        if (publishedAt === null) {
+        if (publishedAt === undefined) {
           continue;
         }
 

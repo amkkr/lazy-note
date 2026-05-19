@@ -6,6 +6,10 @@ import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { MetaInfo } from "../common/MetaInfo";
 import { Link } from "./Link";
 
+// "FEATURED" ラベル文言 (雑誌の特集タグ表記)。Issue #691 / #630 でファイル内
+// トップレベル定数として外出しし、JSX から定数参照する。
+const FEATURED_SECTION_LABEL = "Featured" as const;
+
 interface FeaturedCardProps {
   post: PostSummary;
 }
@@ -145,7 +149,7 @@ export const FeaturedCard = memo(({ post }: FeaturedCardProps) => {
 
   return (
     <article className={featuredWrapperStyles}>
-      <span className={featuredLabelStyles}>Featured</span>
+      <span className={featuredLabelStyles}>{FEATURED_SECTION_LABEL}</span>
       <div className={featuredMetaStyles}>
         <MetaInfo
           createdAt={post.createdAt}

@@ -55,14 +55,13 @@ jobs:
       # (lint-and-typecheck job) 側の同 step も同期して変更すること。逆も同様。drift すると
       # ci.yml が warm にした .tsbuildinfo を deploy.yml 側が再利用できず (またはその逆)、warm cache が
       # 無駄になる。
+      # NOTE: PR #731 (Issue #722 follow-up) で restoreKeys を撤去した。経緯は ci.yml 側の
+      # 同 step コメント参照 (stale cache 起因の tsc --incremental + --noEmit 誤診断防止)。
       - name: Cache tsc incremental build info (Issue #655)
         uses: actions/cache@v5
         with:
           path: .tsbuildinfo
           key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json', 'tsconfig.api.json') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'scripts/**/*.ts', 'scripts/**/*.tsx') }}
-          restore-keys: |
-            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.json', 'tsconfig.test.json', 'tsconfig.scripts.json', 'tsconfig.api.json') }}-
-            tsc-${{ runner.os }}-
 
       - name: Build project
         run: pnpm run build

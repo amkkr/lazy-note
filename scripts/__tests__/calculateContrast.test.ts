@@ -1,11 +1,12 @@
 /**
  * scripts/calculateContrast.ts のヘルパー単体テスト
- * (Issue #623 / S-2、Issue #651 / M-2 + M-3 対応)
+ * (Issue #623 / S-2、Issue #651 / M-2 + M-3、Issue #688 対応)
  *
  * 検証対象:
  *   - buildCsvRow: valid OKLCH ペアで CSV 行を組み立て、invalid 入力で undefined を返す
  *   - emitGithubActionsWarnings: 環境変数 GITHUB_ACTIONS の状態で出力分岐する
  *   - aggregateResults: NG / マージン僅少 / 合計件数を集計する (M-2)
+ *   - printSummary: 合計サマリ行 (空行 + 合計行) を console.log に出力する (Issue #688)
  *   - exitOnFailure: NG / --strict 違反時に exit(1)、それ以外で void 復帰する (M-2)
  *   - dispatchWarnings: aggregated.marginal を emitGithubActionsWarnings に橋渡しする (M-2)
  *   - formatReportLines: レポート行配列を純粋関数として組み立てる (M-3)
@@ -28,6 +29,7 @@ import {
   exitOnFailure,
   formatReportLines,
   type NamedColor,
+  printSummary,
 } from "../calculateContrast.ts";
 
 // =============================================================================
@@ -267,7 +269,75 @@ describe("aggregateResults", () => {
 });
 
 // =============================================================================
-// exitOnFailure (M-2)
+// printSummary (Issue #688: exitOnFailure からサマリ出力の責務を分離)
+// =============================================================================
+
+describe("printSummary", () => {
+  let logSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logSpy.mockRestore();
+  });
+
+  it("合計サマリ行を console.log に出力する", () => {
+    const aggregated = {
+      failed: [] as readonly ContrastResult[],
+      marginal: [buildResult("m-1", 7.05, { passed: true, marginal: true })],
+      total: 10,
+    };
+
+    printSummary(aggregated);
+
+    expect(logSpy).toHaveBeenCalledWith(
+      "合計: 10 / NG: 0 / マージン僅少: 1",
+    );
+  });
+
+  it("空行 → 合計行の順で 2 回 console.log を呼ぶ (master 出力順を維持)", () => {
+    const aggregated = {
+      failed: [] as readonly ContrastResult[],
+      marginal: [] as readonly ContrastResult[],
+      total: 3,
+    };
+
+    printSummary(aggregated);
+
+    expect(logSpy).toHaveBeenCalledTimes(2);
+    expect(logSpy).toHaveBeenNthCalledWith(1, "");
+    expect(logSpy).toHaveBeenNthCalledWith(
+      2,
+      "合計: 3 / NG: 0 / マージン僅少: 0",
+    );
+  });
+
+  it("failed / marginal の件数をサマリ行に反映する", () => {
+    const aggregated = {
+      failed: [
+        buildResult("f-1", 3.0, { passed: false }),
+        buildResult("f-2", 2.0, { passed: false }),
+      ],
+      marginal: [
+        buildResult("m-1", 7.05, { passed: true, marginal: true }),
+        buildResult("m-2", 4.6, { passed: true, marginal: true }),
+        buildResult("m-3", 7.1, { passed: true, marginal: true }),
+      ],
+      total: 20,
+    };
+
+    printSummary(aggregated);
+
+    expect(logSpy).toHaveBeenCalledWith(
+      "合計: 20 / NG: 2 / マージン僅少: 3",
+    );
+  });
+});
+
+// =============================================================================
+// exitOnFailure (M-2、Issue #688 でサマリ出力を分離)
 // =============================================================================
 
 describe("exitOnFailure", () => {
@@ -305,7 +375,7 @@ describe("exitOnFailure", () => {
     expect(exitSpy).not.toHaveBeenCalled();
   });
 
-  it("合計サマリ行を console.log に出力する", () => {
+  it("サマリ行は出力しない (printSummary に分離済み)", () => {
     const aggregated = {
       failed: [] as readonly ContrastResult[],
       marginal: [buildResult("m-1", 7.05, { passed: true, marginal: true })],
@@ -314,9 +384,7 @@ describe("exitOnFailure", () => {
 
     exitOnFailure(aggregated, false);
 
-    expect(logSpy).toHaveBeenCalledWith(
-      "合計: 10 / NG: 0 / マージン僅少: 1",
-    );
+    expect(logSpy).not.toHaveBeenCalled();
   });
 
   it("failed が 1 件以上あれば process.exit(1) する", () => {

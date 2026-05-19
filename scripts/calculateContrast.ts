@@ -391,6 +391,28 @@ const getContrastPairs = (): readonly ContrastPair[] => {
 // =============================================================================
 
 /**
+ * WCAG 2.x 仕様値の AAA / AA / AA-large 閾値。
+ *
+ * `contrastThresholds.bodyText` (= 7.20) はプロジェクト独自の本文運用閾値
+ * (AAA 7.00 + 1〜2% マージン) であり、WCAG 規定値そのものではない。
+ * CSV 出力の `verdict` / `aaa` / `aa` 列および `computeContrast` の
+ * `aaa` / `aa` フラグは **WCAG 規定値** での判定が必要なため、運用閾値とは
+ * 別の定数として保持する (Issue #651 / N-1)。
+ *
+ * `contrastThresholds.largeText` (= 4.50) は WCAG AA 値と一致するため
+ * 同じ値を再利用する。由来 (運用閾値 vs WCAG 規定) を区別するため別シンボル
+ * を用意し、`WCAG_AA_RATIO` だけは `contrastThresholds.largeText` を経由する
+ * (= 値の一意性を保証する)。AAA / AA-large は WCAG 規定値そのままを置く。
+ *
+ * これらの値を変更すると `docs/contrast-matrix.csv` の `verdict` / `aaa` /
+ * `aa` 列が変わるため、CSV ベースの regression テストが壊れる。値の変更は
+ * WCAG 仕様改定時のみに限ること。
+ */
+const WCAG_AAA_RATIO = 7.0;
+const WCAG_AA_RATIO = contrastThresholds.largeText;
+const WCAG_AA_LARGE_RATIO = 3.0;
+
+/**
  * 単一ペアのコントラスト比を WCAG 2.x 仕様で計算する。
  *
  * 実体は culori の `wcagContrast` で、(L1 + 0.05) / (L2 + 0.05)
@@ -412,8 +434,8 @@ const computeContrast = (pair: ContrastPair): ContrastResult => {
   const fgLuminance = wcagLuminance(fgColor);
   const bgLuminance = wcagLuminance(bgColor);
 
-  const aaa = ratio >= 7.0;
-  const aa = ratio >= 4.5;
+  const aaa = ratio >= WCAG_AAA_RATIO;
+  const aa = ratio >= WCAG_AA_RATIO;
   const passed = ratio >= pair.minRatio;
   const marginal =
     pair.minRatio > 0 &&
@@ -507,13 +529,13 @@ const collectMatrixColors = (): {
 };
 
 const verdict = (ratio: number): string => {
-  if (ratio >= 7.0) {
+  if (ratio >= WCAG_AAA_RATIO) {
     return "AAA";
   }
-  if (ratio >= 4.5) {
+  if (ratio >= WCAG_AA_RATIO) {
     return "AA";
   }
-  if (ratio >= 3.0) {
+  if (ratio >= WCAG_AA_LARGE_RATIO) {
     return "AA-large";
   }
   return "FAIL";
@@ -527,8 +549,8 @@ const formatCsvRow = (
   fg: NamedColor,
   ratio: number,
 ): string => {
-  const aaa = ratio >= 7.0 ? "yes" : "no";
-  const aa = ratio >= 4.5 ? "yes" : "no";
+  const aaa = ratio >= WCAG_AAA_RATIO ? "yes" : "no";
+  const aa = ratio >= WCAG_AA_RATIO ? "yes" : "no";
   return [
     surface.label,
     fg.label,
@@ -548,6 +570,8 @@ const formatCsvRow = (
  * では sentinel として `undefined` を返し、行をスキップさせる。
  *
  * テストから import するため export する (S-2 / Issue #623)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 export const buildCsvRow = (
   surface: NamedColor,
@@ -731,23 +755,46 @@ const formatRow = (result: ContrastResult): string => {
   return `  ${marker}[${verdictTag}] ${ratioStr}:1 (>= ${minStr}) ${result.pair.name}${marginalTag}`;
 };
 
+/**
+ * レポート出力に流し込む行配列を構築する純粋関数 (M-3 / Issue #651)。
+ *
+ * `printReport` を I/O (console.log) と整形ロジックに分離するための中核関数。
+ * 戻り値を 1 行ずつ `console.log` に流し込むと従来の `printReport` と同じ
+ * 出力になる (= レポート出力の master 完全一致を保証する)。
+ *
+ * 純粋関数であるため副作用 (console.log / 環境変数参照) を持たず、行配列を
+ * そのまま assert できる。レポート整形の単体テストはこの関数を対象に書く。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+export const formatReportLines = (
+  results: readonly ContrastResult[],
+  semanticResults: readonly ContrastResult[],
+): readonly string[] => {
+  const lines: string[] = [];
+  lines.push("== Editorial Citrus AAA コントラスト実測 ==");
+  lines.push(
+    `本文閾値: ${contrastThresholds.bodyText} / 大文字: ${contrastThresholds.largeText}`,
+  );
+  lines.push("");
+  lines.push("[primitive ペア]");
+  for (const result of results) {
+    lines.push(formatRow(result));
+  }
+  lines.push("");
+  lines.push("[semantic トークン整合性]");
+  for (const result of semanticResults) {
+    lines.push(formatRow(result));
+  }
+  return lines;
+};
+
 const printReport = (
   results: readonly ContrastResult[],
   semanticResults: readonly ContrastResult[],
 ): void => {
-  console.log("== Editorial Citrus AAA コントラスト実測 ==");
-  console.log(
-    `本文閾値: ${contrastThresholds.bodyText} / 大文字: ${contrastThresholds.largeText}`,
-  );
-  console.log("");
-  console.log("[primitive ペア]");
-  for (const result of results) {
-    console.log(formatRow(result));
-  }
-  console.log("");
-  console.log("[semantic トークン整合性]");
-  for (const result of semanticResults) {
-    console.log(formatRow(result));
+  for (const line of formatReportLines(results, semanticResults)) {
+    console.log(line);
   }
 };
 
@@ -761,6 +808,8 @@ const printReport = (
  * テストから import するため export する (S-2 / Issue #623)。
  * 環境変数で挙動分岐するため、両ケース (true / false) を単体テストで担保し
  * 環境変数判定の dead code 化を防ぐ。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
  */
 export const emitGithubActionsWarnings = (
   marginal: readonly ContrastResult[],
@@ -775,29 +824,88 @@ export const emitGithubActionsWarnings = (
   }
 };
 
+/**
+ * 集計結果。primitive ペアと semantic ペアを連結した allResults を
+ * NG / マージン僅少 / 全件配列に分解した形で保持する。
+ *
+ * 集計ロジックを純粋関数化することで、exit 判定や warning dispatch から
+ * 切り離してテスト可能にする (M-2 / Issue #651)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+export interface AggregatedResults {
+  readonly failed: readonly ContrastResult[];
+  readonly marginal: readonly ContrastResult[];
+  readonly total: number;
+}
+
+/**
+ * primitive ペアと semantic ペアを連結し、NG / マージン僅少を集計する
+ * 純粋関数 (M-2 / Issue #651)。
+ *
+ * 副作用なし。同じ入力に対して常に同じ出力を返す。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+export const aggregateResults = (
+  results: readonly ContrastResult[],
+  semanticResults: readonly ContrastResult[],
+): AggregatedResults => {
+  const allResults = [...results, ...semanticResults];
+  const failed = allResults.filter((r) => !r.passed);
+  const marginal = allResults.filter((r) => r.passed && r.marginal);
+  return { failed, marginal, total: allResults.length };
+};
+
+/**
+ * 集計結果をサマリ行として標準出力に流し込み、NG / --strict 違反があれば
+ * `process.exit(1)` する (M-2 / Issue #651)。
+ *
+ * `process.exit` は型的に `never` を返しうるが、NG 0 件かつ非 strict 条件下では
+ * `void` 復帰する。「`never | void`」を表現するため返り値型は付けない (= void)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+export const exitOnFailure = (
+  aggregated: AggregatedResults,
+  strict: boolean,
+): void => {
+  console.log("");
+  console.log(
+    `合計: ${aggregated.total} / NG: ${aggregated.failed.length} / マージン僅少: ${aggregated.marginal.length}`,
+  );
+
+  if (aggregated.failed.length > 0) {
+    console.error("\nNG ペアあり: AAA / AA を満たしていません");
+    process.exit(1);
+  }
+  if (strict && aggregated.marginal.length > 0) {
+    console.error("\n--strict 指定: マージン僅少ペアあり");
+    process.exit(1);
+  }
+};
+
+/**
+ * マージン僅少ペアを `emitGithubActionsWarnings` 経由で
+ * GitHub Actions の `::warning::` 行として出力する (M-2 / Issue #651)。
+ *
+ * 単純な薄ラッパーだが、`runChecks` から「warning dispatch 責務」を明示的に
+ * 切り出すことで、計算 / 集計 / exit / warning の各責務を 1 関数 = 1 責務に揃える。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+export const dispatchWarnings = (aggregated: AggregatedResults): void => {
+  emitGithubActionsWarnings(aggregated.marginal);
+};
+
 const runChecks = (strict: boolean): void => {
   const results = getContrastPairs().map(computeContrast);
   const semanticResults = verifySemanticPairs();
   printReport(results, semanticResults);
 
-  const allResults = [...results, ...semanticResults];
-  const failed = allResults.filter((r) => !r.passed);
-  const marginal = allResults.filter((r) => r.passed && r.marginal);
-
-  console.log("");
-  console.log(
-    `合計: ${allResults.length} / NG: ${failed.length} / マージン僅少: ${marginal.length}`,
-  );
-
-  if (failed.length > 0) {
-    console.error("\nNG ペアあり: AAA / AA を満たしていません");
-    process.exit(1);
-  }
-  if (strict && marginal.length > 0) {
-    console.error("\n--strict 指定: マージン僅少ペアあり");
-    process.exit(1);
-  }
-  emitGithubActionsWarnings(marginal);
+  const aggregated = aggregateResults(results, semanticResults);
+  exitOnFailure(aggregated, strict);
+  dispatchWarnings(aggregated);
 };
 
 const main = (): void => {

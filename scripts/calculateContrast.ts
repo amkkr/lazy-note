@@ -858,8 +858,34 @@ export const aggregateResults = (
 };
 
 /**
- * 集計結果をサマリ行として標準出力に流し込み、NG / --strict 違反があれば
- * `process.exit(1)` する (M-2 / Issue #651)。
+ * 集計結果をサマリ行 (空行 + `合計: N / NG: M / マージン僅少: K` 行) として
+ * 標準出力に流し込む (Issue #688 で `exitOnFailure` から責務分離)。
+ *
+ * `exitOnFailure` から「console.log によるサマリ表示」の副作用を切り出し、
+ * `exitOnFailure` を exit 判定 (`failed` / `strict + marginal` を見て
+ * `process.exit(1)` する) だけに痩せさせるための関数。純粋関数ではないが
+ * 副作用は `console.log` のみに単一化されている。
+ *
+ * 出力順は呼び出し側 (`runChecks`) で `printSummary` → `exitOnFailure` の順に
+ * 呼ぶ前提で master の出力 (空行 → 合計行 → (NG 時) エラーメッセージ → exit)
+ * と完全一致させる。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+export const printSummary = (aggregated: AggregatedResults): void => {
+  console.log("");
+  console.log(
+    `合計: ${aggregated.total} / NG: ${aggregated.failed.length} / マージン僅少: ${aggregated.marginal.length}`,
+  );
+};
+
+/**
+ * 集計結果から NG / --strict 違反を検知し、該当すれば
+ * `process.exit(1)` する (M-2 / Issue #651、Issue #688 でサマリ出力を分離)。
+ *
+ * サマリ行 (`合計: ...`) の出力は `printSummary` に分離済み。本関数は exit 判定
+ * のみを行う。`failed.length > 0` で必ず exit、`strict=true` かつ
+ * `marginal.length > 0` でも exit する。
  *
  * `process.exit` は型的に `never` を返しうるが、NG 0 件かつ非 strict 条件下では
  * `void` 復帰する。「`never | void`」を表現するため返り値型は付けない (= void)。
@@ -870,11 +896,6 @@ export const exitOnFailure = (
   aggregated: AggregatedResults,
   strict: boolean,
 ): void => {
-  console.log("");
-  console.log(
-    `合計: ${aggregated.total} / NG: ${aggregated.failed.length} / マージン僅少: ${aggregated.marginal.length}`,
-  );
-
   if (aggregated.failed.length > 0) {
     console.error("\nNG ペアあり: AAA / AA を満たしていません");
     process.exit(1);
@@ -904,6 +925,7 @@ const runChecks = (strict: boolean): void => {
   printReport(results, semanticResults);
 
   const aggregated = aggregateResults(results, semanticResults);
+  printSummary(aggregated);
   exitOnFailure(aggregated, strict);
   dispatchWarnings(aggregated);
 };

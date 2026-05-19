@@ -481,7 +481,7 @@ describe("PostDetailPage", () => {
 
     it("post.id がタイムスタンプ形式でない (publishedAt 推定不可) ときは Coordinate を描画しない", () => {
       // mockPost.id="test-post" は YYYYMMDDhhmmss にマッチしないため
-      // inferPublishedAt が null を返し、Coordinate は描画されない
+      // inferPublishedAt が undefined を返し、Coordinate は描画されない
       render(
         <MemoryRouter>
           <PostDetailPage
@@ -601,7 +601,7 @@ describe("PostDetailPage", () => {
 
     it("publishedAt 推定不可 (非タイムスタンプ id) の PostDetailPage 全体で axe a11y 違反が 0 件である", async () => {
       // mockPost.id="test-post" は YYYYMMDDhhmmss にマッチせず inferPublishedAt
-      // が null を返すため、PostDetailPage 側の条件分岐 (publishedAt !== null)
+      // が undefined を返すため、PostDetailPage 側の条件分岐 (publishedAt !== undefined)
       // で Coordinate 自体がレンダーされない経路。Coordinate 内部の early
       // return とは別の境界 (= 親の条件分岐) で違反が生じないことを保証する。
       const { container } = render(

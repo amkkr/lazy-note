@@ -177,7 +177,7 @@ describe("AnchorPage", () => {
     });
 
     it("publishedAt 推定不可な id の記事 (テスト用 id 等) はスキップして描画しない", () => {
-      // YYYYMMDDhhmmss 形式でない id は inferPublishedAt が null を返すため、
+      // YYYYMMDDhhmmss 形式でない id は inferPublishedAt が undefined を返すため、
       // 座標を計算できない。AnchorPage はそのような記事を素直にスキップする。
       const invalidPost: PostSummary = {
         id: "test-invalid-id",

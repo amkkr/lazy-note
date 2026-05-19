@@ -69,7 +69,7 @@ export const PostDetailPage = ({
 
   // Coordinate (Issue #491): post.id (= ファイル名 YYYYMMDDhhmmss) から
   // publishedAt を ISO 8601 (JST +09:00) として逆算する。タイムスタンプ形式に
-  // 適合しない id (例: テスト用 "test-post") の場合は null となり、Coordinate
+  // 適合しない id (例: テスト用 "test-post") の場合は undefined となり、Coordinate
   // は何も描画しない (= 撤退可能性の一形態として無害な早期 return が成立する)。
   const publishedAt = inferPublishedAt(post.id);
   return (
@@ -179,7 +179,7 @@ export const PostDetailPage = ({
                * milestones 空・showCoordinate=false のいずれかで何も描画
                * しない (Coordinate 内部で early return)。
                */}
-              {publishedAt !== null && (
+              {publishedAt !== undefined && (
                 <Coordinate
                   publishedAt={publishedAt}
                   milestones={milestones}

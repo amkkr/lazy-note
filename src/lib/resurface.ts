@@ -187,7 +187,7 @@ const resolveAndSortPosts = (posts: readonly PostSummary[]): ResolvedPost[] => {
     // post.id がそのままファイル名のタイムスタンプ部 (例: 20260307120000) として
     // anchors.ts の inferPublishedAt に渡せる。.md 拡張子はあっても無くても良い。
     const publishedAt = inferPublishedAt(post.id);
-    if (publishedAt === null) {
+    if (publishedAt === undefined) {
       continue;
     }
     const publishedDate = isoToCalendarDate(publishedAt);

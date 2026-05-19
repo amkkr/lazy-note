@@ -5,6 +5,22 @@ import type { PostSummary } from "../../lib/markdown";
 import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { Link } from "./Link";
 
+// 著者欠落時のフォールバック文言。`MetaInfo.tsx` でも同一文言を利用しており、
+// 横串共通化の余地があるが、本 Issue (#692) では IndexRow.tsx 単位の定数化に
+// スコープを絞り、`src/lib/i18nLiterals.ts` への集約は follow-up Issue 候補
+// として保留する (調査結果は Issue #692 報告に記載)。
+const INDEX_ROW_AUTHOR_FALLBACK = "匿名" as const;
+
+// 日付欠落時のフォールバック文言。`MetaInfo.tsx` でも同一文言を利用しており、
+// 横串共通化の余地があるが、本 Issue (#692) では IndexRow.tsx 単位の定数化に
+// スコープを絞る (同上)。
+const INDEX_ROW_DATE_FALLBACK = "日付未設定" as const;
+
+// メタ情報 (著者 / 日付) 間の視覚区切り。Em ダッシュ (U+2014) を使う。
+// aria-hidden の装飾要素として扱う (R-4 / Issue #395 (vi) に従い UI 用絵文字は
+// 使用しない)。
+const INDEX_ROW_META_SEPARATOR = "—" as const;
+
 interface IndexRowProps {
   post: PostSummary;
   /**
@@ -224,11 +240,11 @@ export const IndexRow = memo(({ post, index }: IndexRowProps) => {
       </span>
       <span className={indexLeaderStyles} aria-hidden="true" />
       <span className={indexMetaStyles}>
-        <span>{post.author || "匿名"}</span>
+        <span>{post.author || INDEX_ROW_AUTHOR_FALLBACK}</span>
         <span className={indexMetaSeparatorStyles} aria-hidden="true">
-          —
+          {INDEX_ROW_META_SEPARATOR}
         </span>
-        <span>{post.createdAt || "日付未設定"}</span>
+        <span>{post.createdAt || INDEX_ROW_DATE_FALLBACK}</span>
       </span>
     </li>
   );

@@ -25,13 +25,14 @@ describe("Header", () => {
   it("記事数を視覚短縮形「全 N 件」で表示できる", () => {
     // R-4 (Issue #392) で BookOpen 装飾は削除し、表記を「全 N 件」に統一。
     // 視覚短縮形は aria-hidden の span に分離し、SR からは隠す。
+    // Issue #709: 装飾要素は素の `getByText` ではなく hybrid (`toHaveAttribute`)
+    // で「DOM に存在しつつ SR から意図的に隠されている」ことを同時に保証する。
     render(
       <MemoryRouter>
         <Header postCount={5} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("全 5 件")).toBeInTheDocument();
     expect(screen.getByText("全 5 件")).toHaveAttribute("aria-hidden", "true");
   });
 
@@ -55,7 +56,10 @@ describe("Header", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("全 0 件")).toBeInTheDocument();
+    // Issue #709: 「全 0 件」は aria-hidden の装飾要素のため hybrid アサート、
+    // 「記事 0 件」は SR 用の visuallyHidden テキスト (aria-hidden を持たない)
+    // のため通常の getByText で良い。
+    expect(screen.getByText("全 0 件")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText("記事 0 件")).toBeInTheDocument();
   });
 
@@ -70,13 +74,17 @@ describe("Header", () => {
   });
 
   it("大きな記事数でも表示できる", () => {
+    // Issue #709: 「全 999 件」は aria-hidden 装飾要素のため hybrid アサート。
     render(
       <MemoryRouter>
         <Header postCount={999} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("全 999 件")).toBeInTheDocument();
+    expect(screen.getByText("全 999 件")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
   });
 
   it("headerタグが使用されている", () => {

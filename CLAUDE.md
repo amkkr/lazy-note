@@ -499,6 +499,37 @@ describe("add", () => {
 - テストファイルは対象ファイルと同階層の `__tests__/` 以下に置き、`*.test.ts` / `*.test.tsx` とする(既存ディレクトリ構成を踏襲)
 - 共通セットアップは `src/test/` に集約する
 
+#### `aria-hidden` 装飾要素のアサーション方針（Issue #709 で確定）
+
+`aria-hidden="true"` を持つ装飾要素（Em ダッシュ `—` / 矢印 `↑` / 中点 `・` / 視覚短縮形 `全 N 件` 等）の中身を**素の `getByText` だけでアサートしてはいけない**。`aria-hidden="true"` は「SR から無視される装飾要素」を宣言する属性であり、`getByText` の「画面に観測可能なテキスト = SR 読み上げ可能」というセマンティクスと矛盾するため。
+
+採用方針は **(b) 属性ベースクエリ or hybrid アサート** の二択（PR #692 follow-up / Issue #709 で確定）:
+
+- **方式 b-1（純属性ベース）**: `container.querySelector('[aria-hidden="true"]')` 等で取得し、`textContent` を assert する
+  - 採用例: `Coordinate.test.tsx` の separator 「・」検証（`container.querySelectorAll('span[aria-hidden="true"]')` + `expect(separator?.textContent).toBe("・")`）
+- **方式 b-2（hybrid）**: `getByText(...)` で取得した直後に `toHaveAttribute("aria-hidden", "true")` を必ずチェーンする
+  - 採用例: `Header.test.tsx` の「全 N 件」検証（`expect(screen.getByText("全 5 件")).toHaveAttribute("aria-hidden", "true")`）
+  - 「テキストが DOM に存在し、かつ意図的に aria-hidden である」ことを 1 行で表現できるため、可読性を優先する場合に有用
+
+**選択基準**: 単一要素を狙い撃ちできる場合は b-2（hybrid）を優先、複数の aria-hidden 要素を列挙して個別検証する場合は b-1（querySelectorAll）を使う。
+
+**棄却した選択肢**:
+
+- **(a) 現状維持（素の `getByText`）**: Testing Library のセマンティクスと乖離するため棄却
+- **(c) CSS `::before content` への追い出し**: 装飾文字の意味（Em ダッシュ vs 矢印 vs 中点）を Tripwire テストから直接観測できなくなり、テスト網が緩むため棄却。装飾文字は HTML 上の文字列として保持し、aria-hidden で SR から隠す現方針を維持する
+
+```typescript
+// 悪い例: aria-hidden 装飾要素を素の getByText でアサート（Issue #709 違反）
+expect(screen.getByText("—")).toBeInTheDocument();
+
+// 良い例 b-1: 属性ベースクエリ + textContent
+const separators = container.querySelectorAll('span[aria-hidden="true"]');
+expect(separators[0]?.textContent).toBe("—");
+
+// 良い例 b-2: getByText + toHaveAttribute をチェーン
+expect(screen.getByText("—")).toHaveAttribute("aria-hidden", "true");
+```
+
 ### テストケース名のルール
 
 テストケース名は以下のルールに従うこと：

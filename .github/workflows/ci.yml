@@ -98,3 +98,11 @@ jobs:
 
       - name: Type check (scripts) (Issue #634)
         run: pnpm type-check:scripts
+
+      # Issue #730: PR #640 で `tsc-api-*` cache step を ci.yml にも追加したが、ci.yml では
+      # `type-check:api` を実行する step が無く、cache が read/write されない「片肺運用」に
+      # なっていた。`type-check:api` step を追加することで以下を解消する:
+      #   - api 型エラーを PR 段階で検知できる (従来は master push 時の deploy.yml まで未検知)
+      #   - tsc-api cache を ci.yml ↔ deploy.yml の双方向で活用できる (cache key 整合性の回復)
+      - name: Type check (api) (Issue #730)
+        run: pnpm type-check:api

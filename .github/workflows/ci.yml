@@ -34,6 +34,9 @@ jobs:
       - name: Lint design tokens (R-5 / Issue #393)
         run: pnpm lint:tokens
 
+      - name: Check build / build:ci sync (Issue #685)
+        run: pnpm check:build-ci-sync
+
       # Issue #580: tsc --incremental の .tsbuildinfo を cache し、
       # type-check / type-check:test / type-check:scripts の cold ビルドを高速化する。
       # メインキー: lockfile + tsconfig.json / tsconfig.test.json / tsconfig.scripts.json + src/scripts の hash が完全一致した場合のみ hit

@@ -28,8 +28,5 @@
     /* Types */
     "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src"],
-  // references の tsconfig.build.json は壊れた死設定 (Issue #641 / follow-up #678)。
-  // 詳細は tsconfig.build.json 先頭コメント参照。
-  "references": [{ "path": "./tsconfig.build.json" }]
+  "include": ["src"]
 }

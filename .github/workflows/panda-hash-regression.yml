@@ -57,8 +57,12 @@ on:
       - "postcss.config.*"
 
 # 本 workflow は repo を読むだけで write は不要。明示的に最小権限へ縛る。
+# Issue #733: 失敗時に Issue を自動起票するため、`issues: write` を追加する。
+# 起票は最終 step (`Open or update issue on failure`) でのみ使用し、それ以前の
+# build / test step は read 権限しか触らない。
 permissions:
   contents: read
+  issues: write
 
 jobs:
   hash-regression:
@@ -601,3 +605,116 @@ jobs:
               echo "_(baseline produced only one kind; missing = n/a)_";
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update issue on failure
+        # Issue #733: 失敗時に能動的な通知経路として Issue を自動起票する。
+        # 検討選択肢 (a) Slack 通知 / (b) メール通知 / (c) Issue 自動起票 /
+        # (d) 現状維持 のうち、(c) Issue 自動起票 を採用する。判断根拠:
+        #   - (a) Slack: webhook secret の管理コストが増える (workspace /
+        #     webhook URL を新規導入する必要があり、外部依存追加最小化の
+        #     方針 (memory feedback_no_new_libraries) と整合しない)
+        #   - (b) メール: GitHub Actions の標準通知 (commit author email へ
+        #     workflow 失敗時に自動送付) で既に同等のメール経路は確保済み。
+        #     workflow 側で追加実装する意味が薄い (= 実質 (d) と等価)
+        #   - (c) Issue: リポジトリ内で履歴管理でき、`gh` CLI を使えば外部
+        #     依存追加なしで実装可能。dedup は「title 一意性 + open issue
+        #     検索」で十分担保できる
+        #
+        # 起票内容には workflow run URL / event 名 / 失敗 step の特定情報を
+        # 含める。dedup 戦略は以下:
+        #   1. `gh issue list --search` で同名タイトルの open issue を検索
+        #   2. ヒットしなければ `gh issue create` で新規起票
+        #   3. ヒットすれば最古の open issue (= 元起票) にコメント追記
+        #
+        # job 全体の失敗 (test 失敗 / build 失敗 / sed 失敗 / setup 失敗 等)
+        # を網羅するため `if: failure()` で発火させる。job が成功 (= test /
+        # build 共に pass) の場合はスキップする。
+        #
+        # 重複検索の race condition について:
+        #   - cron (月 1) と PR trigger は並走可能だが、同名タイトル検索 +
+        #     `gh issue create` は GitHub API の即時整合性により多くの場合
+        #     1 起票に収束する。万一 2 起票になった場合は手動で片方を close
+        #     する運用とし、自動 close 機構は導入しない (実装複雑化に対する
+        #     メリットが小さい)
+        if: failure()
+        env:
+          # GitHub CLI 認証用。`permissions: issues: write` と組み合わせて
+          # GITHUB_TOKEN で issue 操作を行う。
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: >-
+            ${{ github.server_url }}/${{ github.repository
+            }}/actions/runs/${{ github.run_id }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # 起票時刻は ISO 8601 (UTC) で残す。GitHub Actions runner はデフォ
+          # ルト UTC なので date -u で揃える。
+          run_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          # title は dedup のキーになるため、固定文字列で揃える。run id 等の
+          # 可変情報を入れると別 issue 扱いになり dedup が効かなくなる。
+          issue_title="panda-hash-regression workflow が失敗しました"
+          # body はコメント / 新規起票で共通利用する。heredoc は本文を
+          # `printf` で組み立てる方式に揃える: shell script の indent と
+          # heredoc 本文の indent を独立させたい一方、`<<-EOF` だと leading
+          # tab しか剥がせず markdown 内の半角スペース indent が崩れる。
+          # printf + 個別 echo の方が markdown 制御を維持しやすい。
+          body_file=$(mktemp)
+          {
+            echo "## panda-hash-regression workflow 失敗の通知"
+            echo ""
+            echo "\`.github/workflows/panda-hash-regression.yml\` が失敗しました。"
+            echo ""
+            echo "- **Run URL**: ${RUN_URL}"
+            echo "- **Event**: \`${EVENT_NAME}\`"
+            echo "- **Commit SHA**: \`${RUN_SHA}\`"
+            echo "- **Run time (UTC)**: ${run_time}"
+            echo ""
+            echo "## 確認手順"
+            echo ""
+            echo "1. Run URL を開き、失敗 step のログを確認する"
+            echo "   - \`Enable Panda hash:true\` 失敗: \`panda.config.ts\` の"
+            echo "     preflight 行書式が drift している可能性"
+            echo "   - \`Run tests with hash:true\` 失敗: Tripwire テストの"
+            echo "     hash 耐性に regression がある (\`data-*\` 属性が hash 化"
+            echo "     に追従できていない)"
+            echo "   - \`Build project with hash:true\` 失敗: Panda 生成物または"
+            echo "     hook class との整合に regression がある"
+            echo "2. 詳細は Issue #496 / Issue #475 / CLAUDE.md の"
+            echo "   \"Panda hash:true の運用判断\" を参照する"
+            echo "3. 修正 PR を出すか、原因 issue を別途切る"
+            echo ""
+            echo "## 自動起票について"
+            echo ""
+            echo "- 本 Issue は \`panda-hash-regression\` workflow 失敗時に"
+            echo "  自動起票されたものです (Issue #733 の実装)。"
+            echo "- 同名タイトルの open issue が既に存在する場合はコメントが"
+            echo "  追記され、新規起票はされません。"
+            echo "- 解決後はこの Issue を手動で close してください。次回失敗時に"
+            echo "  また自動起票されます。"
+          } > "${body_file}"
+
+          # 既存 open issue を検索。`--search` は GitHub の検索構文を使う
+          # ため、タイトル完全一致は `in:title` + ダブルクォートで囲む。
+          # `--json number,title` で取得し、jq でタイトル完全一致のみを
+          # フィルタする (検索構文は部分一致もヒットさせるため、二重フィル
+          # ターで dedup を担保する)。
+          existing_number=$(
+            gh issue list \
+              --state open \
+              --search "in:title \"${issue_title}\"" \
+              --json number,title \
+              --jq ".[] | select(.title == \"${issue_title}\") | .number" \
+              | head -n 1
+          )
+
+          if [ -n "${existing_number}" ]; then
+            echo "既存 open issue #${existing_number} にコメントを追記します"
+            gh issue comment "${existing_number}" --body-file "${body_file}"
+          else
+            echo "既存 open issue が見つからないため新規起票します"
+            gh issue create \
+              --title "${issue_title}" \
+              --body-file "${body_file}" \
+              --label "ci,chore"
+          fi

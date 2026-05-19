@@ -246,6 +246,138 @@ describe("walkDirectory", () => {
     expect(() => walkDirectory(tmpDir, results)).not.toThrow();
     expect(results).toContain(join(tmpDir, "real.ts"));
   });
+
+  // ====================================================================
+  // symlink ループ防止 (Issue #658)
+  //
+  // PR #635 (Issue #621) で broken symlink は `tryStat` 経由で握り潰す
+  // ようになったが、symlink ループ (`a -> b`, `b -> a` 等) は `tryStat`
+  // が Stats を返すため `isDirectory()` 判定後に再帰呼び出しで無限ループに
+  // 陥る潜在リスクがあった。
+  //
+  // 案 1: `realpathSync` で正規化したパスを `Set<string>` で記録し、
+  // 重複したら skip + `onSkip` 通知。本テスト群は以下を担保する:
+  //   - シンプル symlink ループで無限ループせず skip される
+  //   - `onSkip` が想定通り呼ばれる (件数集計可能)
+  //   - 非ループ symlink (`a -> b`, `b` は通常ディレクトリ) は通常通り走査
+  //   - broken symlink は既存挙動 (skip) を維持する
+  // ====================================================================
+  describe("symlink ループ防止 (Issue #658)", () => {
+    it("シンプル symlink ループ (`a -> b`, `b -> a`) で無限ループせず skip できる", () => {
+      // tmpDir/
+      //   real.ts            # 通常ファイル (走査対象)
+      //   a -> b             # symlink ループ
+      //   b -> a             # symlink ループ
+      writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+      symlinkSync(join(tmpDir, "b"), join(tmpDir, "a"));
+      symlinkSync(join(tmpDir, "a"), join(tmpDir, "b"));
+      const results: string[] = [];
+      // 無限ループに陥らず正常終了することを担保する
+      // (vitest デフォルトの testTimeout 5s 内に完了)。
+      expect(() => walkDirectory(tmpDir, results)).not.toThrow();
+      expect(results).toContain(join(tmpDir, "real.ts"));
+    });
+
+    it("symlink ループで onSkip が呼ばれ件数集計できる", () => {
+      // 自己参照 symlink (`self -> self`) を作成。
+      // `realpathSync` は ELOOP を投げるため `tryRealpath` で skip + 通知される。
+      symlinkSync(join(tmpDir, "self"), join(tmpDir, "self"));
+      const results: string[] = [];
+      const onSkip = vi.fn();
+      expect(() =>
+        walkDirectory(tmpDir, results, onSkip),
+      ).not.toThrow();
+      // 自己参照 symlink について `onSkip` が少なくとも 1 回呼ばれる
+      // (realpath 失敗 or symlink ループ判定で)。
+      expect(onSkip).toHaveBeenCalled();
+      const skippedPaths = onSkip.mock.calls.map((c) => c[0] as string);
+      expect(skippedPaths).toContain(join(tmpDir, "self"));
+    });
+
+    it("ディレクトリ間 symlink ループ (`dir-a -> dir-b`, `dir-b -> dir-a`) で skip できる", () => {
+      // tmpDir/
+      //   real.ts
+      //   loop/
+      //     dir-a -> ../loop/dir-b
+      //     dir-b -> ../loop/dir-a
+      const loopDir = join(tmpDir, "loop");
+      mkdirSync(loopDir);
+      writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+      symlinkSync(join(loopDir, "dir-b"), join(loopDir, "dir-a"));
+      symlinkSync(join(loopDir, "dir-a"), join(loopDir, "dir-b"));
+      const results: string[] = [];
+      const onSkip = vi.fn();
+      expect(() =>
+        walkDirectory(tmpDir, results, onSkip),
+      ).not.toThrow();
+      expect(results).toContain(join(tmpDir, "real.ts"));
+      // ループ symlink が onSkip 通知される (realpath 失敗 or 訪問済み判定)。
+      expect(onSkip).toHaveBeenCalled();
+    });
+
+    it("非ループ symlink (`link -> normalDir`) は通常通り走査できる", () => {
+      // tmpDir/
+      //   normal/
+      //     deep.ts          # 通常ファイル
+      //   link -> normal     # 非ループ symlink
+      //
+      // 期待挙動: 同一実体を指す経路 (`normal/deep.ts` / `link/deep.ts`) は
+      // visited で重複排除され、**いずれか 1 経路で 1 回だけ** results に
+      // 入る。どちらの経路が先に走査されるかは `readdirSync` の OS 依存の
+      // 順序に依存するため、ここでは「1 件含まれる」ことだけを担保する。
+      const normalDir = join(tmpDir, "normal");
+      mkdirSync(normalDir);
+      writeFileSync(join(normalDir, "deep.ts"), "x", "utf8");
+      symlinkSync(normalDir, join(tmpDir, "link"));
+      const results: string[] = [];
+      walkDirectory(tmpDir, results);
+      // 経路に依らず `deep.ts` が 1 件だけ集まる (= 二重カウントされない)。
+      const deepHits = results.filter((p) => p.endsWith("deep.ts"));
+      expect(deepHits).toHaveLength(1);
+      // 集まった経路は実体パス or symlink 経路のどちらかで、basename は
+      // `deep.ts`。`normal` または `link` 配下のいずれかであること。
+      const hit = deepHits[0] ?? "";
+      expect(
+        hit === join(normalDir, "deep.ts") ||
+          hit === join(tmpDir, "link", "deep.ts"),
+      ).toBe(true);
+    });
+
+    it("broken symlink (実体なし) は既存挙動通り skip される", () => {
+      // 回帰テスト: PR #635 (Issue #621) で導入した broken symlink skip
+      // 挙動を Issue #658 の実装が壊していないことを確認する。
+      writeFileSync(join(tmpDir, "real.ts"), "x", "utf8");
+      symlinkSync(join(tmpDir, "missing-target"), join(tmpDir, "dangling"));
+      const results: string[] = [];
+      expect(() => walkDirectory(tmpDir, results)).not.toThrow();
+      expect(results).toContain(join(tmpDir, "real.ts"));
+    });
+
+    it("visited Set を呼び出し間で再利用しない (各 collectTargetFiles 呼び出しが独立)", () => {
+      // tmpDir/
+      //   t1/
+      //     real.ts
+      //   t2 -> t1            # t2 は t1 への symlink
+      // 連続して walkDirectory(t1) と walkDirectory(t2) を呼んだとき、
+      // visited のスコープが呼び出し単位なので両方とも走査される
+      // (= 「symlink で同じ実体を指す独立ターゲットを別々に集計したい」
+      //   要件を担保する)。
+      const t1 = join(tmpDir, "t1");
+      mkdirSync(t1);
+      writeFileSync(join(t1, "real.ts"), "x", "utf8");
+      symlinkSync(t1, join(tmpDir, "t2"));
+
+      const r1: string[] = [];
+      walkDirectory(t1, r1);
+      expect(r1).toContain(join(t1, "real.ts"));
+
+      const r2: string[] = [];
+      walkDirectory(join(tmpDir, "t2"), r2);
+      // t2 経由でも実体ファイルを集められる (= visited が呼び出し間で
+      // 共有されていない)。
+      expect(r2.length).toBeGreaterThan(0);
+    });
+  });
 });
 
 describe("collectTargetFiles", () => {

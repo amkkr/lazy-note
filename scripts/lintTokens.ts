@@ -44,7 +44,13 @@
  * - false positive が出た場合は `EXCLUDED_FILE_SUFFIXES` 経由で除外する。
  */
 
-import { readdirSync, readFileSync, type Stats, statSync } from "node:fs";
+import {
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  type Stats,
+  statSync,
+} from "node:fs";
 import { basename, extname, join, relative, resolve } from "node:path";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
@@ -252,6 +258,43 @@ const tryStat = (
 };
 
 /**
+ * `realpathSync` を try/catch でラップし、失敗時は undefined を返す補助関数。
+ *
+ * 用途 (Issue #658 / 案 1):
+ *   `walkDirectory` の symlink ループ防止 (`a -> b`, `b -> a` のような循環) に
+ *   使う。訪問済みパス管理 (`Set<string>`) のキーは「実体パス」に正規化された
+ *   ものを使う必要があり、`realpathSync` で symlink を辿り切って絶対パスに変換する。
+ *
+ * 例外ポリシー (`tryStat` と同じ理由で全例外を握り潰す):
+ *   - ENOENT (broken symlink で実体が存在しない) → undefined を返し、呼び出し側
+ *     で安全側 skip させる。Tripwire スクリプトの責務は「読める範囲を走査
+ *     する」ことなので、realpath 失敗で CI を落とすより skip するほうが妥当
+ *   - ELOOP (symlink ループ深度上限到達) / EACCES (権限不足) 等も同様に undefined
+ *   - `onSkip` callback が渡されていれば errno code を reason として通知する
+ *
+ * CLAUDE.md「null vs undefined」方針に従い、戻り値型は `string | undefined`。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const tryRealpath = (
+  target: string,
+  onSkip?: SkipCallback,
+): string | undefined => {
+  try {
+    return realpathSync(target);
+  } catch (error) {
+    if (onSkip) {
+      const reason =
+        error && typeof error === "object" && "code" in error
+          ? String((error as NodeJS.ErrnoException).code ?? "unknown")
+          : "unknown";
+      onSkip(target, reason);
+    }
+    return undefined;
+  }
+};
+
+/**
  * 走査対象ファイルとして受理可能か判定する。
  * - 拡張子が `TARGET_EXTENSIONS` に含まれること
  * - `EXCLUDED_FILE_SUFFIXES` のいずれにも該当しないこと
@@ -291,10 +334,28 @@ const shouldSkipEntry = (entry: string): boolean => {
  * `tryStat` 経由で取得し、stat 失敗エントリは静かにスキップする
  * (Issue #621 / M1)。
  *
+ * symlink ループ防止 (Issue #658):
+ *   `a -> b`, `b -> a` のような symlink 循環下では `tryStat` が Stats を返す
+ *   ため `isDirectory()` 判定後に再帰呼び出しで無限ループに陥る潜在リスクが
+ *   ある。そこで `realpathSync` で正規化したディレクトリ実体パスを
+ *   `visited: Set<string>` に記録し、既訪問なら skip する (案 1)。
+ *
+ *   - `visited` のスコープは `walkDirectory` 呼び出し単位 (= `collectTargetFiles`
+ *     1 回分)。呼び出し間で再利用しないことで、`TARGET_PATHS` の各ターゲット
+ *     が独立した走査を行えるようにする (例: `src/` と `scripts/` の両方が
+ *     `tmp/cache` を symlink で指していても両方を走査対象にする)
+ *   - `realpathSync` が失敗 (broken symlink / ELOOP 等) した場合は安全側 skip
+ *     + `onSkip` 通知 (`tryRealpath` 経由)
+ *   - ファイルは再帰呼び出しを伴わないため visited 記録対象外 (= ループ
+ *     リスクなし)。記録すると同一実体ファイルを複数の symlink 経由で参照
+ *     しているケースで片方が落ちる副作用が出るため、ディレクトリのみ管理する
+ *
  * @param results **in-out**: 検出した受理可能ファイルのパスを末尾に push する
  *   (Issue #621 / N1)
- * @param onSkip 省略可。stat 失敗で skip した場合に呼ばれるコールバック
- *   (Issue #637)。`main()` が件数集計用に渡す
+ * @param onSkip 省略可。stat / realpath 失敗 / symlink ループで skip した場合に
+ *   呼ばれるコールバック (Issue #637 / Issue #658)。`main()` が件数集計用に渡す
+ * @param visited 省略可。訪問済みディレクトリ実体パスの `Set` (Issue #658)。
+ *   省略時は呼び出しごとに新規生成され、当該呼び出し内でのみ共有される
  *
  * @internal テスト専用 export. 本番コードから import しないこと
  */
@@ -302,7 +363,22 @@ const walkDirectory = (
   current: string,
   results: string[],
   onSkip?: SkipCallback,
+  visited: Set<string> = new Set<string>(),
 ): void => {
+  // 現在ディレクトリを訪問済みに記録する。`current` 自身も symlink 経由で
+  // 渡された可能性があるため、`realpathSync` で実体パスに正規化する。
+  // realpath 失敗時は安全側 skip (broken symlink / 権限不足等)。
+  const currentReal = tryRealpath(current, onSkip);
+  if (currentReal === undefined) {
+    return;
+  }
+  if (visited.has(currentReal)) {
+    // symlink ループ等で既訪問パスに再到達した場合は skip + 通知。
+    onSkip?.(current, "ELOOP");
+    return;
+  }
+  visited.add(currentReal);
+
   const entries = readdirSync(current);
   for (const entry of entries) {
     if (shouldSkipEntry(entry)) {
@@ -314,7 +390,7 @@ const walkDirectory = (
       continue;
     }
     if (entryStats.isDirectory()) {
-      walkDirectory(fullPath, results, onSkip);
+      walkDirectory(fullPath, results, onSkip, visited);
       continue;
     }
     if (entryStats.isFile() && isAcceptableFile(fullPath)) {
@@ -984,6 +1060,7 @@ export {
   scanLineScope,
   shouldSkipEntry,
   stripComments,
+  tryRealpath,
   tryStat,
   walkDirectory,
 };

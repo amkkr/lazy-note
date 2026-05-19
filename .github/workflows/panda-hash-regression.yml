@@ -54,9 +54,14 @@ jobs:
         continue-on-error: true
         # 既存 hash:true build step (`Build project with hash:true`) と同じく
         # test を二重実行しないため pnpm exec で panda / vite build を呼ぶ。
-        # Issue #528 で議論中の package.json build スクリプトとの drift 問題
-        # は本 issue のスコープ外。両 step で同じコマンド列を使うことで本
-        # workflow 内では一貫性を保つ。
+        #
+        # Issue #528: hash:true build step 側は package.json の `build:ci`
+        # (= `panda && tsc && vite build`) を呼ぶ形に統一済みだが、本 step
+        # は意図的に `build:ci` を使わない。理由は直下 (Issue #625 DA #2) の
+        # とおり baseline build からは tsc を省きたいため。`build:ci` に
+        # 含まれる tsc を流用すると baseline 短縮のメリットが消える。
+        # 短縮を維持するため本 step は `pnpm exec panda && pnpm exec vite
+        # build` を直接呼ぶ運用を継続する。
         #
         # Issue #625 (DA #2): baseline build からは `pnpm exec tsc` を意図的に
         # 省略する。本 step の目的は bundle size 計測のみで、型チェックは
@@ -64,6 +69,12 @@ jobs:
         # (`Build project with hash:true`) で同じ tree を tsc にかけるため
         # 型 regression は引き続き検知できる。
         # tsc を省くことで baseline build を 30 秒〜数十秒短縮できる。
+        # 注意: baseline (panda + vite build) と hash:true side (build:ci =
+        # panda + tsc + vite build) は実行するコマンド列が非対称になる。
+        # bundle size 比較は最終 bundle に tsc が影響しないため妥当だが、
+        # 所要時間比較は非対称のため不可 (baseline は tsc を含まないため
+        # hash:true より速くなる)。所要時間を将来比較したくなった場合は
+        # 両 step を同一コマンド列に揃えるところから設計し直すこと。
         run: |
           set -euo pipefail
           pnpm exec panda
@@ -184,9 +195,14 @@ jobs:
         # pnpm build は内部で `pnpm run lint && pnpm run test:run && pnpm run
         # type-check && panda && tsc && vite build` を呼ぶため、上の test step
         # と二重実行になる。さらに build 内 test 失敗が build regression として
-        # 通知されると原因切り分けが崩れるため、ここでは pnpm exec で生成 /
-        # 型チェック / バンドルだけを 1 回ずつ実行する。
-        run: pnpm exec panda && pnpm exec tsc && pnpm exec vite build
+        # 通知されると原因切り分けが崩れるため、ここでは test / lint を含まない
+        # 専用 script `build:ci` (= `panda && tsc && vite build`) を呼ぶ。
+        # Issue #528: 以前は `pnpm exec panda && pnpm exec tsc && pnpm exec vite
+        # build` を直接書いていたが、本番 `build` script とのコマンド列 drift
+        # を防ぐため package.json 側に `build:ci` を切り出して呼ぶ形に変更
+        # した。`build:ci` は本番 build 経路 (panda + tsc + vite build) と
+        # 等価な軽量版で、test / lint / type-check:scripts は意図的に含めない。
+        run: pnpm run build:ci
 
       - name: Report build regression
         if: steps.tests.outcome == 'success' && steps.build.outcome == 'failure'

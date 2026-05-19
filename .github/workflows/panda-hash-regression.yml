@@ -12,11 +12,25 @@ name: Panda hash:true regression check
 # 更新 PR が頻繁に来るため、検知の頻度確保は重要。本 workflow では:
 #   - 案 A (schedule, 月初 cron): 月 1 回の定期検証で機能腐敗リスクを軽減
 #   - 案 B (pull_request paths): panda.config.ts / package.json / pnpm-lock.yaml
-#     変更 PR で即時検知し、dependabot の `@pandacss/dev` 更新 PR 等を捕捉
+#     / vite.config.ts / postcss.config.* 変更 PR で即時検知し、dependabot の
+#     `@pandacss/dev` 更新 PR 等を捕捉
 # の併用方式 (案 A + 案 B) を採用する。CI billing への影響は「月 1 + 該当 PR」
 # 程度で、許容範囲。失敗時の通知は GitHub Actions の標準通知 (commit author
 # email / fail badge) で当面足りる。Slack / メール / Issue 自動起票は別
 # follow-up Issue で扱う (本 PR スコープ外)。
+#
+# Issue #732: 案 B の paths 選定漏れ補強。Panda CSS の生成挙動に影響する
+# 経路として、元の 3 ファイル (panda.config.ts / package.json /
+# pnpm-lock.yaml) に加え、以下 2 つを paths に含める。
+#   - vite.config.ts: Vite と Panda の組み込み経路。現状の vite.config.ts は
+#     Panda の postcss プラグインを明示的に記述していない (Panda CLI 直接実行
+#     方式) が、将来 PostCSS パイプライン経由に切り替える / Vite plugin 経由に
+#     変える変更が入った場合に即時検知できるよう、予防的に paths に含める
+#   - postcss.config.*: PostCSS パイプライン定義ファイル。現状 repo には実在
+#     しないが、将来追加された PR を捕捉するため予防的に paths に登録する
+#     (glob は `postcss.config.js` / `.ts` / `.cjs` / `.mjs` 等の全ての拡張子に
+#     マッチする)。実在しないファイルを paths に含めても GitHub Actions は
+#     エラーにならず、対象ファイルが PR に含まれた瞬間に自動 trigger される。
 #
 # panda.config.ts の書き換えは CI の working tree 上のみで行い、リポジトリには
 # commit / push しない。
@@ -32,11 +46,15 @@ on:
   # dependabot による `@pandacss/dev` 更新 PR は package.json / pnpm-lock.yaml
   # の変更を含むため、`pnpm-lock.yaml` を paths に含めることで捕捉できる。
   # panda.config.ts は preflight / hash 設定の手動変更を検知するために追加。
+  # vite.config.ts / postcss.config.* は Panda の生成経路 (Vite / PostCSS との
+  # 組み込み点) の手動変更を検知するための予防的登録 (Issue #732)。
   pull_request:
     paths:
       - "panda.config.ts"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "vite.config.ts"
+      - "postcss.config.*"
 
 # 本 workflow は repo を読むだけで write は不要。明示的に最小権限へ縛る。
 permissions:

@@ -240,6 +240,34 @@ const HINT_MESSAGE = [
 ].join("\n");
 
 /**
+ * `scripts["build:ci"]` の文字列が「構成不備 (空 / 空白のみ)」かどうかを
+ * 判定する純粋関数。
+ *
+ * Issue #701 / #724: 旧実装では `main` 内インラインで
+ * `scripts.buildCi.trim().length === 0` を判定していたが、
+ *   - 単体テストから直接検証できない (`main` 経由でしか叩けない)
+ *   - 同種判定を他所で再利用するときに 1 箇所に集約しておきたい
+ * という理由で純粋関数として独立 export する。
+ *
+ * `checkSync` 自体は文字列入力に対する純粋関数として
+ * 「検査対象なし → ok」を維持する設計のため、構成不備判定は本関数 +
+ * 呼び出し側 (`main`) に集約する責務分割になっている。
+ *
+ * 判定対象は **文字列としての空 / 空白のみ** のみであり、
+ * `"&&"` や `"&& &&"` のような「command 列としては空だが文字列としては非空」
+ * のケースは `false` を返す (= 構成不備とは扱わない)。後者は `checkSync` 側で
+ * 「ciCommands.length === 0 → ok」と扱うのが既存契約。
+ *
+ * @param buildCiScript - `package.json` の `scripts["build:ci"]` の生文字列
+ * @returns 空文字 / 空白のみなら `true`、それ以外は `false`
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const isBuildCiMisconfigured = (buildCiScript: string): boolean => {
+  return buildCiScript.trim().length === 0;
+};
+
+/**
  * CLI エントリポイント。`package.json` を読み、`checkSync` の結果に応じて
  * stdout / stderr に出力し、drift / 構成不備時は `process.exit(1)` する。
  *
@@ -262,10 +290,13 @@ const main = (packageJsonPath: string = PACKAGE_JSON_PATH): void => {
     process.exit(1);
   }
 
-  if (scripts.buildCi.trim().length === 0) {
+  if (isBuildCiMisconfigured(scripts.buildCi)) {
     console.error(
       'checkBuildCiSync FATAL: package.json の scripts["build:ci"] が空文字列です (構成不備)。',
     );
+    console.error(`  build    = ${scripts.build}`);
+    console.error(`  build:ci = ${scripts.buildCi}`);
+    console.error(HINT_MESSAGE);
     process.exit(1);
   }
 
@@ -304,6 +335,7 @@ if (isDirectInvocation()) {
 export type { CheckResult, PackageScripts };
 export {
   checkSync,
+  isBuildCiMisconfigured,
   loadPackageScripts,
   main,
   splitCommands,

@@ -86,7 +86,11 @@ describe("IndexRow", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("—")).toBeInTheDocument();
+    // Issue #709: Em ダッシュは aria-hidden の装飾要素のため、素の
+    // `getByText` ではなく `toHaveAttribute("aria-hidden", "true")` を
+    // チェーンする hybrid 方式 (CLAUDE.md「aria-hidden 装飾要素のアサーション
+    // 方針」b-2) で「装飾文字として SR から隠されている」ことを同時に保証する。
+    expect(screen.getByText("—")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("タイトルが空の場合は「無題の記事」を表示する", () => {

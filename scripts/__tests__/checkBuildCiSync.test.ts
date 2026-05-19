@@ -1,16 +1,18 @@
 /**
- * scripts/checkBuildCiSync.ts の単体テスト (Issue #685 / #701)
+ * scripts/checkBuildCiSync.ts の単体テスト (Issue #685 / #701 / #724)
  *
  * 検証対象:
  *   - splitCommands: `&&` 区切りで command を取り出し、空 token を除外する
- *   - tokenizeCommand: 空白区切りで token 列を返し、空 token を除外する
+ *   - tokenizeCommand: 空白 (スペース / タブ) 区切りで token 列を返し、空 token を除外する
  *   - checkSync:
  *       - build に build:ci の全 command が順序を保って含まれていれば ok
  *       - 順序が崩れた / command が抜けていれば ng (reason 付き)
  *       - build:ci 側が空なら ok (検査対象なし)
  *       - wrapper prefix (`pnpm exec tsc` 等) を許容する
  *       - 部分一致誤検出 (`pnpm exec my-tsc-wrapper` ⊃ `tsc`) を排除する (Issue #701)
+ *       - prefix 違い (`wrapper-tsc`) / suffix 違い (`tsc-wrapper`) も誤検出しない (Issue #724)
  *       - multi-token command (`tsc --project tsconfig.api.json`) を token 列単位で扱う
+ *   - isBuildCiMisconfigured: build:ci 文字列が空 / 空白のみなら true、それ以外は false (Issue #724)
  *   - loadPackageScripts: package.json から scripts.build / scripts["build:ci"] を取り出し、
  *     欠落 / 型違反は throw する
  *   - main: buildCi が空文字列の場合に exit 1 で fail する (Issue #701)
@@ -22,6 +24,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   checkSync,
+  isBuildCiMisconfigured,
   loadPackageScripts,
   main,
   splitCommands,
@@ -44,6 +47,12 @@ describe("splitCommands", () => {
   it("空白のみの token を除外する", () => {
     expect(splitCommands("panda && && tsc")).toEqual(["panda", "tsc"]);
   });
+
+  it("`&&` のみの入力に対して空配列を返す (Issue #724)", () => {
+    // `&&` で分割すると ["", ""] になるが、trim + 空 filter で空配列になる
+    expect(splitCommands("&&")).toEqual([]);
+    expect(splitCommands(" && && ")).toEqual([]);
+  });
 });
 
 describe("tokenizeCommand", () => {
@@ -57,6 +66,16 @@ describe("tokenizeCommand", () => {
 
   it("連続する空白を 1 つの区切りとして扱う", () => {
     expect(tokenizeCommand("pnpm   exec   tsc")).toEqual([
+      "pnpm",
+      "exec",
+      "tsc",
+    ]);
+  });
+
+  it("タブ区切りも空白と同じ区切りとして扱う (Issue #724)", () => {
+    // `/\s+/` で split しているため、タブ (\t) もスペースと同じく区切り扱い
+    expect(tokenizeCommand("pnpm\texec\ttsc")).toEqual(["pnpm", "exec", "tsc"]);
+    expect(tokenizeCommand("pnpm \t exec \t tsc")).toEqual([
       "pnpm",
       "exec",
       "tsc",
@@ -154,6 +173,33 @@ describe("checkSync", () => {
     expect(result.reason).toContain("tsc");
   });
 
+  it("build 側 token が `wrapper-tsc` (prefix 違いハイフン繋ぎ) でも `tsc` を誤検出しない (Issue #724)", () => {
+    // `wrapper-tsc` は単一 token (ハイフンは区切り扱いされない) なので、
+    // 末尾完全一致では `wrapper-tsc` !== `tsc` で別 token と判定される。
+    const buildScript = "panda && wrapper-tsc && vite build";
+    const buildCiScript = "panda && tsc && vite build";
+    const result = checkSync(buildScript, buildCiScript);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain("tsc");
+  });
+
+  it("build 側 token が `tsc-wrapper` (suffix 違いハイフン繋ぎ) でも `tsc` を誤検出しない (Issue #724)", () => {
+    // `tsc-wrapper` も同様に単一 token として扱われ、`tsc` とは別 token になる。
+    const buildScript = "panda && tsc-wrapper && vite build";
+    const buildCiScript = "panda && tsc && vite build";
+    const result = checkSync(buildScript, buildCiScript);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain("tsc");
+  });
+
+  it("build:ci が `&&` のみ (= splitCommands 後に空 command 列) なら ok 扱い (Issue #724)", () => {
+    // `splitCommands("&&")` は空配列を返すため、checkSync は「検査対象なし」で
+    // ok を返す。文字列としての構成不備 (空文字 / 空白のみ) は `main` 側で
+    // `isBuildCiMisconfigured` により別途検査する責務分割になっている。
+    expect(checkSync("panda && tsc && vite build", "&&").ok).toBe(true);
+    expect(checkSync("panda && tsc && vite build", " && && ").ok).toBe(true);
+  });
+
   it("build が空かつ build:ci が非空なら ng", () => {
     const result = checkSync("", "panda && tsc && vite build");
     expect(result.ok).toBe(false);
@@ -164,6 +210,31 @@ describe("checkSync", () => {
     const result = checkSync("panda && tsc", "panda && tsc && vite build");
     expect(result.ok).toBe(false);
     expect(result.reason).toContain("vite build");
+  });
+});
+
+describe("isBuildCiMisconfigured", () => {
+  it("空文字列なら true を返す (Issue #724)", () => {
+    expect(isBuildCiMisconfigured("")).toBe(true);
+  });
+
+  it("空白のみ (スペース / タブ / 改行) なら true を返す (Issue #724)", () => {
+    expect(isBuildCiMisconfigured("   ")).toBe(true);
+    expect(isBuildCiMisconfigured("\t\n")).toBe(true);
+    expect(isBuildCiMisconfigured(" \t\n ")).toBe(true);
+  });
+
+  it("非空 command を含むなら false を返す (Issue #724)", () => {
+    expect(isBuildCiMisconfigured("panda && tsc && vite build")).toBe(false);
+    expect(isBuildCiMisconfigured("tsc")).toBe(false);
+  });
+
+  it("`&&` のみでも文字列としては非空なので false を返す (Issue #724)", () => {
+    // 本関数の判定対象は「文字列として空 / 空白のみか」であり、
+    // command 配列としての空 (例: `&&` → splitCommands 後 0 件) は
+    // checkSync 側で「検査対象なし → ok」として扱う責務分割。
+    expect(isBuildCiMisconfigured("&&")).toBe(false);
+    expect(isBuildCiMisconfigured(" && && ")).toBe(false);
   });
 });
 
@@ -246,7 +317,7 @@ describe("main", () => {
     }) as never);
   };
 
-  it("buildCi が空文字列なら exit 1 で fail する (Issue #701)", () => {
+  it("buildCi が空文字列なら exit 1 で fail し HINT_MESSAGE を stderr に出力する (Issue #701 / #724)", () => {
     const packagePath = join(tempDir, "package.json");
     writeFileSync(
       packagePath,
@@ -267,6 +338,12 @@ describe("main", () => {
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringMatching(/空文字列|構成不備/),
     );
+    // Issue #724: 空文字 fail 経路でも drift 時と同じ修正手順 HINT を出す
+    const allErrorMessages = errorSpy.mock.calls
+      .map((args) => args.join(" "))
+      .join("\n");
+    expect(allErrorMessages).toContain("Issue #685");
+    expect(allErrorMessages).toContain("対処方針");
   });
 
   it("buildCi が空白のみでも exit 1 で fail する (Issue #701)", () => {

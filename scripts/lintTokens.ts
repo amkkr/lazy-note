@@ -350,6 +350,7 @@ const shouldSkipEntry = (entry: string): boolean => {
  *   - ファイルは再帰呼び出しを伴わないため visited 記録対象外 (= ループ
  *     リスクなし)。記録すると同一実体ファイルを複数の symlink 経由で参照
  *     しているケースで片方が落ちる副作用が出るため、ディレクトリのみ管理する
+ *     (Issue #703 Minor 3 で「重複 scan 容認」をテスト化済み)
  *
  * 設計判断 (Issue #722 / 案 B):
  *   PR #703 (Issue #658) で `walkDirectory(current, results, onSkip?, visited?)`
@@ -474,7 +475,14 @@ const collectTargetFiles = (
     return results;
   }
 
-  walkDirectory(target, results, onSkip);
+  // `visited` を明示渡しすることで「呼び出し単位で独立した Set を使う」
+  // 意図を呼び出し側に固定する (Issue #703 Minor 1 / リファクタ耐性向上)。
+  // 省略しても `walkDirectory` のデフォルト引数で新規 Set が生成されるため
+  // 動作は同じだが、`collectTargetFiles` 1 回分の走査が独立した visited
+  // スコープを持つことを明示することで、将来 `walkDirectory` のシグネチャ
+  // 変更 (例: visited を必須化 / デフォルト引数廃止) が起きても
+  // `collectTargetFiles` 側を書き換える必要がなくなる。
+  walkDirectory(target, results, onSkip, new Set<string>());
   return results;
 };
 

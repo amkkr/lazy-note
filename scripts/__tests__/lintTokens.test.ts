@@ -10,6 +10,7 @@
 import {
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -39,6 +40,7 @@ import {
   tryStat,
   type Violation,
   walkDirectory,
+  walkDirectoryRecursive,
 } from "../lintTokens";
 
 const makeState = (overrides: Partial<ScanState> = {}): ScanState => ({
@@ -377,6 +379,66 @@ describe("walkDirectory", () => {
       // 共有されていない)。
       expect(r2.length).toBeGreaterThan(0);
     });
+  });
+});
+
+// ========================================================================
+// walkDirectoryRecursive (Issue #722 / 案 B 採用)
+//
+// PR #703 (Issue #658) 時点の `walkDirectory(current, results, onSkip?, visited?)`
+// から visited オプショナルを排除する目的で、本 PR で public 入口
+// `walkDirectory` (visited を意識しない) と internal 再帰
+// `walkDirectoryRecursive` (visited 必須) の 2 関数に分割した。
+//
+// `walkDirectoryRecursive` は外部から直接呼ばれることを想定しない internal API
+// だが、`visited` 必須化の契約 (= 呼び出し側が `Set<string>` を明示的に渡さない
+// と再帰経路で visited 漏れの regression が起きうる) を担保する単体テストを
+// 本ブロックで残す。
+// ========================================================================
+describe("walkDirectoryRecursive", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "lint-tokens-walk-rec-"));
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("呼び出し側から渡された visited Set を再帰経路で共有できる", () => {
+    // tmpDir/
+    //   sub/
+    //     deep.ts          # 通常ファイル
+    // visited に sub の実体パスを事前登録しておくと、sub 配下の deep.ts は
+    // 走査されない (= visited 共有が機能している)。
+    const sub = join(tmpDir, "sub");
+    mkdirSync(sub);
+    writeFileSync(join(sub, "deep.ts"), "x", "utf8");
+
+    const results: string[] = [];
+    const visited = new Set<string>();
+    // sub を事前訪問済みとして登録する。`walkDirectoryRecursive` は
+    // `realpathSync` で正規化したパスを visited のキーにするため
+    // (macOS の `/var/folders` → `/private/var/folders` 等)、テスト側でも
+    // 同じ正規化を経由した値を渡す必要がある。
+    visited.add(realpathSync(sub));
+    walkDirectoryRecursive(tmpDir, results, undefined, visited);
+
+    // sub が visited なので deep.ts は収集されない。
+    expect(results).not.toContain(join(sub, "deep.ts"));
+  });
+
+  it("visited が空の場合は public walkDirectory と同じく全ファイルを集められる", () => {
+    writeFileSync(join(tmpDir, "ok.ts"), "x", "utf8");
+    const sub = join(tmpDir, "sub");
+    mkdirSync(sub);
+    writeFileSync(join(sub, "deep.ts"), "x", "utf8");
+
+    const results: string[] = [];
+    walkDirectoryRecursive(tmpDir, results, undefined, new Set<string>());
+    expect(results).toContain(join(tmpDir, "ok.ts"));
+    expect(results).toContain(join(sub, "deep.ts"));
   });
 });
 

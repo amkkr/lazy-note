@@ -327,8 +327,8 @@ const shouldSkipEntry = (entry: string): boolean => {
 };
 
 /**
- * ディレクトリを再帰走査し、受理可能ファイルを `results` に追記する。
- * `collectTargetFiles` から呼び出される内部ヘルパー。
+ * ディレクトリを再帰走査し、受理可能ファイルを `results` に追記する内部ヘルパー
+ * (Issue #722 で `walkDirectory` から分割)。
  *
  * `statSync` を直接呼ぶと broken symlink 等で throw する潜在問題があるため、
  * `tryStat` 経由で取得し、stat 失敗エントリは静かにスキップする
@@ -340,30 +340,41 @@ const shouldSkipEntry = (entry: string): boolean => {
  *   ある。そこで `realpathSync` で正規化したディレクトリ実体パスを
  *   `visited: Set<string>` に記録し、既訪問なら skip する (案 1)。
  *
- *   - `visited` のスコープは `walkDirectory` 呼び出し単位 (= `collectTargetFiles`
- *     1 回分)。呼び出し間で再利用しないことで、`TARGET_PATHS` の各ターゲット
- *     が独立した走査を行えるようにする (例: `src/` と `scripts/` の両方が
- *     `tmp/cache` を symlink で指していても両方を走査対象にする)
+ *   - `visited` のスコープは public 入口 `walkDirectory` 呼び出し単位
+ *     (= `collectTargetFiles` 1 回分)。呼び出し間で再利用しないことで、
+ *     `TARGET_PATHS` の各ターゲットが独立した走査を行えるようにする
+ *     (例: `src/` と `scripts/` の両方が `tmp/cache` を symlink で指していても
+ *     両方を走査対象にする)
  *   - `realpathSync` が失敗 (broken symlink / ELOOP 等) した場合は安全側 skip
  *     + `onSkip` 通知 (`tryRealpath` 経由)
  *   - ファイルは再帰呼び出しを伴わないため visited 記録対象外 (= ループ
  *     リスクなし)。記録すると同一実体ファイルを複数の symlink 経由で参照
  *     しているケースで片方が落ちる副作用が出るため、ディレクトリのみ管理する
  *
+ * 設計判断 (Issue #722 / 案 B):
+ *   PR #703 (Issue #658) で `walkDirectory(current, results, onSkip?, visited?)`
+ *   と visited をオプショナルで導入したが、DA レビュー M-1 で「外部呼び出し時に
+ *   visited を渡し忘れる余地が残る」と指摘された。本 PR で **public 入口
+ *   `walkDirectory` (visited を意識しない) と internal 再帰 `walkDirectoryRecursive`
+ *   (visited 必須) の 2 関数に分割**することで、再帰経路では visited 漏れを
+ *   型レベルで防止し、外部呼び出し側は visited を意識せず使えるようにした
+ *   (= API 表面の明確化)。
+ *
  * @param results **in-out**: 検出した受理可能ファイルのパスを末尾に push する
  *   (Issue #621 / N1)
  * @param onSkip 省略可。stat / realpath 失敗 / symlink ループで skip した場合に
  *   呼ばれるコールバック (Issue #637 / Issue #658)。`main()` が件数集計用に渡す
- * @param visited 省略可。訪問済みディレクトリ実体パスの `Set` (Issue #658)。
- *   省略時は呼び出しごとに新規生成され、当該呼び出し内でのみ共有される
+ * @param visited **必須**: 訪問済みディレクトリ実体パスの `Set` (Issue #658)。
+ *   再帰経路で visited 漏れを防ぐため public 入口 `walkDirectory` 側で新規生成し、
+ *   この内部関数では受け取りを必須化する (Issue #722 / 案 B)
  *
  * @internal テスト専用 export. 本番コードから import しないこと
  */
-const walkDirectory = (
+const walkDirectoryRecursive = (
   current: string,
   results: string[],
-  onSkip?: SkipCallback,
-  visited: Set<string> = new Set<string>(),
+  onSkip: SkipCallback | undefined,
+  visited: Set<string>,
 ): void => {
   // 現在ディレクトリを訪問済みに記録する。`current` 自身も symlink 経由で
   // 渡された可能性があるため、`realpathSync` で実体パスに正規化する。
@@ -390,13 +401,42 @@ const walkDirectory = (
       continue;
     }
     if (entryStats.isDirectory()) {
-      walkDirectory(fullPath, results, onSkip, visited);
+      walkDirectoryRecursive(fullPath, results, onSkip, visited);
       continue;
     }
     if (entryStats.isFile() && isAcceptableFile(fullPath)) {
       results.push(fullPath);
     }
   }
+};
+
+/**
+ * ディレクトリを再帰走査し、受理可能ファイルを `results` に追記する public 入口
+ * (Issue #722 で `walkDirectoryRecursive` から分離)。
+ *
+ * 内部で visited Set を新規生成し、再帰呼び出しは `walkDirectoryRecursive` に
+ * 委譲する。**外部呼び出し側 (= `collectTargetFiles` / テスト) は visited を
+ * 意識せず使える**。再帰経路で visited を取り回す責務は internal 側に閉じ込めて
+ * あるため、visited 渡し忘れによる無限ループ regression を構造的に防ぐ
+ * (DA レビュー M-1 / Issue #722 / 案 B 採用)。
+ *
+ * visited のスコープは「この `walkDirectory` 呼び出し単位」で、呼び出し間で
+ * 再利用しない (= 同一実体を指す独立ターゲット (`src/` と symlink された別 root)
+ * は別個に走査される)。挙動詳細は `walkDirectoryRecursive` JSDoc を参照。
+ *
+ * @param results **in-out**: 検出した受理可能ファイルのパスを末尾に push する
+ *   (Issue #621 / N1)
+ * @param onSkip 省略可。stat / realpath 失敗 / symlink ループで skip した場合に
+ *   呼ばれるコールバック (Issue #637 / Issue #658)
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const walkDirectory = (
+  target: string,
+  results: string[],
+  onSkip?: SkipCallback,
+): void => {
+  walkDirectoryRecursive(target, results, onSkip, new Set<string>());
 };
 
 /**
@@ -1063,4 +1103,5 @@ export {
   tryRealpath,
   tryStat,
   walkDirectory,
+  walkDirectoryRecursive,
 };

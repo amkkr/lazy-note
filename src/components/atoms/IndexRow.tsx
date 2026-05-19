@@ -1,6 +1,10 @@
 import { type CSSProperties, memo } from "react";
 import { css } from "../../../styled-system/css";
-import { UNTITLED_POST } from "../../lib/i18nLiterals";
+import {
+  AUTHOR_FALLBACK,
+  DATE_FALLBACK,
+  UNTITLED_POST,
+} from "../../lib/i18nLiterals";
 import type { PostSummary } from "../../lib/markdown";
 import { buildPostHeroTransitionName } from "../../lib/viewTransition";
 import { Link } from "./Link";
@@ -224,11 +228,11 @@ export const IndexRow = memo(({ post, index }: IndexRowProps) => {
       </span>
       <span className={indexLeaderStyles} aria-hidden="true" />
       <span className={indexMetaStyles}>
-        <span>{post.author || "匿名"}</span>
+        <span>{post.author || AUTHOR_FALLBACK}</span>
         <span className={indexMetaSeparatorStyles} aria-hidden="true">
           —
         </span>
-        <span>{post.createdAt || "日付未設定"}</span>
+        <span>{post.createdAt || DATE_FALLBACK}</span>
       </span>
     </li>
   );

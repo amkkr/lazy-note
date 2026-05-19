@@ -77,7 +77,7 @@ interface AnchorPageProps {
  * - 節目の tone は `data-tone` 属性で表現する (色だけに依存させない)
  *
  * publishedAt 推定不可なスキップ件数注記 (Issue #544):
- * - `inferPublishedAt(post.id) === null` で除外された記事の件数を、各記事の座標
+ * - `inferPublishedAt(post.id) === undefined` で除外された記事の件数を、各記事の座標
  *   section 末尾に「publishedAt 推定不可でスキップした記事: N 件」と控えめに表示する
  * - 0 件のときは注記そのものを出さない (= ノイズ削減 + 運用画面の静かなトーン維持)
  * - `role="note"` で補助情報であることを意味的に示す。件数は注記テキスト本体に
@@ -327,7 +327,7 @@ const buildPostCoordinatesEntries = (
   const entries: PostCoordinatesEntry[] = [];
   for (const post of posts) {
     const publishedAt = inferPublishedAt(post.id);
-    if (publishedAt === null) {
+    if (publishedAt === undefined) {
       continue;
     }
     const coordinates = computeCoordinates(publishedAt, milestones);

@@ -121,22 +121,27 @@ const isIso8601 = (value: string): boolean => {
  *
  * - JST (+09:00) で固定する (既存記事は JST 想定)
  * - 14 桁の数字 + 任意の .md のみ受理する厳格な実装
- * - 桁数や数値が不正な場合は null を返す
+ * - 桁数や数値が不正な場合は undefined を返す
  * - 月末日や閏年の厳密判定は行わない (Date.parse がロールオーバーしても
  *   文字列自体は再構築されないため、推定値はそのまま返る)
  *
+ * 戻り値型 (Issue #682):
+ * - CLAUDE.md「null vs undefined」方針に整合させるため `string | undefined`
+ *   を採用する (「値がまだ割り当てられていない / 推定不可」のセマンティクスは
+ *   undefined 側に倒すのが本プロジェクトのスタンス)
+ *
  * @param fileName - ファイル名 (例: `20250101120000.md`)
- * @returns ISO 8601 文字列 (推定不可なら null)
+ * @returns ISO 8601 文字列 (推定不可なら undefined)
  */
-export const inferPublishedAt = (fileName: string): string | null => {
+export const inferPublishedAt = (fileName: string): string | undefined => {
   const base = fileName.replace(/\.md$/, "");
   const match = base.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/);
   if (!match) {
-    return null;
+    return undefined;
   }
   const [, year, month, day, hour, minute, second] = match;
   const candidate = `${year}-${month}-${day}T${hour}:${minute}:${second}+09:00`;
-  return isIso8601(candidate) ? candidate : null;
+  return isIso8601(candidate) ? candidate : undefined;
 };
 
 /**

@@ -419,12 +419,8 @@ export const findPreviousPost = (
     return undefined;
   }
   const latest = candidates[candidates.length - 1];
-  // inferPublishedAt は外部 (src/lib/anchors.ts) の API で戻り値が
-  // `string | null` であるため、ここでの null 比較は外部 API との整合上
-  // 維持する (Issue #622)。`== null` のゆるい比較で undefined も拾える
-  // 形に揃える。
   const publishedAt = inferPublishedAt(latest);
-  if (publishedAt == null) {
+  if (publishedAt === undefined) {
     return undefined;
   }
   const filePath = join(datasourcesDir, latest);
@@ -452,12 +448,8 @@ export const computeSiteOpeningFallback = (
     return undefined;
   }
   const oldest = files[0];
-  // inferPublishedAt は外部 (src/lib/anchors.ts) の API で戻り値が
-  // `string | null` であるため、ここでの null 比較は外部 API との整合上
-  // 維持する (Issue #622)。`== null` のゆるい比較で undefined も拾える
-  // 形に揃える。
   const oldestIso = inferPublishedAt(oldest);
-  if (oldestIso == null) {
+  if (oldestIso === undefined) {
     return undefined;
   }
   return computeElapsed(publishedAt, oldestIso.slice(0, 10), "サイト開設");
@@ -566,11 +558,7 @@ const createNewPost = (): void => {
     const publishedAt = inferPublishedAt(fileName);
 
     let ignitionComment = "";
-    // inferPublishedAt は外部 (src/lib/anchors.ts) の API で戻り値が
-    // `string | null` であるため、ここでの null 比較は外部 API との整合上
-    // 維持する (Issue #622)。`== null` のゆるい比較で undefined も拾える
-    // 形に揃える。
-    if (publishedAt != null) {
+    if (publishedAt !== undefined) {
       const milestonesPath = join(datasourcesDir, "milestones.json");
       const milestones = loadMilestones(milestonesPath);
 

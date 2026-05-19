@@ -10,8 +10,8 @@ interface CoordinateProps {
   /**
    * 記事の公開日時 (ISO 8601 / JST 想定)。
    *
-   * 親 (PostDetailPage) で `inferPublishedAt(post.id)` を呼び、null でない値を
-   * 渡すこと。null や不正値は本コンポーネントの責務範囲外で、上位で弾く。
+   * 親 (PostDetailPage) で `inferPublishedAt(post.id)` を呼び、undefined でない値を
+   * 渡すこと。undefined や不正値は本コンポーネントの責務範囲外で、上位で弾く。
    *
    * publishedAt 以降 (未来) の節目は `computeCoordinates` 側で除外される。
    */

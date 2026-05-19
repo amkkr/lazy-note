@@ -141,6 +141,30 @@ const matchesAsSuffix = (
  *     できる。multi-token command (`tsc --project tsconfig.api.json` 等)
  *     も token 列単位の完全一致として自然に扱える。
  *
+ * 案 A (word 単位 suffix match / 現採用) と案 B (regex `\b<token>$`) の比較
+ * (Issue #701 / #723):
+ *   - 案 A: 各 command を空白分割した token 配列の末尾を要素比較する方式
+ *     (現実装)。
+ *   - 案 B: `build` 側 command 文字列に対し正規表現 `\b<ciCommand>$` で
+ *     末尾マッチを判定する方式。
+ *   - 採用判断 (案 A):
+ *     1. **JS `\b` の挙動が記号で意図せずマッチする可能性**: ECMAScript の
+ *        `\b` は ASCII の `[A-Za-z0-9_]` 境界として定義されており、`-` や
+ *        `.` 等の記号は word 文字扱いされない。そのため `\btsc\b` は
+ *        `my-tsc-wrapper` の `-tsc-` 部分にもマッチしうる (案 B では別途
+ *        前方境界の除外ロジックを足す必要がある)。案 A は token 配列の
+ *        要素比較なので `tsc !== "my-tsc-wrapper"` と素直に分離できる。
+ *     2. **可読性**: token 配列の要素比較は手続きが直線的で、`offset` /
+ *        ループ index を読めば挙動が一意に追える。案 B は `<ciCommand>`
+ *        を正規表現に埋め込む際の escape 処理が必要になり、副次的な
+ *        コードが増える。
+ *     3. **テスト容易性**: `tokenizeCommand` / `matchesAsSuffix` を純粋関数
+ *        として独立 export できるため、token 化と suffix 判定を別々に
+ *        単体テストできる。案 B は regex 1 本に挙動を集約するため、境界
+ *        ケースを分割テストしにくい。
+ *   - 詳細な検討経緯は Issue #701 / PR #717 (master `f32e516`) の history を
+ *     参照。
+ *
  * 空配列ケース:
  *   - `buildCiScript` が空 (token 0 件): 検査する command が無いので ok。
  *     ただし呼び出し側 (`main`) では「`build:ci` 自体が未定義 / 空」を

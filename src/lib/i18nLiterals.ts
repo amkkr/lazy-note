@@ -38,3 +38,29 @@
  * 同義反復になり、文言変更時の regression を検知できなくなるため)。
  */
 export const UNTITLED_POST = "無題の記事" as const;
+
+/**
+ * 著者名未設定の記事を表示する際のフォールバック文言 (Issue #706 / PR #711 follow-up)。
+ *
+ * 参照元 (2 箇所):
+ * - `src/components/atoms/IndexRow.tsx`
+ * - `src/components/common/MetaInfo.tsx`
+ *
+ * テストファイルからは **import しない** (`UNTITLED_POST` と同方針: 期待値
+ * リテラルを共有すると同義反復になり、文言変更時の regression を検知
+ * できなくなるため)。
+ */
+export const AUTHOR_FALLBACK = "匿名" as const;
+
+/**
+ * 投稿日付未設定の記事を表示する際のフォールバック文言 (Issue #706 / PR #711 follow-up)。
+ *
+ * 参照元 (2 箇所):
+ * - `src/components/atoms/IndexRow.tsx`
+ * - `src/components/common/MetaInfo.tsx`
+ *
+ * テストファイルからは **import しない** (`UNTITLED_POST` と同方針: 期待値
+ * リテラルを共有すると同義反復になり、文言変更時の regression を検知
+ * できなくなるため)。
+ */
+export const DATE_FALLBACK = "日付未設定" as const;

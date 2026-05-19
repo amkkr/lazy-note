@@ -1,0 +1,27 @@
+{
+  // tsconfig.json (本体, ブラウザ) を継承し、src/api/ 配下専用に Node サーバサイド向け
+  // の設定を上書きする。
+  //
+  // 本体 tsconfig は src/api/** を exclude しており、src/ の純粋ブラウザコードから
+  // @types/node の ambient globals (process / Buffer / __dirname 等) が参照できない。
+  // 一方 src/api/ は Vite dev server middleware として Node 環境で動作するため、
+  // 本ファイルで明示的に @types/node を有効化し、Node API を型付きで参照可能にする
+  // (Issue #667)。
+  //
+  // include は src/api のみだが、src/api/posts.ts は ../lib/markdownParser を import
+  // するため、moduleResolution: "bundler" によって相対 import 先の型は自動解決される。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // src/api/ は Node サーバサイドとして実行されるため、@types/node の ambient globals
+    // (process / Buffer / __dirname 等) を有効化する。
+    // ブラウザ向け型 (vitest/globals / @testing-library/jest-dom) は不要なので含めない。
+    "types": ["node"],
+    // Incremental build (Issue #580): tsconfig.json / tsconfig.test.json /
+    // tsconfig.scripts.json と独立した .tsbuildinfo を出力する。
+    // include / types が異なるため別ファイルにしないと衝突する。
+    "tsBuildInfoFile": "./.tsbuildinfo/tsconfig.api.tsbuildinfo"
+  },
+  "include": ["src/api"],
+  // 本体 tsconfig の exclude を上書き (空配列) して、src/api 配下を確実に対象化する。
+  "exclude": []
+}

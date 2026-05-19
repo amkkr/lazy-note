@@ -28,5 +28,26 @@
     /* Types */
     "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  // 本体 (ブラウザ向け) の型チェックから以下を除外する (Issue #667):
+  //
+  // 1. src/api/**: Vite dev server middleware として Node 環境で動作するため、
+  //    tsconfig.api.json 側で @types/node を有効化して型付けする。
+  //
+  // 2. src/**/__tests__/**, src/**/*.test.*, src/**/*.spec.*: テストファイルは
+  //    tsconfig.test.json 側で型チェックする。一部のテスト (src/lib/__tests__ や
+  //    src/api/__tests__) は node:fs / process / __dirname 等 Node API を参照する
+  //    ため、これらを本体に含めると @types/node の ambient globals がブラウザ
+  //    コードへも漏出し、Issue #667 の防衛の意味が失われる。
+  //
+  // この exclude により src/ の純粋ブラウザコードから process / Buffer 等の Node 由来
+  // ambient 型が参照不可になる (tsc エラー化)。
+  "exclude": [
+    "src/api/**",
+    "src/**/__tests__/**",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx"
+  ]
 }

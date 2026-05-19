@@ -327,6 +327,76 @@ const shouldSkipEntry = (entry: string): boolean => {
 };
 
 /**
+ * 現在ディレクトリを `visited` に登録できるか試みる内部ヘルパー
+ * (Issue #652 で `walkDirectoryRecursive` から抽出)。
+ *
+ * `current` 自身も symlink 経由で渡された可能性があるため `realpathSync` で
+ * 実体パスに正規化し、既訪問なら ELOOP として skip 通知する。新規訪問なら
+ * `visited` に追加して `true` を返す。
+ *
+ * 戻り値:
+ *   - `true`: 新規訪問 (走査続行可)
+ *   - `false`: realpath 失敗 or 既訪問 (走査打ち切り)
+ *
+ * @param visited **in-out**: 新規訪問なら現在ディレクトリ実体パスを追加する
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const tryMarkVisited = (
+  current: string,
+  onSkip: SkipCallback | undefined,
+  visited: Set<string>,
+): boolean => {
+  const currentReal = tryRealpath(current, onSkip);
+  if (currentReal === undefined) {
+    return false;
+  }
+  if (visited.has(currentReal)) {
+    // symlink ループ等で既訪問パスに再到達した場合は skip + 通知。
+    onSkip?.(current, "ELOOP");
+    return false;
+  }
+  visited.add(currentReal);
+  return true;
+};
+
+/**
+ * `walkDirectoryRecursive` のループ内で 1 エントリ分を評価する内部ヘルパー
+ * (Issue #652 で `walkDirectoryRecursive` から抽出)。
+ *
+ * 役割分担:
+ *   - skip 判定 (`shouldSkipEntry`) は呼び出し側が事前にチェック済み前提
+ *   - 本関数は stat 取得 / ディレクトリ再帰 / ファイル accept 判定を担当
+ *
+ * ディレクトリの場合は `walkDirectoryRecursive` を再帰呼び出しする。ファイルの
+ * 場合は `isAcceptableFile` で受理判定し合格なら `results` に push する。
+ * stat 失敗エントリは静かにスキップする (`tryStat` 経由で onSkip 通知あり)。
+ *
+ * @param results **in-out**: 受理可能ファイルを末尾に push する
+ * @param visited **in-out**: 再帰経路に持ち回す訪問済み実体パス Set
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const processWalkEntry = (
+  fullPath: string,
+  results: string[],
+  onSkip: SkipCallback | undefined,
+  visited: Set<string>,
+): void => {
+  const entryStats = tryStat(fullPath, onSkip);
+  if (!entryStats) {
+    return;
+  }
+  if (entryStats.isDirectory()) {
+    walkDirectoryRecursive(fullPath, results, onSkip, visited);
+    return;
+  }
+  if (entryStats.isFile() && isAcceptableFile(fullPath)) {
+    results.push(fullPath);
+  }
+};
+
+/**
  * ディレクトリを再帰走査し、受理可能ファイルを `results` に追記する内部ヘルパー
  * (Issue #722 で `walkDirectory` から分割)。
  *
@@ -361,6 +431,16 @@ const shouldSkipEntry = (entry: string): boolean => {
  *   型レベルで防止し、外部呼び出し側は visited を意識せず使えるようにした
  *   (= API 表面の明確化)。
  *
+ * Biome 厳格化耐性メモ (Issue #652 / PR #623 follow-up):
+ *   本関数は `maxAllowedComplexity:8` 厳格化条件下でも違反 0 になるよう、
+ *   「visited 登録の試行」を `tryMarkVisited` ヘルパーへ、「1 エントリ分の
+ *   stat / 再帰 / accept 判定」を `processWalkEntry` ヘルパーへ抽出している。
+ *   関数本体はこの 2 ヘルパー呼び出しと shouldSkipEntry の早期 continue だけに
+ *   絞られるため、各分岐が分散して complexity 12 → 4 (測定値) に低減する。
+ *   public API シグネチャ (`walkDirectoryRecursive(current, results, onSkip, visited)`)
+ *   は不変。再帰経路 / visited 取り回し / symlink ループ防止の振る舞いも全て
+ *   既存 `lintTokens.test.ts` で固定済み。
+ *
  * @param results **in-out**: 検出した受理可能ファイルのパスを末尾に push する
  *   (Issue #621 / N1)
  * @param onSkip 省略可。stat / realpath 失敗 / symlink ループで skip した場合に
@@ -377,37 +457,16 @@ const walkDirectoryRecursive = (
   onSkip: SkipCallback | undefined,
   visited: Set<string>,
 ): void => {
-  // 現在ディレクトリを訪問済みに記録する。`current` 自身も symlink 経由で
-  // 渡された可能性があるため、`realpathSync` で実体パスに正規化する。
-  // realpath 失敗時は安全側 skip (broken symlink / 権限不足等)。
-  const currentReal = tryRealpath(current, onSkip);
-  if (currentReal === undefined) {
+  if (!tryMarkVisited(current, onSkip, visited)) {
     return;
   }
-  if (visited.has(currentReal)) {
-    // symlink ループ等で既訪問パスに再到達した場合は skip + 通知。
-    onSkip?.(current, "ELOOP");
-    return;
-  }
-  visited.add(currentReal);
 
   const entries = readdirSync(current);
   for (const entry of entries) {
     if (shouldSkipEntry(entry)) {
       continue;
     }
-    const fullPath = join(current, entry);
-    const entryStats = tryStat(fullPath, onSkip);
-    if (!entryStats) {
-      continue;
-    }
-    if (entryStats.isDirectory()) {
-      walkDirectoryRecursive(fullPath, results, onSkip, visited);
-      continue;
-    }
-    if (entryStats.isFile() && isAcceptableFile(fullPath)) {
-      results.push(fullPath);
-    }
+    processWalkEntry(join(current, entry), results, onSkip, visited);
   }
 };
 
@@ -626,11 +685,58 @@ const handleStringLiteral = (
 };
 
 /**
+ * `ch` が文字列リテラル開始クォートかを判定する type predicate。
+ * `QUOTE_FIELD` のキー集合と一致させることで、`handleDefault` から
+ * クォート種別ごとに 3 つに分かれていた `if` 分岐を 1 つに集約できる
+ * (Issue #652)。
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const isQuoteChar = (ch: string): ch is QuoteChar => {
+  return ch === "'" || ch === '"' || ch === "`";
+};
+
+/**
+ * 通常コード領域で文字列リテラル開始クォートに遭遇した場合の状態遷移を行う
+ * 内部ヘルパー (Issue #652 で `handleDefault` から抽出)。
+ *
+ * `QUOTE_FIELD` 表から該当フラグキーを引いて `state` の対応フラグを立て、
+ * クォート文字をそのまま `out` に push する。クォートでなければ何もせず
+ * `false` を返し呼び出し側に処理続行を任せる。
+ *
+ * @param out **in-out**: クォート文字を末尾に push する (push only)
+ * @param state **in-out**: 対応する `in*` フラグを true に mutate する
+ * @returns クォートを検出して処理した場合 true (= `handleDefault` 側で即 return)
+ *
+ * @internal テスト専用 export. 本番コードから import しないこと
+ */
+const tryEnterStringLiteral = (
+  ch: string,
+  out: string[],
+  state: ScanState,
+): boolean => {
+  if (!isQuoteChar(ch)) {
+    return false;
+  }
+  state[QUOTE_FIELD[ch]] = true;
+  out.push(ch);
+  return true;
+};
+
+/**
  * 通常コード領域での 1 文字を処理する。
- * - 文字列開始クォートを検出したら該当フラグを立てる。
+ * - 文字列開始クォートを検出したら該当フラグを立てる (`tryEnterStringLiteral`)。
  * - 行コメント `//` を検出した場合は行末まで空白で埋めて打ち切り。
  * - ブロックコメント開始 `/ *` を検出したら inBlockComment を立てる。
  * - それ以外は文字をそのまま追記する。
+ *
+ * Biome 厳格化耐性メモ (Issue #652 / PR #623 follow-up):
+ *   本関数は `maxAllowedComplexity:8` 厳格化条件下でも違反 0 になるよう、
+ *   クォート種別ごとに 3 分岐していたシングル / ダブル / バッククォート開始処理を
+ *   `tryEnterStringLiteral` ヘルパーへ集約している。これで関数本体の分岐は
+ *   「クォート / 行コメント / ブロックコメント / それ以外」の 4 系統に減り
+ *   complexity 9 → 8 以下に低減する。挙動 (state 遷移 / out への push 内容 /
+ *   StepResult) は不変、既存 `lintTokens.test.ts` のコメント除去テストで固定済み。
  *
  * @param out **in-out**: sanitized 文字 / 空白を末尾に push する (push only)
  * @param state **in-out**: 検出した状態遷移に応じて `in*` フラグを mutate する
@@ -644,19 +750,7 @@ const handleDefault = (
   state: ScanState,
   remainingLength: number,
 ): StepResult => {
-  if (ch === "'") {
-    state.inSingle = true;
-    out.push(ch);
-    return NO_ADVANCE;
-  }
-  if (ch === '"') {
-    state.inDouble = true;
-    out.push(ch);
-    return NO_ADVANCE;
-  }
-  if (ch === "`") {
-    state.inBacktick = true;
-    out.push(ch);
+  if (tryEnterStringLiteral(ch, out, state)) {
     return NO_ADVANCE;
   }
   if (ch === "/" && next === "/") {
@@ -1095,10 +1189,12 @@ export {
   handleDefault,
   handleStringLiteral,
   isAcceptableFile,
+  isQuoteChar,
   iterateMatches,
   LINT_PATTERNS,
   offsetToLineColumn,
   processChar,
+  processWalkEntry,
   reportSkippedTargets,
   sanitizeFile,
   scanFile,
@@ -1106,6 +1202,8 @@ export {
   scanLineScope,
   shouldSkipEntry,
   stripComments,
+  tryEnterStringLiteral,
+  tryMarkVisited,
   tryRealpath,
   tryStat,
   walkDirectory,

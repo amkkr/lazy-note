@@ -8,6 +8,11 @@ vi.mock("../../../hooks/useScrollPosition", () => ({
 
 import { useScrollPosition } from "../../../hooks/useScrollPosition";
 
+// Issue #707: BackToTop.tsx の表示文言を定数化したが、テスト側は先行 PR (PostDetailPage 等) と
+// 同様に「ユーザに見える文言」をハードコードで保持し、文言が変わったら CI で検知できる
+// snapshot 的役割を維持する (= プロダクション定数の rename だけで通らないことを保証)。
+const BACK_TO_TOP_ARIA_LABEL = "ページトップへ戻る" as const;
+
 describe("BackToTop", () => {
   beforeEach(() => {
     vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
@@ -27,7 +32,7 @@ describe("BackToTop", () => {
     render(<BackToTop />);
 
     expect(
-      screen.queryByRole("button", { name: "ページトップへ戻る" }),
+      screen.queryByRole("button", { name: BACK_TO_TOP_ARIA_LABEL }),
     ).not.toBeInTheDocument();
   });
 
@@ -37,7 +42,7 @@ describe("BackToTop", () => {
     render(<BackToTop />);
 
     expect(
-      screen.getByRole("button", { name: "ページトップへ戻る" }),
+      screen.getByRole("button", { name: BACK_TO_TOP_ARIA_LABEL }),
     ).toBeInTheDocument();
   });
 
@@ -48,7 +53,7 @@ describe("BackToTop", () => {
     render(<BackToTop />);
 
     act(() => {
-      screen.getByRole("button", { name: "ページトップへ戻る" }).click();
+      screen.getByRole("button", { name: BACK_TO_TOP_ARIA_LABEL }).click();
     });
 
     expect(window.scrollTo).toHaveBeenCalledWith({
@@ -70,7 +75,7 @@ describe("BackToTop", () => {
 
       render(<BackToTop />);
 
-      const button = screen.getByRole("button", { name: "ページトップへ戻る" });
+      const button = screen.getByRole("button", { name: BACK_TO_TOP_ARIA_LABEL });
       expect(button).toHaveAttribute("data-token-border", "border.subtle");
     });
 
@@ -79,7 +84,7 @@ describe("BackToTop", () => {
 
       render(<BackToTop />);
 
-      const button = screen.getByRole("button", { name: "ページトップへ戻る" });
+      const button = screen.getByRole("button", { name: BACK_TO_TOP_ARIA_LABEL });
       expect(button).toHaveAttribute("data-token-hover-bg", "bg.muted");
     });
   });

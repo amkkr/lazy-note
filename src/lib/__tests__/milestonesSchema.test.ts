@@ -61,7 +61,7 @@ describe("parseMilestones (lenient)", () => {
     ];
     const result = parseMilestones(input);
     expect(result).toHaveLength(1);
-    expect(result[0].label).toBe("有効");
+    expect(result[0]?.label).toBe("有効");
   });
 
   it("date が文字列でない要素を除外できる", () => {
@@ -71,7 +71,7 @@ describe("parseMilestones (lenient)", () => {
     ];
     const result = parseMilestones(input);
     expect(result).toHaveLength(1);
-    expect(result[0].label).toBe("good");
+    expect(result[0]?.label).toBe("good");
   });
 
   it("date が YYYY-MM-DD 形式でない要素を除外できる", () => {
@@ -83,7 +83,7 @@ describe("parseMilestones (lenient)", () => {
     ];
     const result = parseMilestones(input);
     expect(result).toHaveLength(1);
-    expect(result[0].label).toBe("valid");
+    expect(result[0]?.label).toBe("valid");
   });
 
   it("label が文字列でない要素を除外できる", () => {
@@ -93,7 +93,7 @@ describe("parseMilestones (lenient)", () => {
     ];
     const result = parseMilestones(input);
     expect(result).toHaveLength(1);
-    expect(result[0].label).toBe("valid");
+    expect(result[0]?.label).toBe("valid");
   });
 
   it("label が空文字列の要素を除外できる", () => {
@@ -103,7 +103,7 @@ describe("parseMilestones (lenient)", () => {
     ];
     const result = parseMilestones(input);
     expect(result).toHaveLength(1);
-    expect(result[0].label).toBe("valid");
+    expect(result[0]?.label).toBe("valid");
   });
 
   it("tone が許容値外の要素を除外できる", () => {
@@ -149,7 +149,9 @@ describe("parseMilestones (lenient)", () => {
       label: "extra",
       tone: "neutral",
     });
-    expect("unknown" in result[0]).toBe(false);
+    const first = result[0];
+    expect(first).toBeDefined();
+    expect(first && "unknown" in first).toBe(false);
   });
 });
 
@@ -224,8 +226,8 @@ describe("validateMilestonesStrict (strict)", () => {
     expect(caught).not.toBeNull();
     expect(caught?.message).toContain("index=1");
     expect(caught?.message).toContain("field=tone");
-    expect(caught?.issues[0].index).toBe(1);
-    expect(caught?.issues[0].field).toBe("tone");
+    expect(caught?.issues[0]?.index).toBe(1);
+    expect(caught?.issues[0]?.field).toBe("tone");
   });
 
   it("MilestoneValidationError は name に固有値を持つ", () => {

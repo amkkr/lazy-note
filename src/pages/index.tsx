@@ -17,26 +17,33 @@ import {
 /**
  * 節目データ (`datasources/milestones.json`)。
  *
- * Resurface (Issue #492 / N-5) で「節目記念日 (milestoneAnniversary)」の発火に
- * 使用する。Coordinate (Issue #491) / AnchorPage (Issue #493) と同じ JSON を
- * 共有しているが、Issue #546 の判断で **集約せず各 page で個別 import** する
- * 設計を採用している (認知負荷の局所化を優先)。`src/lib/milestones.ts` のような
- * 集約点を作ると、各 page を読む際に「この MILESTONES はどこから来てどう加工
- * されたものか」を別ファイルまで追いかける必要が出るため、3 page で import 経路と
- * narrowing キャストを揃え、各 page の責務 (Coordinate / Resurface / AnchorPage
- * のどれに渡すか) をその場で完結して読めるようにする。撤退の単位は
- * docs/ANCHOR.md 「撤退可能性」節のとおり **コンポーネント (Coordinate /
- * Resurface) ごとの `show` フラグ** が一次手段であり、JSON の `[]` 化は 3 経路
- * まとめての停止 = 二次手段である。
+ * このページでは Resurface (Issue #492 / N-5) で「節目記念日
+ * (milestoneAnniversary)」の発火に使用する。
+ *
+ * 集約しない設計判断 (Issue #546):
+ * Coordinate (Issue #491) / Resurface (Issue #492) / AnchorPage (Issue #493) の
+ * 3 page が同じ JSON を共有しているが、Issue #546 の判断で **集約せず各 page で
+ * 個別 import** する設計を採用している (認知負荷の局所化を優先)。
+ * `src/lib/milestones.ts` のような集約点を作ると、各 page を読む際に「この
+ * MILESTONES はどこから来てどう加工されたものか」を別ファイルまで追いかける必要が
+ * 出るため、3 page で import 経路と narrowing キャストを揃え、各 page の責務
+ * (Coordinate / Resurface / AnchorPage のどれに渡すか) をその場で完結して読める
+ * ようにする。撤退の単位は docs/ANCHOR.md 「撤退可能性」節のとおり
+ * **コンポーネント (Coordinate / Resurface) ごとの `show` フラグ** が一次手段で
+ * あり、JSON の `[]` 化は 3 経路まとめての停止 = 二次手段である。
  *
  * ランタイム検証 (Issue #547):
  * - `as readonly Milestone[]` の型キャスト**ではなく**、`parseMilestones`
  *   (`src/lib/milestonesSchema.ts`) で lenient 検証する。`tone` の値域外
- *   (例: `"happy"`) や `date` の形式違反などの不正要素はランタイムで除外される。
- * - 結果として Resurface の節目記念日経路にも不正データが渡らない (= 沈黙トリガー
- *   の誤発火を防ぐ)。
+ *   (例: `"happy"`) や `date` (`YYYY-MM-DD`) の形式違反などの不正要素は、
+ *   ランタイムでサイレントに除外される (= 本番のページが壊れない fail-soft)。
+ * - 全件不正で配列が空になった場合も、各 page の 0 件フォールバックがそのまま
+ *   機能する。
  * - 厳密な検出 (CI で PR をブロック) は `src/lib/__tests__/milestonesSchema.test.ts`
  *   の `validateMilestonesStrict` 経由で別途担保する。
+ *
+ * このページでの実害: 不正要素が除外されることで、Resurface の節目記念日経路にも
+ * 不正データが渡らない (= 沈黙トリガーの誤発火を防ぐ)。
  *
  * 撤退方法: `datasources/milestones.json` の配列を `[]` にすれば節目記念日が
  * 発火しなくなる (沈黙トリガーと暦の節目は引き続き機能する)。編集方法は

@@ -57,7 +57,10 @@ describe("findAdjacentPosts", () => {
   });
 
   it("記事が1つだけの場合は両方nullになる", () => {
-    const result = findAdjacentPosts([mockSummaries[0]], "20240103100000");
+    const result = findAdjacentPosts(
+      mockSummaries.slice(0, 1),
+      "20240103100000",
+    );
 
     expect(result.olderPost).toBeNull();
     expect(result.newerPost).toBeNull();

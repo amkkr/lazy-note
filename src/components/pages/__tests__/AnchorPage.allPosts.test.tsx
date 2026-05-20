@@ -390,8 +390,8 @@ describe("AnchorPage (実16記事での回帰テスト)", () => {
     // 各 span が fixture の tone / テキストと一致する (= 描画順も含めた完全一致)
     for (const [index, row] of expectedRows.entries()) {
       const span = coordinateSpans[index];
-      expect(span.getAttribute("data-tone")).toBe(row.tone);
-      expect(span.textContent).toBe(`${row.label} から ${row.daysSince} 日目`);
+      expect(span?.getAttribute("data-tone")).toBe(row.tone);
+      expect(span?.textContent).toBe(`${row.label} から ${row.daysSince} 日目`);
     }
   };
 

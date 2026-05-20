@@ -277,8 +277,8 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
       // 各 li に fixture どおりの label と日数が含まれる
       for (const [index, row] of expectedRows.entries()) {
         const item = items[index];
-        expect(item.textContent).toContain(row.label);
-        expect(item.textContent).toContain(String(row.daysSince));
+        expect(item?.textContent).toContain(row.label);
+        expect(item?.textContent).toContain(String(row.daysSince));
       }
     });
   });

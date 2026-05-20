@@ -157,7 +157,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].daysSince).toBe(0);
+      expect(result[0]?.daysSince).toBe(0);
     });
 
     it("複数の節目すべてについて差分日数を返す", () => {
@@ -194,7 +194,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].label).toBe("過去");
+      expect(result[0]?.label).toBe("過去");
     });
 
     it("全ての節目が publishedAt より後なら空配列を返す", () => {
@@ -333,7 +333,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].label).toBe("過去-light");
+      expect(result[0]?.label).toBe("過去-light");
     });
   });
 
@@ -347,7 +347,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
         milestones,
       );
 
-      expect(result[0].daysSince).toBe(1);
+      expect(result[0]?.daysSince).toBe(1);
     });
 
     it("年をまたぐ場合も暦日数で計算される (2024-12-31 → 2025-01-01 は 1 日)", () => {
@@ -359,7 +359,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
         milestones,
       );
 
-      expect(result[0].daysSince).toBe(1);
+      expect(result[0]?.daysSince).toBe(1);
     });
 
     it("publishedAt 内の時刻に関係なく日付の差で計算される (00:00 と 23:59 で同じ)", () => {
@@ -372,8 +372,8 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       );
       const night = computeCoordinates("2025-01-10T23:59:59+09:00", milestones);
 
-      expect(morning[0].daysSince).toBe(9);
-      expect(night[0].daysSince).toBe(9);
+      expect(morning[0]?.daysSince).toBe(9);
+      expect(night[0]?.daysSince).toBe(9);
     });
   });
 
@@ -436,7 +436,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].daysSince).toBe(9);
+      expect(result[0]?.daysSince).toBe(9);
     });
 
     it('Milestone.date が "2025-00-01" のとき、Date.UTC のロールオーバーで 2024-12-01 として解釈される', () => {
@@ -451,7 +451,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].daysSince).toBe(10);
+      expect(result[0]?.daysSince).toBe(10);
     });
 
     it('Milestone.date が "2025-99-99" のとき、Date.UTC のロールオーバーで 2033-06-07 として解釈される', () => {
@@ -465,7 +465,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].daysSince).toBe(1);
+      expect(result[0]?.daysSince).toBe(1);
     });
 
     it('Milestone.date が "abc-de-fg" のとき、正規表現で reject されて結果から除外される', () => {
@@ -491,7 +491,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       );
 
       expect(result).toHaveLength(1);
-      expect(result[0].daysSince).toBe(1);
+      expect(result[0]?.daysSince).toBe(1);
     });
   });
 
@@ -520,7 +520,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       const result = computeCoordinates(publishedAt, milestones);
 
       expect(result).toHaveLength(1);
-      expect(result[0].daysSince).toBe(0);
+      expect(result[0]?.daysSince).toBe(0);
     });
   });
 });
@@ -728,7 +728,10 @@ describe("型レベル: Coordinate / Elapsed の nominal 化 (Issue #497)", () =
     const first = result[0];
 
     // discriminated union narrowing が効くことを確認
-    if (first.kind === "coordinate") {
+    // computeCoordinates が空配列を返す回帰では if ブロックがスキップされ
+    // 内側のアサートが実行されないまま緑になるため、先に first の存在を担保する
+    expect(first).toBeDefined();
+    if (first?.kind === "coordinate") {
       // tone への安全なアクセス
       expect(first.tone).toBe("neutral");
     }

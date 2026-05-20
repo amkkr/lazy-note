@@ -566,7 +566,7 @@ const x = 1;
       const result = parseMarkdown(content, "20240101100000");
 
       expect(result.toc).toHaveLength(1);
-      expect(result.toc[0].text).toBe("h3見出し");
+      expect(result.toc[0]?.text).toBe("h3見出し");
     });
 
     it("本文に見出しがない場合はtocが空配列になる", () => {
@@ -617,7 +617,7 @@ const x = 1;
       const result2 = parseMarkdown(content2, "20240102100000");
 
       expect(result2.toc).toHaveLength(1);
-      expect(result2.toc[0].text).toBe("見出しC");
+      expect(result2.toc[0]?.text).toBe("見出しC");
     });
   });
 

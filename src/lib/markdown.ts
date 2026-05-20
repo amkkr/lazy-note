@@ -56,6 +56,23 @@ export const escapeHtmlAttr = (str: string): string => {
 };
 
 /**
+ * HTML のテキストコンテンツに埋め込む文字列をエスケープする
+ *
+ * 属性値ではないテキストノード（pre/code の表示内容など）向けに、
+ * `& < >` の 3 文字のみをエスケープする。`"` / `'` は属性区切り文字を
+ * 兼ねないテキストコンテキストでは無害なため意図的に対象外とする
+ * （属性値に埋め込む場合は escapeHtmlAttr を使うこと）。
+ * @param str エスケープ対象の文字列
+ * @returns エスケープ済み文字列
+ */
+export const escapeHtmlText = (str: string): string => {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+};
+
+/**
  * parseMarkdown 呼び出しごとに専用の Marked インスタンスを生成する。
  *
  * tocItems は parseMarkdown のローカル配列をクロージャ経由で renderer に共有させる。
@@ -83,16 +100,8 @@ const createMarkedInstance = (tocItems: TocItem[]): Marked => {
     code({ text, lang }) {
       const safeLang = lang ? lang.replace(/[^a-zA-Z0-9-]/g, "") : "";
       const langClass = safeLang ? ` class="language-${safeLang}"` : "";
-      const escapedForAttr = text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-      const escapedForDisplay = text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+      const escapedForAttr = escapeHtmlAttr(text);
+      const escapedForDisplay = escapeHtmlText(text);
       return `<div class="code-block-wrapper"><button type="button" class="copy-btn" data-code="${escapedForAttr}">コピー</button><pre><code${langClass}>${escapedForDisplay}</code></pre></div>`;
     },
   };

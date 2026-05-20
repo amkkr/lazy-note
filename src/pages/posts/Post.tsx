@@ -52,6 +52,20 @@ import {
  */
 const MILESTONES: readonly Milestone[] = parseMilestones(milestonesData);
 
+/**
+ * Post ページの記事未検出時 EmptyState の表示文言定数 (Issue #753 7-b)。
+ *
+ * Issue #629 / #694 / #695 のロードマップに沿って、表示文言を JSX 直書きから
+ * ファイル内トップレベル定数に外出しし、HomePage / PostDetailPage / Coordinate /
+ * AnchorPage と方針を揃える。単一ファイル完結のため i18nLiterals.ts ではなく
+ * ファイル内ローカル定数とする (`i18nLiterals.ts` 基準に沿う)。リテラル定数には
+ * `as const` を付与して literal type を温存する。
+ */
+const POST_NOT_FOUND_TITLE = "記事が見つかりません" as const;
+const POST_NOT_FOUND_DESCRIPTION =
+  "お探しの記事は削除されたか、URLが間違っている可能性があります。" as const;
+const POST_NOT_FOUND_ACTION_LABEL = "← 記事一覧に戻る" as const;
+
 const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
   const { post, loading, notFound } = usePost(timestamp);
@@ -61,10 +75,10 @@ const Post = () => {
     return (
       <EmptyState
         icon={FileQuestion}
-        title="記事が見つかりません"
-        description="お探しの記事は削除されたか、URLが間違っている可能性があります。"
+        title={POST_NOT_FOUND_TITLE}
+        description={POST_NOT_FOUND_DESCRIPTION}
         action={{
-          label: "← 記事一覧に戻る",
+          label: POST_NOT_FOUND_ACTION_LABEL,
           href: "/",
         }}
       />

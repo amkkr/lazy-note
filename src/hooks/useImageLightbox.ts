@@ -34,12 +34,12 @@ export const useImageLightbox = (
     }
 
     const handleClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (target.tagName === "IMG") {
-        const imgElement = target as HTMLImageElement;
-        if (imgElement.src) {
-          open(imgElement.src, imgElement.alt || "");
-        }
+      if (!(event.target instanceof HTMLImageElement)) {
+        return;
+      }
+      const imgElement = event.target;
+      if (imgElement.src) {
+        open(imgElement.src, imgElement.alt || "");
       }
     };
 

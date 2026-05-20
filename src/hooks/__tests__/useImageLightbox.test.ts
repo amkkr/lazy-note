@@ -110,6 +110,30 @@ describe("useImageLightbox", () => {
     expect(result.current.imageAlt).toBe("");
   });
 
+  it("HTMLImageElementでないターゲットのクリックでは反応しない", () => {
+    const { result } = renderHook(() => useImageLightbox(containerRef));
+
+    // SVG の <image> 要素は HTMLImageElement ではない（SVGImageElement）。
+    // instanceof narrowing が tagName 文字列比較ではなく型で判定することを固定する。
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const svgImage = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "image",
+    );
+    svg.appendChild(svgImage);
+    container.appendChild(svg);
+
+    expect(svgImage instanceof HTMLImageElement).toBe(false);
+
+    act(() => {
+      svgImage.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.imageSrc).toBe("");
+    expect(result.current.imageAlt).toBe("");
+  });
+
   it("containerRefがnullの場合にエラーにならない", () => {
     const nullRef: React.RefObject<HTMLElement | null> = { current: null };
 

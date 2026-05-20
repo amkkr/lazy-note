@@ -393,8 +393,9 @@ export const extractMarkdownTitle = (
   const lines = markdown.split(/\r?\n/);
   for (const line of lines) {
     const match = line.match(/^#\s+(.+?)\s*$/);
-    if (match) {
-      return match[1];
+    const title = match?.[1];
+    if (title !== undefined) {
+      return title;
     }
   }
   return fallbackFileName.replace(/\.md$/, "");
@@ -415,10 +416,10 @@ export const findPreviousPost = (
 ): PreviousPost | undefined => {
   const files = listPostFileNames(datasourcesDir);
   const candidates = files.filter((file) => file < newFileName);
-  if (candidates.length === 0) {
+  const latest = candidates[candidates.length - 1];
+  if (latest === undefined) {
     return undefined;
   }
-  const latest = candidates[candidates.length - 1];
   const publishedAt = inferPublishedAt(latest);
   if (publishedAt === undefined) {
     return undefined;
@@ -444,10 +445,10 @@ export const computeSiteOpeningFallback = (
   publishedAt: string,
 ): Elapsed | undefined => {
   const files = listPostFileNames(datasourcesDir);
-  if (files.length === 0) {
+  const oldest = files[0];
+  if (oldest === undefined) {
     return undefined;
   }
-  const oldest = files[0];
   const oldestIso = inferPublishedAt(oldest);
   if (oldestIso === undefined) {
     return undefined;

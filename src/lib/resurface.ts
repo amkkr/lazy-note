@@ -23,7 +23,13 @@
  * の方が「重い節目近辺の記事」よりも回復的に働くため、沈黙時は 1年前 → 最古 の順で選ぶ。
  */
 
-import { inferPublishedAt, type Milestone } from "./anchors";
+import {
+  diffInDays,
+  inferPublishedAt,
+  type Milestone,
+  toJstCalendarDate,
+  toMilestoneCalendarDate,
+} from "./anchors";
 import type { PostSummary } from "./markdown";
 
 /**
@@ -125,57 +131,14 @@ interface ResolvedPost {
   readonly publishedDate: Date;
 }
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
 /**
- * YYYY-MM-DD 文字列を JST 暦上の Date (UTC 基準で時分秒 0) に変換する。
- *
- * - 不正な形式の場合は null を返す
- * - 日数差の計算用 (時刻は捨てる)
+ * 暦変換・日数差ユーティリティの単一ソース化 (Issue #746):
+ * - 旧 `toCalendarDate` / `isoToCalendarDate` / `diffInDays` / `MS_PER_DAY` は
+ *   `anchors.ts` の `toMilestoneCalendarDate` / `toJstCalendarDate` / `diffInDays` /
+ *   `MS_PER_DAY` と本体が完全に同一だった。「private を export しない」方針より
+ *   「同一ロジックを 2 回書く」コストの方が高いと判断し、anchors からの import に
+ *   統合した (`resurface.ts:26` で既に anchors を import している edge を拡張)。
  */
-const toCalendarDate = (date: string): Date | null => {
-  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) {
-    return null;
-  }
-  const [, year, month, day] = match;
-  const utcMs = Date.UTC(Number(year), Number(month) - 1, Number(day));
-  if (!Number.isFinite(utcMs)) {
-    return null;
-  }
-  return new Date(utcMs);
-};
-
-/**
- * ISO 8601 文字列を JST 暦上の Date に変換する (時分秒は捨てて JST 暦日のみ保持)。
- *
- * anchors.ts の同名 private 関数 (toJstCalendarDate) と同じ挙動だが、ファイル分離
- * のため再実装する (anchors.ts の private を export しない方針)。
- */
-const isoToCalendarDate = (isoDateTime: string): Date | null => {
-  const time = Date.parse(isoDateTime);
-  if (!Number.isFinite(time)) {
-    return null;
-  }
-  // JST (+09:00) オフセットを加えて UTC として年月日を取り出すことで、
-  // JST 上のカレンダー日付を表現する Date インスタンスを生成する
-  const jstOffsetMs = 9 * 60 * 60 * 1000;
-  const jstShifted = new Date(time + jstOffsetMs);
-  return new Date(
-    Date.UTC(
-      jstShifted.getUTCFullYear(),
-      jstShifted.getUTCMonth(),
-      jstShifted.getUTCDate(),
-    ),
-  );
-};
-
-/**
- * 2 つの JST カレンダー日付の差分日数を返す (target - origin)。
- */
-const diffInDays = (origin: Date, target: Date): number => {
-  return Math.round((target.getTime() - origin.getTime()) / MS_PER_DAY);
-};
 
 /**
  * 投稿群のうち inferPublishedAt 解決に成功したものだけを抽出し、
@@ -190,10 +153,10 @@ const resolveAndSortPosts = (posts: readonly PostSummary[]): ResolvedPost[] => {
     if (publishedAt === undefined) {
       continue;
     }
-    const publishedDate = isoToCalendarDate(publishedAt);
-    if (publishedDate === null) {
-      continue;
-    }
+    // `inferPublishedAt` は `isIso8601` で検証済みの ISO 8601 文字列のみを返すため、
+    // `toJstCalendarDate` の throw 契約でも invalid は到達しない (旧 isoToCalendarDate
+    // の null 分岐は実質デッドコードだった)。観測上の振る舞いは不変 (Issue #746)。
+    const publishedDate = toJstCalendarDate(publishedAt);
     resolved.push({ post, publishedDate });
   }
   // 新→古 にソート (最新が 0 番目)
@@ -266,7 +229,7 @@ const pickSameMonthDay = (
  *
  * - tone:heavy の節目は対象外 (Coordinate と同等の取り扱い)
  * - 節目の月日と記事の月日が一致し、かつ節目→記事の年差が 1 以上
- * - 不正な節目日付 (toCalendarDate が null) は無効として除外
+ * - 不正な節目日付 (toMilestoneCalendarDate が null) は無効として除外
  *
  * @returns 一致時の yearsSinceMilestone, それ以外は null
  */
@@ -277,7 +240,7 @@ const matchMilestoneAnniversary = (
   if (milestone.tone === "heavy") {
     return null;
   }
-  const mDate = toCalendarDate(milestone.date);
+  const mDate = toMilestoneCalendarDate(milestone.date);
   if (mDate === null) {
     return null;
   }
@@ -447,7 +410,7 @@ export const selectResurfaced = (
   today: string,
   options: SelectResurfacedOptions = {},
 ): ResurfacedEntry | null => {
-  const todayDate = toCalendarDate(today);
+  const todayDate = toMilestoneCalendarDate(today);
   if (todayDate === null) {
     return null;
   }

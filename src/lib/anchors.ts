@@ -145,20 +145,36 @@ export const inferPublishedAt = (fileName: string): string | undefined => {
 };
 
 /**
+ * JST (+09:00) のオフセット (ミリ秒)。
+ *
+ * UTC 時刻に加算してから `getUTC*` で年月日を取り出すことで、JST 暦上の
+ * カレンダー日付を算出する用途に使う。暦計算の単一ソースとして本モジュールに集約する。
+ */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
  * ISO 8601 文字列 (publishedAt) から JST のカレンダー上の年月日を抽出する
  *
  * - publishedAt 内のタイムゾーンに関係なく、JST (+09:00) の暦上の日付を返す
  * - 同日内の時刻差は無視される (00:00 と 23:59 で同じ日付を返す)
+ * - パース不能な値が渡された場合は throw する (呼び出し元は ISO 8601 妥当性が
+ *   保証された文字列のみを渡す契約)
+ *
+ * 暦計算の単一ソース (Issue #746):
+ * - 旧 `resurface.ts` の `isoToCalendarDate` (null 返し) と本関数 (throw) は本体が
+ *   完全に同一だった。重複統合にあたり本関数を単一ソースとして export し、resurface
+ *   側もこれを使う。resurface の呼び出し元 (`resolveAndSortPosts`) は
+ *   `inferPublishedAt` が検証済みの ISO 文字列のみを渡すため、throw 契約でも観測上
+ *   等価 (invalid が到達しない)。
  */
-const toJstCalendarDate = (isoDateTime: string): Date => {
+export const toJstCalendarDate = (isoDateTime: string): Date => {
   const time = Date.parse(isoDateTime);
   if (!Number.isFinite(time)) {
     throw new Error(`Invalid ISO 8601 datetime: "${isoDateTime}"`);
   }
   // JST (+09:00) オフセットを加えて UTC として年月日を取り出すことで、
   // JST 上のカレンダー日付を表現する Date インスタンスを生成する
-  const jstOffsetMs = 9 * 60 * 60 * 1000;
-  const jstShifted = new Date(time + jstOffsetMs);
+  const jstShifted = new Date(time + JST_OFFSET_MS);
   return new Date(
     Date.UTC(
       jstShifted.getUTCFullYear(),
@@ -178,9 +194,14 @@ const toJstCalendarDate = (isoDateTime: string): Date => {
  *   - 例: "2025-13-32" → 2026-02-01 / "2025-02-29" → 2025-03-01
  *   - 仕様としての挙動は `anchors.test.ts` の「Milestone.date 不正値の仕様」で固定
  *
+ * 暦計算の単一ソース (Issue #746):
+ * - 旧 `resurface.ts` の `toCalendarDate` と本体が完全に同一だった。重複統合にあたり
+ *   本関数を単一ソースとして export し、resurface 側もこれを使う。両者とも null 返し
+ *   契約だったため観測上の差はない。
+ *
  * @todo 値範囲検証関数は #489 で別途追加予定。本関数は現状ロールオーバーを許容する
  */
-const toMilestoneCalendarDate = (date: string): Date | null => {
+export const toMilestoneCalendarDate = (date: string): Date | null => {
   const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) {
     return null;
@@ -193,16 +214,40 @@ const toMilestoneCalendarDate = (date: string): Date | null => {
   return new Date(utcMs);
 };
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * 2 つの JST カレンダー日付の差分日数 (publishedAt - origin) を返す
+ * 2 つの JST カレンダー日付の差分日数 (target - origin) を返す
  *
  * - 引数はいずれも `toJstCalendarDate` / `toMilestoneCalendarDate` で
  *   00:00:00 UTC 固定化された Date インスタンスである前提
+ * - 暦計算の単一ソース (Issue #746): 旧 `resurface.ts` の同名関数と本体が同一だった
+ *   ため統合し、resurface 側もこれを使う
  */
-const diffInDays = (origin: Date, target: Date): number => {
+export const diffInDays = (origin: Date, target: Date): number => {
   return Math.round((target.getTime() - origin.getTime()) / MS_PER_DAY);
+};
+
+/**
+ * 今日の日付を JST 暦上の YYYY-MM-DD 文字列として返す。
+ *
+ * - `new Date()` を読むため副作用 (現在時刻依存) を持つ。純粋関数群と区別すること
+ * - JST (+09:00) オフセットを加えて UTC 上の年月日を取り出す方式は
+ *   `toJstCalendarDate` と同一の発想で、`JST_OFFSET_MS` を共有する
+ * - テストで時刻を固定したい呼び出し (例: `selectResurfaced` の today 引数) は
+ *   本関数を経由せず YYYY-MM-DD 文字列を直接渡すこと
+ *
+ * 暦計算の単一ソース (Issue #746):
+ * - 旧 `pages/index.tsx` の `getTodayJst` が手計算していた `9 * 60 * 60 * 1000` を
+ *   本モジュールへ集約する。pages 層は本関数を呼ぶことで JST オフセット定数の
+ *   再記述を排除する。
+ */
+export const todayInJst = (): string => {
+  const jst = new Date(Date.now() + JST_OFFSET_MS);
+  const year = String(jst.getUTCFullYear()).padStart(4, "0");
+  const month = String(jst.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(jst.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 /**

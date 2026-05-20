@@ -79,7 +79,10 @@ export const useCodeBlockCopy = (
     }
 
     const handleClick = (event: MouseEvent): void => {
-      const target = event.target as HTMLElement;
+      if (!(event.target instanceof HTMLElement)) {
+        return;
+      }
+      const target = event.target;
       if (!target.classList.contains("copy-btn")) {
         return;
       }

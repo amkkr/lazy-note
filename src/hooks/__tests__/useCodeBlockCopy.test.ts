@@ -146,6 +146,30 @@ describe("useCodeBlockCopy", () => {
     });
   });
 
+  it("HTMLElementでないターゲットのクリックでは何も起きない", async () => {
+    container.innerHTML = `
+      <div class="code-block-wrapper">
+        <button class="copy-btn" data-code="test">コピー</button>
+        <pre><code>test</code></pre>
+      </div>
+    `;
+
+    setupHook(container);
+
+    // SVG 要素は HTMLElement ではない（SVGElement）。
+    // instanceof HTMLElement narrowing が null/非要素ターゲットを弾くことを固定する。
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    container.appendChild(svg);
+
+    expect(svg instanceof HTMLElement).toBe(false);
+
+    await act(async () => {
+      svg.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+  });
+
   it("copy-btnクラスを持たない要素のクリックでは何も起きない", async () => {
     container.innerHTML = `
       <div class="code-block-wrapper">

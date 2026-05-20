@@ -421,7 +421,7 @@ describe("loadMilestones: milestones.json の読み込み", () => {
     writeFileSync(path, JSON.stringify(data), "utf8");
     const result = loadMilestones(path);
     expect(result).toHaveLength(1);
-    expect(result?.[0].label).toBe("good");
+    expect(result?.[0]?.label).toBe("good");
   });
 
   it("tone が許容値外の要素は除外する", () => {
@@ -433,7 +433,7 @@ describe("loadMilestones: milestones.json の読み込み", () => {
     writeFileSync(path, JSON.stringify(data), "utf8");
     const result = loadMilestones(path);
     expect(result).toHaveLength(1);
-    expect(result?.[0].label).toBe("valid");
+    expect(result?.[0]?.label).toBe("valid");
   });
 });
 

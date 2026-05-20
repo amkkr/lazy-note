@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escapeHtmlAttr, parseMarkdown } from "../markdown";
+import { escapeHtmlAttr, escapeHtmlText, parseMarkdown } from "../markdown";
 
 // 極長入力境界値テストで使用するバイト数。1MB 程度の入力で escapeHtmlAttr が
 // throw せず、長さ・末尾エスケープが保たれることを確認する用途。
@@ -440,6 +440,34 @@ const x = 1;
     it("複数の特殊文字を同時にエスケープできる", () => {
       expect(escapeHtmlAttr("<img src=\"x\" onload='alert(1)'>&")).toBe(
         "&lt;img src=&quot;x&quot; onload=&#39;alert(1)&#39;&gt;&amp;",
+      );
+    });
+  });
+
+  describe("escapeHtmlText", () => {
+    it("&をエスケープできる", () => {
+      expect(escapeHtmlText("a&b")).toBe("a&amp;b");
+    });
+
+    it("<と>をエスケープできる", () => {
+      expect(escapeHtmlText("<script>")).toBe("&lt;script&gt;");
+    });
+
+    it("ダブルクォートはエスケープせず同一文字列で返す", () => {
+      expect(escapeHtmlText('"hello"')).toBe('"hello"');
+    });
+
+    it("シングルクォートはエスケープせず同一文字列で返す", () => {
+      expect(escapeHtmlText("it's")).toBe("it's");
+    });
+
+    it("特殊文字を含まない文字列はそのまま返す", () => {
+      expect(escapeHtmlText("hello world")).toBe("hello world");
+    });
+
+    it("テキストコンテキスト対象の3文字のみエスケープしクォートは保持する", () => {
+      expect(escapeHtmlText("<a href=\"x\" data-y='z'>&")).toBe(
+        "&lt;a href=\"x\" data-y='z'&gt;&amp;",
       );
     });
   });

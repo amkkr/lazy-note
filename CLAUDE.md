@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `pnpm i` - 依存関係のインストール（最初に必ず実行）
 - `pnpm dev` - 開発サーバー起動（Panda CSS ウォッチモード付き）
-- `pnpm build` - プロダクションビルド（lint → test:run → type-check（src）→ type-check:api → type-check:scripts → Panda CSS生成 → tsc（src）→ tsc（tsconfig.api.json）→ Viteビルド の順に実行）
+- `pnpm build` - プロダクションビルド（lint・テスト・型チェック(src/api/scripts)を全て通した後、Panda CSS生成 → tsc(src + api) → Vite ビルド）
 - `pnpm test` - テストをウォッチモードで実行
 - `pnpm test:run` - テストを1回実行
 - `pnpm test:ui` - Vitest UIでテスト実行
@@ -111,7 +111,7 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
     - **schedule (月初 00:00 UTC = `'0 0 1 * *'`)**: 月 1 回の定期検証で「機能が腐る」リスクを軽減
     - **pull_request paths**: `panda.config.ts` / `package.json` / `pnpm-lock.yaml` 変更 PR で即時検知。dependabot の `@pandacss/dev` 更新 PR は `pnpm-lock.yaml` 変更を含むため自動捕捉される
     - CI billing への影響は「月 1 + 該当 PR」程度で許容範囲。失敗時の通知は GitHub Actions 標準通知 (commit author email / fail badge) に加え、**Issue 自動起票 (Issue #733)** を併用する: workflow 失敗時に最終 step (`Open or update issue on failure`, `if: failure()`) が `gh issue list` で同名タイトルの open issue を検索し、無ければ `gh issue create` で新規起票、有ればコメント追記する dedup 戦略で、外部依存追加なしに能動的な通知経路を確保する。Slack (webhook secret 管理コスト増) は採用しない
-- **`build:ci` script と workflow の整合性メモ（Issue #528）**: hash:true build step は `package.json` の `build:ci` (= `panda && tsc && vite build`, test/lint/type-check:scripts を含まない軽量版) を呼ぶ。`build` script (本番経路) のコマンド列 (`panda && tsc && vite build` 部分) を変更する場合は `build:ci` も同期させること。**同期の有無は `scripts/checkBuildCiSync.ts` で自動検出される（Issue #685、`.github/workflows/ci.yml` の lint-and-typecheck job で実行）** ので、散文ルールが形骸化しても CI が drift を検知して fail する
+- **`build:ci` script と workflow の整合性メモ（Issue #528）**: hash:true build step は `package.json` の `build:ci` (= `panda && tsc && tsc --project tsconfig.api.json && vite build`, test/lint/type-check:scripts を含まない軽量版) を呼ぶ。`build` script (本番経路) のコマンド列 (`panda && tsc && vite build` 部分) を変更する場合は `build:ci` も同期させること。**同期の有無は `scripts/checkBuildCiSync.ts` で自動検出される（Issue #685、`.github/workflows/ci.yml` の lint-and-typecheck job で実行）** ので、散文ルールが形骸化しても CI が drift を検知して fail する
   - baseline (hash:false) build step は bundle size 計測専用で tsc を意図的に省く運用 (Issue #625 DA #2) のため `build:ci` ではなく `pnpm exec panda && pnpm exec vite build` を直接呼ぶ非対称運用とする
 
 ### 設定ファイル

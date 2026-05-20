@@ -16,6 +16,10 @@
     // (process / Buffer / __dirname 等) を有効化する。
     // ブラウザ向け型 (vitest/globals / @testing-library/jest-dom) は不要なので含めない。
     "types": ["node"],
+    // noUncheckedIndexedAccess は本体 (src) 先行で有効化したため (Issue #747)、
+    // extends 経由でここにも継承される。api 側の有効化は別 Issue (#748) で扱う
+    // 方針のため、継承を打ち消して false に戻し本 Issue のスコープを src に限定する。
+    "noUncheckedIndexedAccess": false,
     // Incremental build (Issue #580): tsconfig.json / tsconfig.test.json /
     // tsconfig.scripts.json と独立した .tsbuildinfo を出力する。
     // include / types が異なるため別ファイルにしないと衝突する。

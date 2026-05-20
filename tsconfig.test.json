@@ -14,6 +14,10 @@
     // node は src/api/__tests__ や src/lib/__tests__ の一部が node:fs / process /
     // __dirname 等を参照するため必要 (Issue #667)。
     "types": ["vitest/globals", "@testing-library/jest-dom", "vite/client", "node"],
+    // noUncheckedIndexedAccess は本体 (src) 先行で有効化したため (Issue #747)、
+    // extends 経由でここにも継承される。test 側の有効化は別 Issue (#750) で扱う
+    // 方針のため、継承を打ち消して false に戻し本 Issue のスコープを src に限定する。
+    "noUncheckedIndexedAccess": false,
     // テストでは setup 用の helper 変数等で意図的に未使用なものを許容する
     "noUnusedLocals": false,
     "noUnusedParameters": false,

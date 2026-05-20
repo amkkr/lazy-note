@@ -163,7 +163,11 @@ const getStaticPostSummaries = async (): Promise<PostSummary[]> => {
   });
 
   for (const filePath in modules) {
-    const content = (await modules[filePath]()) as string;
+    const loadModule = modules[filePath];
+    if (!loadModule) {
+      continue;
+    }
+    const content = (await loadModule()) as string;
     const timestamp = filePath.split("/").pop()?.replace(".md", "") || "";
     if (timestamp) {
       summaries.push(extractSummaryFromContent(content, timestamp));

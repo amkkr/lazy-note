@@ -94,9 +94,10 @@ describe("createPostsMiddleware", () => {
 
       middleware(req as IncomingMessage, res as ServerResponse, next);
 
-      const result = JSON.parse(
-        (res.end as ReturnType<typeof vi.fn>).mock.calls[0][0],
-      );
+      const endMock = res.end as ReturnType<typeof vi.fn>;
+      expect(endMock).toHaveBeenCalledOnce();
+      const responseBody = endMock.mock.calls[0]?.[0];
+      const result = JSON.parse(responseBody);
       expect(result).toHaveLength(2);
       expect(result.map((p: { id: string }) => p.id)).toEqual(["post", "note"]);
     });

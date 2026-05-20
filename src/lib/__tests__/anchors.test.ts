@@ -728,6 +728,9 @@ describe("型レベル: Coordinate / Elapsed の nominal 化 (Issue #497)", () =
     const first = result[0];
 
     // discriminated union narrowing が効くことを確認
+    // computeCoordinates が空配列を返す回帰では if ブロックがスキップされ
+    // 内側のアサートが実行されないまま緑になるため、先に first の存在を担保する
+    expect(first).toBeDefined();
     if (first?.kind === "coordinate") {
       // tone への安全なアクセス
       expect(first.tone).toBe("neutral");

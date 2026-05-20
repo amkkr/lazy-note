@@ -5,7 +5,7 @@ import { CardSkeleton } from "../components/common/CardSkeleton";
 import { Layout } from "../components/layouts/Layout";
 import { HomePage } from "../components/pages/HomePage";
 import { usePosts } from "../hooks/usePosts";
-import type { Milestone } from "../lib/anchors";
+import { type Milestone, todayInJst } from "../lib/anchors";
 import { parseMilestones } from "../lib/milestonesSchema";
 import { selectResurfaced } from "../lib/resurface";
 import {
@@ -44,24 +44,6 @@ import {
  */
 const MILESTONES: readonly Milestone[] = parseMilestones(milestonesData);
 
-/**
- * 今日の日付を JST 暦上の YYYY-MM-DD として返す。
- *
- * React コンポーネント内でしか呼ばないため副作用は許容する。
- * テストで時間を固定する場合は `selectResurfaced` の第 3 引数 today に直接
- * 文字列を渡せばよく、本ヘルパーは production 専用。
- */
-const getTodayJst = (): string => {
-  const now = new Date();
-  // JST (+09:00) でカレンダー日付を取り出す
-  const jstOffsetMs = 9 * 60 * 60 * 1000;
-  const jst = new Date(now.getTime() + jstOffsetMs);
-  const y = String(jst.getUTCFullYear()).padStart(4, "0");
-  const m = String(jst.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(jst.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-};
-
 const Index = () => {
   const {
     posts,
@@ -92,7 +74,7 @@ const Index = () => {
   //   出るのは常に「1 ページ目の posts」のとき = HomePage に表示中の post 集合)。
   const resurfaceEntry = useMemo(
     () =>
-      selectResurfaced(allPosts, MILESTONES, getTodayJst(), {
+      selectResurfaced(allPosts, MILESTONES, todayInJst(), {
         excludeIds: posts.map((p) => p.id),
       }),
     [allPosts, posts],

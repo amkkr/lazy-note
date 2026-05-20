@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `pnpm i` - 依存関係のインストール（最初に必ず実行）
 - `pnpm dev` - 開発サーバー起動（Panda CSS ウォッチモード付き）
-- `pnpm build` - プロダクションビルド（Panda CSS生成 → TypeScript型チェック → Viteビルド）
+- `pnpm build` - プロダクションビルド（lint → test:run → type-check（src）→ type-check:api → type-check:scripts → Panda CSS生成 → tsc（src）→ tsc（tsconfig.api.json）→ Viteビルド の順に実行）
 - `pnpm test` - テストをウォッチモードで実行
 - `pnpm test:run` - テストを1回実行
 - `pnpm test:ui` - Vitest UIでテスト実行
@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 技術スタック
 
 - **フロントエンド**: React 19 + TypeScript
-- **ビルドツール**: Vite 6
+- **ビルドツール**: Vite 8
 - **テスト**: Vitest + React Testing Library + jsdom
 - **スタイリング**: Panda CSS（型安全なCSS-in-JS）
 - **ルーティング**: React Router DOM（`src/main.tsx` で Routes を手動登録、`src/pages/` 配下にページコンポーネントを置く慣行）
@@ -100,7 +100,7 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
 
 `panda.config.ts` の `hash:true` は**本番では無効（デフォルト）**で運用する。将来再評価する開発者向けの判断材料を残す。
 
-- **Tripwire テストは `hash:true` 耐性あり**: PR #474 で導入した `data-*` 属性方式により、`hash:true` を一時有効化しても Tripwire テスト 647 件は全 pass（Issue #475 にて master `d609ef0` で実機検証、2026-05-15）。Issue #422 の構造的耐性は実機で担保された
+- **Tripwire テストは `hash:true` 耐性あり**: PR #474 で導入した `data-*` 属性方式により、`hash:true` を一時有効化しても Tripwire テストは全 pass（Issue #475 にて master `d609ef0` で実機検証、**2026-05-15 時点**の 647 件で確認）。この「647 件」は検証を実施した特定時点のスナップショット値であり、現在のテスト総数とは異なる（テストは継続的に増加している）。Issue #422 の構造的耐性は実機で担保された
 - **bundle size はトレードオフ**: 生 CSS は `-25.6%` だが、hash 化で class 名のエントロピーが上がり gzip 圧縮率が低下するため、**gzip 後は `+5.8%`**。実環境は gzip 配信が標準なので、転送量で見るとほぼ等価
 - **手書き hook class（`index-row-*` / `copy-btn` 等）は Panda hash 化対象外**: `hash:true` を有効化しても影響を受けない
 - **再評価したい場合**: 別 Issue として切り出すこと
@@ -127,9 +127,11 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
 1. **masterへの直接コミット禁止**: masterブランチに直接コミットしてはならない
 2. **ブランチ作成必須**: ファイルを操作する場合は必ずブランチを切ってから編集・コミットすること
 3. **ブランチ名のプレフィックス**: ブランチ名には必ず以下のプレフィックスをつけること
-   - `feature/` - 新機能開発
+   - `feat/` - 新機能開発
    - `fix/` - バグ修正
-   - `chore/` - リファクタリング、ドキュメント更新など
+   - `chore/` - ドキュメント更新や自動生成ファイルの更新など
+   - `refactor/` - コードのリファクタリング
+   - `update/` - ドキュメントや設定ファイルの更新
    - `posts/${yyyymmdd}` - 今日の記事を書くとき
 4. **英語でのブランチ名**: ブランチ名は英語で記述すること
 5. **簡潔な命名**: ブランチ名は短く、わかりやすいものにする
@@ -143,9 +145,11 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
 
 ```bash
 # 良い例
-feature/user-authentication
+feat/user-authentication
 fix/login-error
 chore/update-dependencies
+refactor/improve-performance
+update/claude-md
 posts/20250101
 
 # 悪い例

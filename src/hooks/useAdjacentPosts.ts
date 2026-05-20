@@ -26,7 +26,8 @@ export const findAdjacentPosts = (
     return { olderPost: null, newerPost: null };
   }
 
-  const newerPost = currentIndex > 0 ? (summaries[currentIndex - 1] ?? null) : null;
+  const newerPost =
+    currentIndex > 0 ? (summaries[currentIndex - 1] ?? null) : null;
   const olderPost =
     currentIndex < summaries.length - 1
       ? (summaries[currentIndex + 1] ?? null)

@@ -19,6 +19,8 @@
     // noUncheckedIndexedAccess は本体 (src) 先行で有効化したため (Issue #747)、
     // extends 経由でここにも継承される。api 側の有効化は別 Issue (#748) で扱う
     // 方針のため、継承を打ち消して false に戻し本 Issue のスコープを src に限定する。
+    // #748 で api 側を true 化する際は、この上書き行を削除すること
+    // (削除すれば本体 tsconfig からの true 継承が復活する)。
     "noUncheckedIndexedAccess": false,
     // Incremental build (Issue #580): tsconfig.json / tsconfig.test.json /
     // tsconfig.scripts.json と独立した .tsbuildinfo を出力する。

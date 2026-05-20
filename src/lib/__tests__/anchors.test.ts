@@ -22,6 +22,7 @@ import {
   type Elapsed,
   inferPublishedAt,
   type Milestone,
+  toJstCalendarDate,
 } from "../anchors";
 
 describe("inferPublishedAt: ファイル名からの ISO 8601 推定 (JST 固定)", () => {
@@ -577,6 +578,32 @@ describe("computeElapsed: 層2=経過 (暦上の経過日数)", () => {
     );
 
     expect(result.daysSince).toBe(365);
+  });
+});
+
+/**
+ * Tripwire: toJstCalendarDate の throw 契約を固定する (Issue #746)
+ *
+ * 本ブランチで resurface 側の `isoToCalendarDate` (null 返し) を本関数 (throw) に
+ * 統合した際、「呼び出し元 (resolveAndSortPosts) は inferPublishedAt が
+ * isIso8601 検証済みの ISO 文字列のみを渡すため invalid は到達不能」という前提で
+ * null 分岐をデッドコードとみなし削除した。
+ *
+ * この前提が将来崩れ (例: 検証を経ない経路から invalid な値が渡る) たときに
+ * 早期検知するための網。toJstCalendarDate が invalid 入力で throw することを固定し、
+ * 万一サイレントに不正値を受け入れる実装に退行したらこのテストで気づける。
+ */
+describe("toJstCalendarDate: 不正入力の throw 契約 (Tripwire / Issue #746)", () => {
+  it("不正な ISO 8601 文字列を渡すと例外を投げる", () => {
+    expect(() => toJstCalendarDate("not-an-iso-string")).toThrow();
+  });
+
+  it("空文字を渡すと例外を投げる", () => {
+    expect(() => toJstCalendarDate("")).toThrow();
+  });
+
+  it("実在しない日付 (パース不能) を渡すと例外を投げる", () => {
+    expect(() => toJstCalendarDate("2025-13-99T99:99:99+09:00")).toThrow();
   });
 });
 

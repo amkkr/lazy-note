@@ -325,7 +325,12 @@ const pickSilenceTarget = (
   }
 
   // 1年前候補が無ければ最古記事 (resolved の末尾)
+  // length === 0 は冒頭で early return 済みのため末尾要素は必ず存在するが、
+  // noUncheckedIndexedAccess 下では型が undefined を含むため明示ガードする。
   const oldest = pastCandidates[pastCandidates.length - 1];
+  if (oldest === undefined) {
+    return null;
+  }
   return {
     post: oldest.post,
     reason: {
@@ -426,7 +431,12 @@ export const selectResurfaced = (
     return null;
   }
 
+  // length === 0 は直前で early return 済みのため先頭要素は必ず存在するが、
+  // noUncheckedIndexedAccess 下では型が undefined を含むため明示ガードする。
   const newest = resolved[0];
+  if (newest === undefined) {
+    return null;
+  }
   // newest を浮上対象として選ぶことは設計上ない (最新は Featured で既に表示されているため
   // Resurface には「過去の声」しか出さない)。さらに、HomePage で既に表示中の post (id) を
   // 除外することで View Transition `view-transition-name` の重複衝突を回避する

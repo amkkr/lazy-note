@@ -54,7 +54,7 @@
     "culori": "~4.0.0",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.1.1",
-    "playwright": "^1.59.1",
+    "playwright": "^1.60.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vitest": "^4.1.5"

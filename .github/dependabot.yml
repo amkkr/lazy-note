@@ -24,6 +24,11 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
+      playwright:
+        patterns:
+          - "playwright"
+          - "@playwright/test"
+          - "@axe-core/playwright"
 
   - package-ecosystem: "github-actions"
     directory: ".github/workflows/"

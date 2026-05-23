@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
-    "dompurify": "^3.4.2",
+    "dompurify": "^3.4.5",
     "marked": "^18.0.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

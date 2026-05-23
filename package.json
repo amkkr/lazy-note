@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@11.2.2",
   "scripts": {
     "dev": "panda --watch & vite",
     "build": "pnpm run lint && pnpm run test:run && pnpm run type-check && pnpm run type-check:api && pnpm run type-check:scripts && panda && tsc && tsc --project tsconfig.api.json && vite build",

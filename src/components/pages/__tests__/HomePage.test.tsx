@@ -473,4 +473,93 @@ describe("HomePage", () => {
       expect(text).not.toMatch(buildPulseForbiddenVocabRegex());
     });
   });
+
+  describe("Document Metadata (React 19 ネイティブ metadata)", () => {
+    it("マウント時に document.title をサイト名にできる", () => {
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={mockPosts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+          />
+        </MemoryRouter>,
+      );
+
+      // 期待値リテラルは i18nLiterals.SITE_NAME を import せず直書きする
+      // (期待値共有による同義反復 / regression 検知不能を避ける方針)。
+      expect(document.title).toBe("Lazy Note");
+    });
+
+    it("記事ゼロ件 (EmptyState) でも document.title をサイト名にできる", () => {
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={[]}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(document.title).toBe("Lazy Note");
+    });
+
+    it("description メタタグを head に 1 つだけ出力できる", () => {
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={mockPosts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+          />
+        </MemoryRouter>,
+      );
+
+      const metas = document.head.querySelectorAll('meta[name="description"]');
+      expect(metas).toHaveLength(1);
+      expect(metas[0]?.getAttribute("content")).toBe(
+        "Lazy Note - シンプルで読みやすいブログプラットフォーム。日々の思考やアイデアを気軽に記録・共有できます。",
+      );
+    });
+
+    it("og:type を website にできる", () => {
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={mockPosts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        document.head
+          .querySelector('meta[property="og:type"]')
+          ?.getAttribute("content"),
+      ).toBe("website");
+    });
+
+    it("ページ最上位で title を 1 つだけ描画する (複数 title を hoist しない)", () => {
+      // View Transition 共存検証: 1 ルート 1 タイトルの設計確認。
+      // HomePage を 1 度マウントしたとき head の <title> は常に 1 つ。
+      render(
+        <MemoryRouter>
+          <HomePage
+            posts={mockPosts}
+            currentPage={1}
+            totalPages={1}
+            onPageChange={mockOnPageChange}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(document.head.querySelectorAll("title")).toHaveLength(1);
+    });
+  });
 });

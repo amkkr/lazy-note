@@ -10,6 +10,7 @@ import { PostDetailPage } from "../../components/pages/PostDetailPage";
 import { useAdjacentPosts } from "../../hooks/useAdjacentPosts";
 import { usePost } from "../../hooks/usePost";
 import type { Milestone } from "../../lib/anchors";
+import { SITE_NAME } from "../../lib/i18nLiterals";
 import { parseMilestones } from "../../lib/milestonesSchema";
 import {
   fadeInEnter,
@@ -66,6 +67,23 @@ const POST_NOT_FOUND_DESCRIPTION =
   "お探しの記事は削除されたか、URLが間違っている可能性があります。" as const;
 const POST_NOT_FOUND_ACTION_LABEL = "← 記事一覧に戻る" as const;
 
+/**
+ * 記事未検出時の `<title>` 文言 (React 19 ネイティブ metadata)。
+ *
+ * PostDetailPage が描画する `${記事タイトル} | Lazy Note` と同じサフィックス
+ * 体系で、未検出 EmptyState 経路でもブラウザタブ / 共有カードに何のページか
+ * 伝わるようにする。テンプレートリテラル 1 文字列で構築する (React 19 の
+ * `<title>` は単一テキスト子のみ許容)。
+ *
+ * **ロード前 (loading 中) はあえて `<title>` を描画しない**: SPA 内遷移では
+ * 直前ページの `<title>` がそのまま残り、初回ロード時は `index.html` の静的
+ * `<title>Lazy Note</title>` (初期フォールバック) が効く。loading 用の
+ * 専用タイトルを足すと一瞬チラつくため、解決後 (記事 or 未検出) に初めて
+ * `<title>` を確定させる方針とする。
+ */
+const POST_NOT_FOUND_DOCUMENT_TITLE =
+  `${POST_NOT_FOUND_TITLE} | ${SITE_NAME}` as const;
+
 const Post = () => {
   const { timestamp } = useParams<{ timestamp: string }>();
   const { post, loading, notFound } = usePost(timestamp);
@@ -73,15 +91,21 @@ const Post = () => {
 
   if (notFound || (!loading && !post)) {
     return (
-      <EmptyState
-        icon={FileQuestion}
-        title={POST_NOT_FOUND_TITLE}
-        description={POST_NOT_FOUND_DESCRIPTION}
-        action={{
-          label: POST_NOT_FOUND_ACTION_LABEL,
-          href: "/",
-        }}
-      />
+      <>
+        {/* React 19 ネイティブ Document Metadata。未検出時もタブ文言を確定
+            させる (1 ルート 1 タイトル。EmptyState は単独描画なので他の
+            <title> と共存しない)。 */}
+        <title>{POST_NOT_FOUND_DOCUMENT_TITLE}</title>
+        <EmptyState
+          icon={FileQuestion}
+          title={POST_NOT_FOUND_TITLE}
+          description={POST_NOT_FOUND_DESCRIPTION}
+          action={{
+            label: POST_NOT_FOUND_ACTION_LABEL,
+            href: "/",
+          }}
+        />
+      </>
     );
   }
 

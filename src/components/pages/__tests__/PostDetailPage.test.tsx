@@ -619,4 +619,110 @@ describe("PostDetailPage", () => {
       expect(results).toHaveNoViolations();
     });
   });
+
+  describe("Document Metadata (React 19 ネイティブ metadata)", () => {
+    it("記事タイトルとサイト名を連結した document.title にできる", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      // `${記事タイトル} | Lazy Note` 形式 (テンプレートリテラル 1 文字列)。
+      expect(document.title).toBe("テスト記事タイトル | Lazy Note");
+    });
+
+    it("タイトル未設定の記事は無題フォールバックを連結した document.title にできる", () => {
+      const postWithoutTitle: Post = { ...mockPost, title: "" };
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={postWithoutTitle}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(document.title).toBe("無題の記事 | Lazy Note");
+    });
+
+    it("description メタタグに記事の抜粋を出力できる", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      const metas = document.head.querySelectorAll('meta[name="description"]');
+      expect(metas).toHaveLength(1);
+      expect(metas[0]?.getAttribute("content")).toBe(
+        "これはテスト記事の内容です。追加のコンテンツ",
+      );
+    });
+
+    it("抜粋が空の記事では description メタタグを出力しない", () => {
+      const postWithoutExcerpt: Post = { ...mockPost, excerpt: "" };
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={postWithoutExcerpt}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        document.head.querySelectorAll('meta[name="description"]'),
+      ).toHaveLength(0);
+    });
+
+    it("og:type を article にできる", () => {
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(
+        document.head
+          .querySelector('meta[property="og:type"]')
+          ?.getAttribute("content"),
+      ).toBe("article");
+    });
+
+    it("ページ最上位で title を 1 つだけ描画する (複数 title を hoist しない)", () => {
+      // View Transition 共存検証: 1 ルート 1 タイトルの設計確認。
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(document.head.querySelectorAll("title")).toHaveLength(1);
+    });
+  });
 });

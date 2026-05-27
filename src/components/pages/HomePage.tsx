@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { css } from "../../../styled-system/css";
+import { SITE_NAME } from "../../lib/i18nLiterals";
 import type { PostSummary } from "../../lib/markdown";
 import type { ResurfacedEntry } from "../../lib/resurface";
 import { BentoCard } from "../atoms/BentoCard";
@@ -22,6 +23,49 @@ const HOMEPAGE_EMPTY_STATE_DESCRIPTION =
   "まもなく素晴らしい記事が公開される予定です。創造性に満ちたコンテンツをお届けします。" as const;
 const HOMEPAGE_BENTO_ARIA_LABEL = "注目の記事" as const;
 const HOMEPAGE_INDEX_HEADING = "Index" as const;
+
+/**
+ * `/` ルートの Document Metadata 文言 (React 19 ネイティブ metadata)。
+ *
+ * トップページは `${SITE_NAME}` のみのシンプルな title とする (記事一覧の
+ * ハブであり個別の主題を持たないため)。description はサイト全体の説明を
+ * `index.html` の静的 `<meta>` と揃える。これらは単一ファイルで完結する
+ * 文言なので、ファイル内 `as const` 定数に閉じる (CLAUDE.md i18nLiterals 基準)。
+ */
+const HOMEPAGE_META_TITLE = SITE_NAME;
+const HOMEPAGE_META_DESCRIPTION =
+  "Lazy Note - シンプルで読みやすいブログプラットフォーム。日々の思考やアイデアを気軽に記録・共有できます。" as const;
+
+/**
+ * `/` ルートの Document Metadata (React 19 ネイティブ metadata)。
+ *
+ * 設計上の caveat (タスク指示):
+ * - **1 ルート 1 タイトル**: 本ページが描画する `<title>` はこの 1 つのみ。
+ *   `<Routes>` は同時に 1 ルートしかマウントしないため、View Transition の
+ *   `<Transition appear={false}>` で旧 / 新ページ DOM が一時共存しても、React
+ *   ツリー上は常に 1 ページ分の `<title>` しか存在しない (= 複数 `<title>` が
+ *   同時に hoist されない)。本コンポーネントは EmptyState 分岐でも通常分岐でも
+ *   この共通フラグメントを最上位に 1 度だけ描画する。
+ * - **title はテンプレートリテラル 1 文字列**: React 19 の `<title>` は単一の
+ *   テキスト子のみを許容する (配列 / 複数ノードは警告)。本ページは
+ *   `HOMEPAGE_META_TITLE` (= `SITE_NAME`) の 1 文字列を直接渡す。
+ * - **静的フォールバック**: `index.html` の `<title>Lazy Note</title>` は初期
+ *   描画 (JS 評価前 / loading 中) のフォールバックとして残す。React マウント後
+ *   は本フラグメントが `<head>` を上書きする。
+ *
+ * `og:*` はトップページの共有時カードのために最小限 (title / description /
+ * type) を添える。`og:site_name` も `SITE_NAME` を参照する。
+ */
+const HomePageMetadata = () => (
+  <>
+    <title>{HOMEPAGE_META_TITLE}</title>
+    <meta name="description" content={HOMEPAGE_META_DESCRIPTION} />
+    <meta property="og:title" content={HOMEPAGE_META_TITLE} />
+    <meta property="og:description" content={HOMEPAGE_META_DESCRIPTION} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_NAME} />
+  </>
+);
 
 interface HomePageProps {
   posts: PostSummary[];
@@ -210,6 +254,9 @@ export const HomePage = memo(
     if (posts.length === 0) {
       return (
         <div className={containerStyles}>
+          {/* Document Metadata は EmptyState 分岐でも同一文言を 1 度だけ描画する
+              (= ルートとして常に 1 つの <title> を保証する)。 */}
+          <HomePageMetadata />
           <EmptyState
             icon={FileText}
             title={HOMEPAGE_EMPTY_STATE_TITLE}
@@ -221,13 +268,19 @@ export const HomePage = memo(
 
     return (
       <div className={containerStyles}>
+        {/* React 19 ネイティブ Document Metadata。<head> へ hoist される。
+            本ページが描画する <title> はこの 1 つだけ (1 ルート 1 タイトル)。 */}
+        <HomePageMetadata />
         <div className={sectionGapStyles}>
           {/* Featured: 最新 1 記事 */}
           {featured && <FeaturedCard post={featured} />}
 
           {/* Bento: 2-7 記事目 */}
           {bentoPosts.length > 0 && (
-            <section className={bentoGridStyles} aria-label={HOMEPAGE_BENTO_ARIA_LABEL}>
+            <section
+              className={bentoGridStyles}
+              aria-label={HOMEPAGE_BENTO_ARIA_LABEL}
+            >
               {bentoPosts.map((post, idx) => (
                 <BentoCard key={post.id} post={post} size={bentoSizes[idx]} />
               ))}

@@ -84,6 +84,27 @@ describe("Post", () => {
     expect(backLink).toHaveAttribute("href", "/");
   });
 
+  it("記事が見つからない場合は document.title を未検出フォールバックにできる", () => {
+    // React 19 ネイティブ metadata: 未検出 EmptyState 経路でも
+    // `記事が見つかりません | Lazy Note` をタブ文言に確定させる。
+    vi.mocked(usePost).mockReturnValue({
+      post: null,
+      loading: false,
+      notFound: true,
+      error: null,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/posts/123"]}>
+        <Routes>
+          <Route path="/posts/:timestamp" element={<Post />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(document.title).toBe("記事が見つかりません | Lazy Note");
+  });
+
   it("記事が存在する場合はPostDetailPageが表示される", () => {
     vi.mocked(usePost).mockReturnValue({
       post: mockPost,

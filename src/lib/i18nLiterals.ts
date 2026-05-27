@@ -40,6 +40,23 @@
 export const UNTITLED_POST = "無題の記事" as const;
 
 /**
+ * サイト名。React 19 ネイティブ Document Metadata で各ページが描画する
+ * `<title>` のサフィックス (`... | Lazy Note`) や `og:site_name` に使用する。
+ *
+ * 横串集約の根拠 (CLAUDE.md「横串で散らばっている文言のみここに置く」):
+ * - `index.html` の静的 `<title>Lazy Note</title>` (初期フォールバック) と
+ *   HomePage / PostDetailPage / AnchorPage の per-page title サフィックスで
+ *   同一文言を参照するため、単一ファイル局所定数ではなく横串定数とする。
+ * - 各ページ固有の title 本体や description は単一ファイルで完結するため、
+ *   従来どおり各コンポーネント内の `as const` 定数に閉じる。
+ *
+ * テストファイルからは **import しない** (`UNTITLED_POST` と同方針: 期待値
+ * リテラルを共有すると同義反復になり、文言変更時の regression を検知
+ * できなくなるため)。
+ */
+export const SITE_NAME = "Lazy Note" as const;
+
+/**
  * 著者名未設定の記事を表示する際のフォールバック文言 (Issue #706 / PR #711 follow-up)。
  *
  * 参照元 (2 箇所):

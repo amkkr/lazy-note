@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ThemeToggle } from "../ThemeToggle";
@@ -72,23 +72,25 @@ describe("ThemeToggle", () => {
     );
   });
 
-  it("クリックでテーマがdarkからlightに切り替わる", () => {
+  it("クリックでテーマがdarkからlightに切り替わる", async () => {
+    const user = userEvent.setup();
     localStorage.setItem("theme", "dark");
     render(<ThemeToggle />);
 
     const toggle = screen.getByRole("switch");
-    fireEvent.click(toggle);
+    await user.click(toggle);
 
     expect(document.documentElement.dataset.theme).toBe("light");
   });
 
-  it("クリック2回でテーマがdarkに戻る", () => {
+  it("クリック2回でテーマがdarkに戻る", async () => {
+    const user = userEvent.setup();
     localStorage.setItem("theme", "dark");
     render(<ThemeToggle />);
 
     const toggle = screen.getByRole("switch");
-    fireEvent.click(toggle);
-    fireEvent.click(toggle);
+    await user.click(toggle);
+    await user.click(toggle);
 
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
@@ -146,7 +148,8 @@ describe("ThemeToggle", () => {
       expect(paths.length).toBeGreaterThanOrEqual(1);
     });
 
-    it("クリックでアイコンが Sun と Moon の間で切り替わる", () => {
+    it("クリックでアイコンが Sun と Moon の間で切り替わる", async () => {
+      const user = userEvent.setup();
       localStorage.setItem("theme", "dark");
       const { rerender } = render(<ThemeToggle />);
 
@@ -155,7 +158,7 @@ describe("ThemeToggle", () => {
       expect(toggle.querySelectorAll("circle").length).toBe(0);
 
       // クリックで light に切替 → Sun の circle が出る
-      fireEvent.click(toggle);
+      await user.click(toggle);
       rerender(<ThemeToggle />);
       expect(
         screen.getByRole("switch").querySelectorAll("circle").length,

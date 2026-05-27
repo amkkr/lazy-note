@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "../Button";
 
@@ -17,12 +18,13 @@ describe("Button", () => {
     ).toBeInTheDocument();
   });
 
-  it("クリックできる", () => {
+  it("クリックできる", async () => {
+    const user = userEvent.setup();
     const handleClick = vi.fn();
     render(<Button onClick={handleClick}>Click me</Button>);
 
     const button = screen.getByRole("button", { name: "Click me" });
-    fireEvent.click(button);
+    await user.click(button);
 
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
@@ -34,7 +36,8 @@ describe("Button", () => {
     expect(button).toBeDisabled();
   });
 
-  it("disabledの場合、クリックイベントが発火しない", () => {
+  it("disabledの場合、クリックイベントが発火しない", async () => {
+    const user = userEvent.setup();
     const handleClick = vi.fn();
     render(
       <Button onClick={handleClick} disabled>
@@ -43,7 +46,7 @@ describe("Button", () => {
     );
 
     const button = screen.getByRole("button", { name: "Disabled Button" });
-    fireEvent.click(button);
+    await user.click(button);
 
     expect(handleClick).not.toHaveBeenCalled();
   });

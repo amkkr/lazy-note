@@ -99,35 +99,33 @@ const handleSmoothScroll = (
   }
 };
 
-export const TableOfContents: React.FC<TableOfContentsProps> = React.memo(
-  ({ toc }) => {
-    if (toc.length === 0) {
-      return null;
-    }
+export const TableOfContents = React.memo(({ toc }: TableOfContentsProps) => {
+  if (toc.length === 0) {
+    return null;
+  }
 
-    return (
-      <Disclosure defaultOpen>
-        <div className={containerStyle} data-token-border="border.subtle">
-          <DisclosureButton className={buttonStyle}>目次</DisclosureButton>
-          <DisclosurePanel className={panelStyle}>
-            <ul className={listStyle}>
-              {toc.map((item) => (
-                <li key={item.id} className={listItemStyle}>
-                  <a
-                    href={`#${item.id}`}
-                    onClick={handleSmoothScroll}
-                    className={`${linkBaseStyle} ${item.level === 3 ? indentedLinkStyle : ""}`}
-                  >
-                    {item.text}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </DisclosurePanel>
-        </div>
-      </Disclosure>
-    );
-  },
-);
+  return (
+    <Disclosure defaultOpen>
+      <div className={containerStyle} data-token-border="border.subtle">
+        <DisclosureButton className={buttonStyle}>目次</DisclosureButton>
+        <DisclosurePanel className={panelStyle}>
+          <ul className={listStyle}>
+            {toc.map((item) => (
+              <li key={item.id} className={listItemStyle}>
+                <a
+                  href={`#${item.id}`}
+                  onClick={handleSmoothScroll}
+                  className={`${linkBaseStyle} ${item.level === 3 ? indentedLinkStyle : ""}`}
+                >
+                  {item.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </DisclosurePanel>
+      </div>
+    </Disclosure>
+  );
+});
 
 TableOfContents.displayName = "TableOfContents";

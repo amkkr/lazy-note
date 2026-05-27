@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useId } from "react";
 import { css } from "../../../styled-system/css";
 import type { PostSummary } from "../../lib/markdown";
 import type { ResurfacedEntry } from "../../lib/resurface";
@@ -195,6 +195,11 @@ export const HomePage = memo(
     resurfaceEntry = null,
     showResurface = true,
   }: HomePageProps) => {
+    // Index セクション見出しの動的 ID (React 19 useId)。静的 id の重複を避け
+    // (useUniqueElementIds)、section の aria-labelledby と heading を紐付ける。
+    // 早期 return (posts.length === 0) より前で呼び、Rules of Hooks を守る。
+    const indexHeadingId = useId();
+
     // 記事を Featured (1) / Bento (2-7) / Index (8+) に分割。
     //
     // 件数別の表示挙動:
@@ -239,8 +244,8 @@ export const HomePage = memo(
               論理的な heading hierarchy を維持する (h3 → h2 逆転を回避)。
               section は aria-labelledby で可視見出しと紐付け、SR 読み上げを統一。 */}
           {indexPosts.length > 0 && (
-            <section aria-labelledby="index-section-heading">
-              <h3 id="index-section-heading" className={indexHeadingStyles}>
+            <section aria-labelledby={indexHeadingId}>
+              <h3 id={indexHeadingId} className={indexHeadingStyles}>
                 {HOMEPAGE_INDEX_HEADING}
               </h3>
               <ul className={indexListStyles} data-token-border="border.subtle">

@@ -1,4 +1,4 @@
-import { type CSSProperties, memo } from "react";
+import { type CSSProperties, memo, useId } from "react";
 import { css } from "../../../styled-system/css";
 import { UNTITLED_POST } from "../../lib/i18nLiterals";
 import type { ResurfacedEntry, ResurfaceReason } from "../../lib/resurface";
@@ -230,6 +230,11 @@ const buildReasonLabel = (reason: ResurfaceReason): string => {
  * entry===null または show===false で何も描画しない (early return)。
  */
 export const Resurface = memo(({ entry, show = true }: ResurfaceProps) => {
+  // 見出しの動的 ID (React 19 useId)。静的 id の重複を避け
+  // (useUniqueElementIds)、section の aria-labelledby と heading を紐付ける。
+  // 早期 return (!show || entry === null) より前で呼び、Rules of Hooks を守る。
+  const headingId = useId();
+
   if (!show || entry === null) {
     return null;
   }
@@ -259,10 +264,10 @@ export const Resurface = memo(({ entry, show = true }: ResurfaceProps) => {
   return (
     <section
       className={sectionStyles}
-      aria-labelledby="resurface-section-heading"
+      aria-labelledby={headingId}
       aria-label={RESURFACE_SECTION_ARIA_LABEL}
     >
-      <h3 id="resurface-section-heading" className={headingStyles}>
+      <h3 id={headingId} className={headingStyles}>
         {RESURFACE_SECTION_HEADING}
       </h3>
       <article

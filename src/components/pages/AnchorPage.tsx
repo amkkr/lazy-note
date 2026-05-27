@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useId } from "react";
 import { css } from "../../../styled-system/css";
 import {
   type Coordinate,
@@ -340,6 +340,11 @@ const buildPostCoordinatesEntries = (
  * AnchorPage コンポーネント本体。
  */
 export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
+  // 各セクション見出しの動的 ID (React 19 useId)。静的 id の重複を避け
+  // (useUniqueElementIds)、section の aria-labelledby と heading を紐付ける。
+  const milestonesHeadingId = useId();
+  const postsHeadingId = useId();
+
   const postEntries = buildPostCoordinatesEntries(posts, milestones);
   // publishedAt 推定不可でスキップされた記事の件数 (Issue #544)。
   // 「publishedAt 推定不可」の判定軸は `buildPostCoordinatesEntries` 内に集約
@@ -360,11 +365,11 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
             全 tone を見せる。tone は data-tone 属性で構造に出し、視覚は色で
             分けない (= 過剰可視化を避ける)。 */}
         <section
-          aria-labelledby="anchor-milestones-heading"
+          aria-labelledby={milestonesHeadingId}
           className={sectionBlockStyles}
           data-token-border="border.subtle"
         >
-          <h2 id="anchor-milestones-heading" className={sectionHeadingStyles}>
+          <h2 id={milestonesHeadingId} className={sectionHeadingStyles}>
             {ANCHOR_MILESTONES_SECTION_HEADING}
           </h2>
           {milestones.length === 0 ? (
@@ -411,11 +416,11 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
           </div>
         ) : (
           <section
-            aria-labelledby="anchor-posts-heading"
+            aria-labelledby={postsHeadingId}
             className={sectionBlockStyles}
             data-token-border="border.subtle"
           >
-            <h2 id="anchor-posts-heading" className={sectionHeadingStyles}>
+            <h2 id={postsHeadingId} className={sectionHeadingStyles}>
               {ANCHOR_POSTS_SECTION_HEADING}
             </h2>
             {postEntries.length === 0 ? (

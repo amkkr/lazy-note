@@ -3,7 +3,7 @@ import { css } from "../../../styled-system/css";
 import { useCodeBlockCopy } from "../../hooks/useCodeBlockCopy";
 import { useImageLightbox } from "../../hooks/useImageLightbox";
 import { inferPublishedAt, type Milestone } from "../../lib/anchors";
-import { UNTITLED_POST } from "../../lib/i18nLiterals";
+import { SITE_NAME, UNTITLED_POST } from "../../lib/i18nLiterals";
 import type { Post, PostSummary } from "../../lib/markdown";
 import { sanitizePostHtml } from "../../lib/sanitize";
 import { buildPostHeroTransitionName } from "../../lib/viewTransition";
@@ -28,6 +28,57 @@ import { TableOfContents } from "../common/TableOfContents";
 //   再度分離を検討する (現時点では YAGNI)。
 const POST_DETAIL_NAV_ARIA_LABEL = "ページナビゲーション" as const;
 const POST_DETAIL_BACK_TO_TOP_LABEL = "← TOPに戻る" as const;
+
+/**
+ * `/posts/:timestamp` ルートの `<title>` を組み立てる純粋関数
+ * (React 19 ネイティブ metadata)。
+ *
+ * 設計上の caveat (タスク指示):
+ * - **title はテンプレートリテラル 1 文字列**: `${記事タイトル} | ${SITE_NAME}`
+ *   を 1 本のテンプレートリテラルとして返す。React 19 の `<title>` は単一の
+ *   テキスト子しか許容しないため、`{post.title}` と区切り文字を別ノードに
+ *   分けず 1 文字列に連結する。
+ * - **未設定タイトルのフォールバック**: `post.title` が空文字のときは
+ *   `UNTITLED_POST` (= 本文表示の H1 と同じフォールバック) を採用し、
+ *   `<title>` も `無題の記事 | Lazy Note` と揃える。
+ *
+ * ※ ロード前 / 記事未検出時の `<title>` は本コンポーネントではなく呼び出し側
+ *   (`src/pages/posts/Post.tsx`) が担う (PostDetailPage は post が解決した後に
+ *   のみマウントされるため)。
+ */
+const buildPostDetailTitle = (title: string): string =>
+  `${title || UNTITLED_POST} | ${SITE_NAME}`;
+
+/**
+ * `/posts/:timestamp` ルートの Document Metadata (React 19 ネイティブ metadata)。
+ *
+ * - title: `${記事タイトル} | Lazy Note` (`buildPostDetailTitle`)。
+ * - description: 記事の `excerpt` (抜粋) を使う。空のときは `<meta>` 自体を
+ *   出さない (空 description はクローラに無意味なため)。
+ * - og:type は記事ページなので `article`。og:title / og:description は
+ *   `<title>` / description と揃える。og:site_name は `SITE_NAME`。
+ *
+ * **1 ルート 1 タイトル**: 本ページが描画する `<title>` はこの 1 つのみ。
+ * `<Routes>` は同時に 1 ルートしかマウントしないため、`<Transition
+ * appear={false}>` で旧 / 新ページ DOM が一時共存しても React ツリー上は
+ * 常に 1 ページ分の `<title>` しか存在しない。
+ */
+const PostDetailMetadata = ({ post }: { post: Post }) => {
+  const title = buildPostDetailTitle(post.title);
+  const description = post.excerpt;
+  return (
+    <>
+      <title>{title}</title>
+      {description ? <meta name="description" content={description} /> : null}
+      <meta property="og:title" content={title} />
+      {description ? (
+        <meta property="og:description" content={description} />
+      ) : null}
+      <meta property="og:type" content="article" />
+      <meta property="og:site_name" content={SITE_NAME} />
+    </>
+  );
+};
 
 interface PostDetailPageProps {
   post: Post;
@@ -88,6 +139,10 @@ export const PostDetailPage = ({
   const publishedAt = inferPublishedAt(post.id);
   return (
     <>
+      {/* React 19 ネイティブ Document Metadata。<head> へ hoist される。
+          本ページが描画する <title> はこの 1 つだけ (1 ルート 1 タイトル)。 */}
+      <PostDetailMetadata post={post} />
+
       {/* Navigation */}
       <nav
         aria-label={POST_DETAIL_NAV_ARIA_LABEL}

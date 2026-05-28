@@ -446,4 +446,42 @@ describe("AnchorPage", () => {
       expect(items[2]).toHaveAttribute("data-tone", "light");
     });
   });
+
+  describe("Document Metadata (React 19 ネイティブ metadata)", () => {
+    it("ページ名とサイト名を連結した document.title にできる", () => {
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      // `Anchor | Lazy Note` 形式 (テンプレートリテラル 1 文字列)。
+      expect(document.title).toBe("Anchor | Lazy Note");
+    });
+
+    it("description メタタグを head に 1 つだけ出力できる", () => {
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      const metas = document.head.querySelectorAll('meta[name="description"]');
+      expect(metas).toHaveLength(1);
+      expect(metas[0]?.getAttribute("content")).toBe(
+        "登録された節目と、各記事の座標を一覧表示します。",
+      );
+    });
+
+    it("ページ最上位で title を 1 つだけ描画する (複数 title を hoist しない)", () => {
+      // View Transition 共存検証: 1 ルート 1 タイトルの設計確認。
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      expect(document.head.querySelectorAll("title")).toHaveLength(1);
+    });
+  });
 });

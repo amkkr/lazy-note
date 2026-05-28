@@ -6,7 +6,7 @@ import {
   inferPublishedAt,
   type Milestone,
 } from "../../lib/anchors";
-import { UNTITLED_POST } from "../../lib/i18nLiterals";
+import { SITE_NAME, UNTITLED_POST } from "../../lib/i18nLiterals";
 import type { PostSummary } from "../../lib/markdown";
 
 interface AnchorPageProps {
@@ -262,6 +262,41 @@ const skippedNoteStyles = css({
 const ANCHOR_PAGE_HEADING = "Anchor" as const;
 const ANCHOR_PAGE_DESCRIPTION =
   "登録された節目と、各記事の座標を一覧表示します。" as const;
+
+/**
+ * `/anchor` ルートの Document Metadata 文言 (React 19 ネイティブ metadata)。
+ *
+ * - title は `Anchor | Lazy Note` をテンプレートリテラル 1 文字列で構築する
+ *   (React 19 の `<title>` は単一テキスト子のみ許容)。本体の `Anchor` は
+ *   ページ見出し `ANCHOR_PAGE_HEADING` と同一語彙だが、`<title>` 文言は
+ *   表示見出しとは別の関心事 (タブ / 検索結果 / 共有カードの文言) なので
+ *   サフィックス込みの専用定数として持つ。
+ * - description は運用画面の概要をページ説明文と揃える (`ANCHOR_PAGE_DESCRIPTION`)。
+ */
+const ANCHOR_META_TITLE = `${ANCHOR_PAGE_HEADING} | ${SITE_NAME}` as const;
+const ANCHOR_META_DESCRIPTION = ANCHOR_PAGE_DESCRIPTION;
+
+/**
+ * `/anchor` ルートの Document Metadata (React 19 ネイティブ metadata)。
+ *
+ * **1 ルート 1 タイトル**: 本ページが描画する `<title>` はこの 1 つのみ。
+ * `<Routes>` は同時に 1 ルートしかマウントしないため、`<Transition
+ * appear={false}>` で旧 / 新ページ DOM が一時共存しても React ツリー上は
+ * 常に 1 ページ分の `<title>` しか存在しない。
+ *
+ * `og:*` は最小限 (title / description / type / site_name) を添える。
+ * Anchor は記事一覧ではなく運用ビューなので `og:type` は `website`。
+ */
+const AnchorPageMetadata = () => (
+  <>
+    <title>{ANCHOR_META_TITLE}</title>
+    <meta name="description" content={ANCHOR_META_DESCRIPTION} />
+    <meta property="og:title" content={ANCHOR_META_TITLE} />
+    <meta property="og:description" content={ANCHOR_META_DESCRIPTION} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_NAME} />
+  </>
+);
 const ANCHOR_MILESTONES_SECTION_HEADING = "節目一覧" as const;
 const ANCHOR_MILESTONES_LIST_ARIA_LABEL = "節目一覧" as const;
 const ANCHOR_POSTS_SECTION_HEADING = "各記事の座標" as const;
@@ -354,6 +389,9 @@ export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
 
   return (
     <div className={containerStyles}>
+      {/* React 19 ネイティブ Document Metadata。<head> へ hoist される。
+          本ページが描画する <title> はこの 1 つだけ (1 ルート 1 タイトル)。 */}
+      <AnchorPageMetadata />
       <div className={sectionGapStyles}>
         <div>
           <h1 className={pageHeadingStyles}>{ANCHOR_PAGE_HEADING}</h1>

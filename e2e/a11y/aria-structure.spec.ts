@@ -44,6 +44,7 @@ test.describe("ARIA 構造: ホーム (/)", () => {
     page,
   }) => {
     await page.goto(HOME_PATH);
+    // biome-ignore lint/nursery/noPlaywrightNetworkidle: ARIA 構造スナップショットはフォント/画像の遅延ロードと React のハイドレーション完了後の最終 DOM を対象にする必要がある。特定要素待ちでは構造が安定する前に評価され得るため、ページ全体が静定する networkidle を意図的に使う (web-first assertion では代替不可)
     await page.waitForLoadState("networkidle");
 
     // banner: ブランドリンク (/ 遷移) とテーマ切替 switch。
@@ -68,6 +69,7 @@ test.describe("ARIA 構造: ホーム (/)", () => {
     page,
   }) => {
     await page.goto(HOME_PATH);
+    // biome-ignore lint/nursery/noPlaywrightNetworkidle: ARIA 構造スナップショットはフォント/画像の遅延ロードと React のハイドレーション完了後の最終 DOM を対象にする必要がある。特定要素待ちでは構造が安定する前に評価され得るため、ページ全体が静定する networkidle を意図的に使う (web-first assertion では代替不可)
     await page.waitForLoadState("networkidle");
 
     // Featured カードは最新記事タイトルを h2 として持つ。タイトル文言・遷移先 URL
@@ -97,6 +99,7 @@ test.describe("ARIA 構造: 記事詳細 (/posts/:timestamp)", () => {
     page,
   }) => {
     await page.goto(POST_PATH);
+    // biome-ignore lint/nursery/noPlaywrightNetworkidle: ARIA 構造スナップショットはフォント/画像の遅延ロードと React のハイドレーション完了後の最終 DOM を対象にする必要がある。特定要素待ちでは構造が安定する前に評価され得るため、ページ全体が静定する networkidle を意図的に使う (web-first assertion では代替不可)
     await page.waitForLoadState("networkidle");
 
     // 記事詳細の安定骨格:
@@ -115,6 +118,7 @@ test.describe("ARIA 構造: 記事詳細 (/posts/:timestamp)", () => {
 
   test("banner / contentinfo の landmark 骨格を保持できる", async ({ page }) => {
     await page.goto(POST_PATH);
+    // biome-ignore lint/nursery/noPlaywrightNetworkidle: ARIA 構造スナップショットはフォント/画像の遅延ロードと React のハイドレーション完了後の最終 DOM を対象にする必要がある。特定要素待ちでは構造が安定する前に評価され得るため、ページ全体が静定する networkidle を意図的に使う (web-first assertion では代替不可)
     await page.waitForLoadState("networkidle");
 
     await expect(page.getByRole("banner")).toMatchAriaSnapshot(`
@@ -136,6 +140,7 @@ test.describe("ARIA 構造: 記事詳細 (/posts/:timestamp)", () => {
 test.describe("ARIA 構造: 個人史タイムライン (/anchor)", () => {
   test("h1 と 2 つの region (h2) の見出し階層を保持できる", async ({ page }) => {
     await page.goto(ANCHOR_PATH);
+    // biome-ignore lint/nursery/noPlaywrightNetworkidle: ARIA 構造スナップショットはフォント/画像の遅延ロードと React のハイドレーション完了後の最終 DOM を対象にする必要がある。特定要素待ちでは構造が安定する前に評価され得るため、ページ全体が静定する networkidle を意図的に使う (web-first assertion では代替不可)
     await page.waitForLoadState("networkidle");
 
     // AnchorPage の安定骨格:
@@ -155,6 +160,7 @@ test.describe("ARIA 構造: 個人史タイムライン (/anchor)", () => {
 
   test("banner / contentinfo の landmark 骨格を保持できる", async ({ page }) => {
     await page.goto(ANCHOR_PATH);
+    // biome-ignore lint/nursery/noPlaywrightNetworkidle: ARIA 構造スナップショットはフォント/画像の遅延ロードと React のハイドレーション完了後の最終 DOM を対象にする必要がある。特定要素待ちでは構造が安定する前に評価され得るため、ページ全体が静定する networkidle を意図的に使う (web-first assertion では代替不可)
     await page.waitForLoadState("networkidle");
 
     await expect(page.getByRole("banner")).toMatchAriaSnapshot(`

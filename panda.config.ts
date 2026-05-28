@@ -18,6 +18,39 @@ import { defineConfig } from "@pandacss/dev";
  * `fg.code` のリテラル hex で固定する (Shiki/Prism との視覚整合のため)。
  */
 export default defineConfig({
+  // ====================================================================
+  // 型レベルの厳格化 (@pandacss/dev 1.11.1 アップグレード後活用)
+  //
+  // - strictPropertyValues: true
+  //     既知の CSS プロパティに無効な CSS 値が渡るのを型レベルで禁止する
+  //     (例: display に綴り間違いの値を渡すなど)。token 強制まではしない。
+  //
+  //   strictTokens は採用しない (実測の結果、降格):
+  //     refactor/panda-strict-tokens で strictTokens: true を仮付与して
+  //     codegen + tsc を実測したところ、型エラーが 24 ファイル・168 箇所で
+  //     発生した。内訳は (1) token 化できない CSS キーワード / 計算値
+  //     (transparent / none / auto / 100% / 90vh / 65ch / clamp() / calc()
+  //     / minmax() 等)、(2) opacity:0,1 / zIndex:50 / flex:1 / flexShrink:0
+  //     / WebkitLineClamp:3 など token カテゴリを持たない素の数値、
+  //     (3) スケルトン UI のプレースホルダ寸法 (14px / 32px 等)、
+  //     (4) letterSpacing / textDecorationThickness / textUnderlineOffset
+  //     など token カテゴリ未定義のタイポグラフィ詳細値、そして
+  //     (5) `padding: "sm-md md"` / `margin: "lg 0"` のように **各値は
+  //     正規の token だがスペース区切り shorthand** で書かれた箇所
+  //     (strictTokens は shorthand を構文上許容しない)。
+  //     これらを通すには大量の longhand 化や無意味な token 追加が必要で、
+  //     「過剰トークン化を避ける」方針および可読性に反するため見送る。
+  //     色リテラルは src 全体で 0 件 (token 運用は色については徹底済み)。
+  //
+  // - validation: "error"
+  //     token 定義ミス・無効な token 参照を codegen 時に警告ではなく
+  //     エラーとして throw させ、CI で確実に検知する (既定は "warn")。
+  //
+  // staticCss は採用しない (bundle 肥大を招き、Calm / 最小 CSS 方針と逆行)。
+  // ====================================================================
+  strictPropertyValues: true,
+  validation: "error",
+
   // Whether to use css reset
   preflight: true,
 

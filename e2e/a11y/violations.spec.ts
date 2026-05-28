@@ -34,6 +34,7 @@ for (const target of TARGETS) {
     page,
   }) => {
     await page.goto(target.path);
+    // biome-ignore lint/nursery/noPlaywrightNetworkidle: axe による全ページ a11y スキャンは、フォント/画像の遅延ロードや React のハイドレーション完了後の最終 DOM を対象にする必要がある。特定要素待ちでは「全リソース読み込み後に初めて現れる違反」を取りこぼすため、ページ全体が静定する networkidle を意図的に使う (web-first assertion では代替不可)
     await page.waitForLoadState("networkidle");
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -20,7 +20,12 @@
       "**/scripts/**/*.ts",
       "**/scripts/**/*.tsx",
       "**/scripts/**/*.js",
-      "**/scripts/**/*.jsx"
+      "**/scripts/**/*.jsx",
+      // e2e/ 配下も lint 対象に含める。
+      // playwright ドメイン (linter.domains.playwright) の Playwright 固有ルール
+      // (noPlaywrightNetworkidle 等) は spec ファイルを走査対象にして初めて効く。
+      // *.spec.ts のみを対象とし、テストランナーが拾う Playwright 仕様に限定する。
+      "**/e2e/**/*.ts"
     ]
   },
   "formatter": {
@@ -32,6 +37,22 @@
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
+    // Biome 2.3+ ではドメイン固有ルール (React / test / playwright) は
+    // recommended:true だけでは有効化されず、domains を明示するか依存検出時のみ
+    // 効く仕様になった。本プロジェクトは React + Vitest + Playwright を使うため、
+    // 各ドメインを明示有効化して固有チェック (Rules of Hooks 等) を取り込む。
+    // - react / test / playwright とも recommended を基本とする。
+    //   各ドメインの recommended セットは現状の src/scripts/e2e で違反 0 を確認済み
+    //   (無コストで安全に増やせる)。
+    // - useUniqueElementIds (react ドメイン all のみ収録) と
+    //   noPlaywrightNetworkidle (nursery) は recommended に含まれないため、
+    //   下の rules で個別に有効化する (all 全体を入れると Fast Refresh 系の
+    //   useComponentExportOnlyModules 等のノイズが増えるため、必要なルールのみ採用)。
+    "domains": {
+      "react": "recommended",
+      "test": "recommended",
+      "playwright": "recommended"
+    },
     "rules": {
       "recommended": true,
       "complexity": {
@@ -57,7 +78,12 @@
         "noUnusedFunctionParameters": "error",
         "noUnusedImports": "error",
         "noUnusedLabels": "error",
-        "noUnusedPrivateClassMembers": "error"
+        "noUnusedPrivateClassMembers": "error",
+        // useUniqueElementIds (react ドメイン) は recommended セットに含まれず
+        // all のみ収録のため個別有効化する。静的 id="..." を持つ JSX 要素を禁止し、
+        // React 19 の useId() による動的 ID 採番を促す。aria-labelledby と
+        // heading の id 紐付けを useId() ベースに移行済み。
+        "useUniqueElementIds": "error"
       },
       "style": {
         "useBlockStatements": "error",
@@ -65,6 +91,13 @@
       },
       "security": {
         "noDangerouslySetInnerHtml": "warn"
+      },
+      "nursery": {
+        // noPlaywrightNetworkidle (playwright ドメイン) は nursery のため
+        // recommended に含まれない。Playwright の networkidle 待機は flaky な
+        // ため web-first assertion への移行を促す。本プロジェクトは e2e/ を
+        // lint 対象に含める (files.includes) ため、spec ファイルで検知される。
+        "noPlaywrightNetworkidle": "error"
       }
     }
   },

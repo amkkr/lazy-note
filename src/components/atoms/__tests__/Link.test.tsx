@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Link } from "../Link";
@@ -285,7 +286,8 @@ describe("Link", () => {
       }
     });
 
-    it("viewTransition=true でクリックすると startViewTransition 経由で navigate される", () => {
+    it("viewTransition=true でクリックすると startViewTransition 経由で navigate される", async () => {
+      const user = userEvent.setup();
       const startVTSpy = vi.fn((cb: () => void) => {
         cb();
       });
@@ -301,14 +303,15 @@ describe("Link", () => {
       );
 
       const link = screen.getByRole("link", { name: "VT Link" });
-      fireEvent.click(link);
+      await user.click(link);
 
       // startViewTransition が呼ばれていれば、preventDefault → vtNavigate のパスが
       // 機能している証拠となる。
       expect(startVTSpy).toHaveBeenCalledTimes(1);
     });
 
-    it("viewTransition=false ではクリック時に startViewTransition を呼ばない", () => {
+    it("viewTransition=false ではクリック時に startViewTransition を呼ばない", async () => {
+      const user = userEvent.setup();
       const startVTSpy = vi.fn();
       // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
       (document as any).startViewTransition = startVTSpy;
@@ -320,12 +323,13 @@ describe("Link", () => {
       );
 
       const link = screen.getByRole("link", { name: "No VT Link" });
-      fireEvent.click(link);
+      await user.click(link);
 
       expect(startVTSpy).not.toHaveBeenCalled();
     });
 
-    it("修飾キー併用クリック (Cmd) では preventDefault せずブラウザ既定挙動に委ねる", () => {
+    it("修飾キー併用クリック (Cmd) では preventDefault せずブラウザ既定挙動に委ねる", async () => {
+      const user = userEvent.setup();
       const startVTSpy = vi.fn();
       // biome-ignore lint/suspicious/noExplicitAny: テストファイルでのモックのため許可
       (document as any).startViewTransition = startVTSpy;
@@ -339,7 +343,11 @@ describe("Link", () => {
       );
 
       const link = screen.getByRole("link", { name: "Cmd Click" });
-      fireEvent.click(link, { metaKey: true });
+      // Meta キーを押下したまま左クリックする (Cmd+クリック)。user-event では
+      // keyboard で修飾キーを保持してから click することで metaKey 付き click を再現する。
+      await user.keyboard("{Meta>}");
+      await user.click(link);
+      await user.keyboard("{/Meta}");
 
       // 新規タブを開く意図なので VT は発火させない
       expect(startVTSpy).not.toHaveBeenCalled();

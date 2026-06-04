@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
 
       - name: Assert .githooks files exist and are executable
         # Issue #592 (Counterpoint 31): git native hook の同梱を CI で保証する。

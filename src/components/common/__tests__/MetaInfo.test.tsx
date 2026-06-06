@@ -314,11 +314,14 @@ describe("MetaInfo", () => {
     const metaFieldElements = container.querySelectorAll("[data-meta-field]");
     expect(metaFieldElements.length).toBe(1);
 
-    // 2. 唯一の要素が `data-meta-field="updated"` を持ち、textContent に
+    // 2. 更新行が `data-meta-field="updated"` を持ち、textContent に
     //    「更新:」を含むこと。
-    const updatedRow = metaFieldElements[0];
-    expect(updatedRow).toHaveAttribute("data-meta-field", "updated");
-    expect(updatedRow.textContent).toContain("更新:");
+    //    NodeList のインデックスアクセス ([0]) は noUncheckedIndexedAccess 下で
+    //    Element | undefined になるため、querySelector (Element | null) で取得し
+    //    ?. と not.toBeNull() で扱う (既存 #809 テストと同じイディオム)。
+    const updatedRow = container.querySelector('[data-meta-field="updated"]');
+    expect(updatedRow).not.toBeNull();
+    expect(updatedRow?.textContent).toContain("更新:");
 
     // 3. 既存 3 項目 (日付 / 著者 / 読了) の各行が `data-meta-field` を
     //    持たないこと。行は textContent で同定する。

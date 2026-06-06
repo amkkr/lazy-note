@@ -158,4 +158,133 @@ describe("MetaInfo", () => {
     const bentoSvgs = bentoContainer.querySelectorAll('svg[width="12"]');
     expect(bentoSvgs.length).toBeGreaterThanOrEqual(2);
   });
+
+  // ===================================================================
+  // Issue #809: updatedAt が createdAt より新しいときだけ「更新: <日時>」行を
+  // 追加する。行の種別は `data-meta-field="updated"` で観測可能にする。
+  // 更新判定は #808 の `isUpdatedAfterCreated` を使う。
+  // ===================================================================
+  it("updatedAt が createdAt より新しいとき更新日時行を data-meta-field 付きで表示できる", () => {
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024/01/15 12:00"
+        author="山田太郎"
+        updatedAt="2024/03/10 09:30"
+      />,
+    );
+
+    const updatedRow = container.querySelector('[data-meta-field="updated"]');
+    expect(updatedRow).not.toBeNull();
+    // 行の textContent に「更新:」と日時が含まれることを確認する
+    // (装飾アイコン svg は aria-hidden なので textContent には現れない)。
+    expect(updatedRow?.textContent).toContain("更新:");
+    expect(updatedRow?.textContent).toContain("2024/03/10 09:30");
+  });
+
+  it("updatedAt 未指定のとき更新日時行が描画されない", () => {
+    const { container } = render(
+      <MetaInfo createdAt="2024/01/15 12:00" author="山田太郎" />,
+    );
+
+    expect(container.querySelector('[data-meta-field="updated"]')).toBeNull();
+  });
+
+  it("updatedAt が空文字のとき更新日時行が描画されない", () => {
+    const { container } = render(
+      <MetaInfo createdAt="2024/01/15 12:00" author="山田太郎" updatedAt="" />,
+    );
+
+    expect(container.querySelector('[data-meta-field="updated"]')).toBeNull();
+  });
+
+  it("updatedAt が createdAt と同一のとき更新日時行が描画されない", () => {
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024/01/15 12:00"
+        author="山田太郎"
+        updatedAt="2024/01/15 12:00"
+      />,
+    );
+
+    expect(container.querySelector('[data-meta-field="updated"]')).toBeNull();
+  });
+
+  it("updatedAt が createdAt より前のとき更新日時行が描画されない", () => {
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024/03/10 09:30"
+        author="山田太郎"
+        updatedAt="2024/01/15 12:00"
+      />,
+    );
+
+    expect(container.querySelector('[data-meta-field="updated"]')).toBeNull();
+  });
+
+  it("header variant で更新日時行が bg.muted token を持つ", () => {
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024/01/15 12:00"
+        author="山田太郎"
+        updatedAt="2024/03/10 09:30"
+        variant="header"
+      />,
+    );
+
+    const updatedRow = container.querySelector('[data-meta-field="updated"]');
+    expect(updatedRow).toHaveAttribute("data-token-bg", "bg.muted");
+  });
+
+  it("featured variant で更新日時行のアイコンが 12px に縮小される", () => {
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024/01/15 12:00"
+        author="山田太郎"
+        updatedAt="2024/03/10 09:30"
+        variant="featured"
+      />,
+    );
+
+    const updatedRow = container.querySelector('[data-meta-field="updated"]');
+    const icon = updatedRow?.querySelector("svg");
+    expect(icon).toHaveAttribute("width", "12");
+    expect(icon).toHaveAttribute("height", "12");
+  });
+
+  it("bento variant で更新日時行のアイコンが 12px に縮小される", () => {
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024/01/15 12:00"
+        author="山田太郎"
+        updatedAt="2024/03/10 09:30"
+        variant="bento"
+      />,
+    );
+
+    const updatedRow = container.querySelector('[data-meta-field="updated"]');
+    const icon = updatedRow?.querySelector("svg");
+    expect(icon).toHaveAttribute("width", "12");
+    expect(icon).toHaveAttribute("height", "12");
+  });
+
+  it("更新日時行のアイコンのみ aria-hidden で更新テキストは SR 読み上げ対象になる", () => {
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024/01/15 12:00"
+        author="山田太郎"
+        updatedAt="2024/03/10 09:30"
+      />,
+    );
+
+    const updatedRow = container.querySelector('[data-meta-field="updated"]');
+    // 装飾アイコンの検証は属性ベースで行う (Issue #709)。行内の svg が
+    // aria-hidden を持つことを確認する。
+    const icon = updatedRow?.querySelector("svg");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    // 「更新:」テキストを保持する span は aria-hidden を持たない
+    // (SR 読み上げ対象である)。
+    const textSpan = updatedRow?.querySelector("span");
+    expect(textSpan).not.toHaveAttribute("aria-hidden");
+    expect(textSpan?.textContent).toContain("更新:");
+  });
 });

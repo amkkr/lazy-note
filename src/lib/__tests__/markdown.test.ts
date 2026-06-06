@@ -75,7 +75,7 @@ describe("markdown.ts", () => {
       expect(result.author).toBe("");
     });
 
-    it("更新日時セクションがあるとupdatedAtに加筆日時が入る", () => {
+    it("更新日時セクションがあるとupdatedAtにその値が入る", () => {
       const content = `# テストタイトル
 
 ## 投稿日時

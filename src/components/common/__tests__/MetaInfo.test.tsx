@@ -291,4 +291,45 @@ describe("MetaInfo", () => {
     expect(textSpan).not.toHaveAttribute("aria-hidden");
     expect(textSpan?.textContent).toContain("更新:");
   });
+
+  // ===================================================================
+  // Issue #814: `data-meta-field` の付与範囲が更新行に限定されることの
+  // 回帰固定。`data-meta-field` は「メタ情報の行種別」を示す構造マーカーで、
+  // 現状は更新行 (`updated`) のみに付与する。日付 / 著者 / 読了時間の既存 3
+  // 項目には付与しない (先回り付与はしない、YAGNI)。他項目へ拡張されたら
+  // 本テストを更新すること。
+  // ===================================================================
+  it("data-meta-field は更新行のみに付与され既存3項目には付与されない", () => {
+    // 全 4 行 (日付 / 著者 / 読了時間 / 更新) が描画される条件で render する。
+    const { container } = render(
+      <MetaInfo
+        createdAt="2024/01/15 12:00"
+        author="山田太郎"
+        readingTimeMinutes={5}
+        updatedAt="2024/03/10 09:30"
+      />,
+    );
+
+    // 1. `data-meta-field` を持つ要素は更新行 1 つのみであること。
+    const metaFieldElements = container.querySelectorAll("[data-meta-field]");
+    expect(metaFieldElements.length).toBe(1);
+
+    // 2. 唯一の要素が `data-meta-field="updated"` を持ち、textContent に
+    //    「更新:」を含むこと。
+    const updatedRow = metaFieldElements[0];
+    expect(updatedRow).toHaveAttribute("data-meta-field", "updated");
+    expect(updatedRow.textContent).toContain("更新:");
+
+    // 3. 既存 3 項目 (日付 / 著者 / 読了) の各行が `data-meta-field` を
+    //    持たないこと。行は textContent で同定する。
+    const rows = Array.from(container.querySelectorAll("div > div"));
+    const dateRow = rows.find((row) => row.textContent?.includes("2024/01/15"));
+    const authorRow = rows.find((row) => row.textContent?.includes("山田太郎"));
+    const readingRow = rows.find((row) =>
+      row.textContent?.includes("分で読了"),
+    );
+    expect(dateRow).not.toHaveAttribute("data-meta-field");
+    expect(authorRow).not.toHaveAttribute("data-meta-field");
+    expect(readingRow).not.toHaveAttribute("data-meta-field");
+  });
 });

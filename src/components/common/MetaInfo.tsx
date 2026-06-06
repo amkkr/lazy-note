@@ -1,12 +1,20 @@
 import { memo } from "react";
 import { css } from "../../../styled-system/css";
 import { AUTHOR_FALLBACK, DATE_FALLBACK } from "../../lib/i18nLiterals";
+import { isUpdatedAfterCreated } from "../../lib/postDate";
 import { Calendar, Clock, PenLine } from "../atoms/icons";
 
 interface MetaInfoProps {
   createdAt?: string;
   author?: string;
   readingTimeMinutes?: number;
+  /**
+   * 加筆日時の表示文字列 (`YYYY/MM/DD HH:MM` 等)。
+   *
+   * Issue #809: `createdAt` より厳密に新しい場合のみ「更新: <日時>」行を
+   * 追加する。新旧判定は #808 の `isUpdatedAfterCreated` に委譲する。
+   */
+  updatedAt?: string;
   variant?: "card" | "header" | "featured" | "bento";
 }
 
@@ -18,6 +26,11 @@ interface MetaInfoProps {
 // `Resurface.tsx` の `RESURFACE_REASON_LABEL_*_TEMPLATE` に倣う。
 const READING_TIME_LABEL_TEMPLATE = (minutes: number): string =>
   `${minutes}分で読了`;
+
+// Issue #809: 加筆日時の表示文言テンプレート。`READING_TIME_LABEL_TEMPLATE` と
+// 同方針で、単一ファイル内で完結する文言のため `i18nLiterals.ts` への横串集約は
+// せず、ファイル内ローカル定数に留める (Issue #721 / #534 / #630 方針)。
+const UPDATED_AT_LABEL_TEMPLATE = (value: string): string => `更新: ${value}`;
 
 // スタイルをコンポーネント外に定数として定義
 const containerStyles = css({
@@ -195,6 +208,7 @@ export const MetaInfo = memo(
     createdAt,
     author,
     readingTimeMinutes,
+    updatedAt,
     variant = "card",
   }: MetaInfoProps) => {
     const styles = variantStyleSets[variant];
@@ -218,6 +232,25 @@ export const MetaInfo = memo(
           <div className={itemClassName} data-token-bg={styles.itemBg}>
             <Clock aria-hidden="true" size={styles.iconSize} />
             <span>{READING_TIME_LABEL_TEMPLATE(readingTimeMinutes)}</span>
+          </div>
+        )}
+        {/*
+          Issue #809: updatedAt が createdAt より厳密に新しいときだけ加筆日時行を
+          追加する。新旧判定は #808 の `isUpdatedAfterCreated` に委譲する。
+          空文字 (`updatedAt=""`) のとき React が空テキストノードを残さないよう
+          `!!updatedAt` で真偽値化してから条件評価する。
+          専用アイコンが無いため `Clock` を再利用する (読了時間と同じアイコンに
+          なるが、行の構造的識別子は `data-meta-field="updated"` を唯一とし、
+          アイコンは行の識別には使わない)。
+        */}
+        {!!updatedAt && isUpdatedAfterCreated(createdAt ?? "", updatedAt) && (
+          <div
+            className={itemClassName}
+            data-token-bg={styles.itemBg}
+            data-meta-field="updated"
+          >
+            <Clock aria-hidden="true" size={styles.iconSize} />
+            <span>{UPDATED_AT_LABEL_TEMPLATE(updatedAt)}</span>
           </div>
         )}
       </div>

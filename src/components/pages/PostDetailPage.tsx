@@ -238,6 +238,7 @@ export const PostDetailPage = ({
 
               <MetaInfo
                 createdAt={post.createdAt}
+                updatedAt={post.updatedAt}
                 author={post.author}
                 variant="header"
               />

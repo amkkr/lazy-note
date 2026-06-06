@@ -37,6 +37,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `styled-system/` - Panda CSS自動生成ファイル（編集不要）
 - `datasources/` - Markdownファイル等のデータソース
 
+#### datasources の記事フォーマット（Issue #810）
+
+`datasources/` に置く記事 Markdown は、以下の節構成で書く。各セクションの値はリスト形式（`- 値`）で記述する。`datasources/_TEMPLATE.md` は本リポジトリに存在せず、**本ブロックが記事フォーマット規約の単一ソース**である。
+
+```markdown
+# 記事タイトル
+
+## 投稿日時
+
+- 2026/06/06 12:00
+
+## 筆者名
+
+- amkkr
+
+## 本文
+
+ここから本文（Markdown 記法が使える）。
+
+## 更新日時
+
+- 2026/06/10 09:30
+```
+
+- **`## 投稿日時` / `## 筆者名` / `## 本文`** は必須セクション。`## 更新日時` は**任意**セクションで、加筆したときだけ書く。
+- **日時の推奨書式は `YYYY/MM/DD HH:MM`**（`## 投稿日時` と**同形式**）。区切りは `/` を推奨する（パーサは互換目的で `-` も受理するが運用は `/` に統一する）。
+- **`## 更新日時` は `createdAt`（投稿日時）より新しいときのみ**、記事詳細ページの header に `更新: <日時>` 行として表示される。無い / 空 / パース不能 / `createdAt` 以下のいずれかのときは表示されない（新旧判定は `src/lib/postDate.ts` の `isUpdatedAfterCreated` に委譲、表示は `MetaInfo`（#809）→ `PostDetailPage`（#810）の配線による）。
+- **一覧（IndexPage）には更新表示を出さない**: 一覧用の `PostSummary` 型に `updatedAt` フィールドが無く、`Post` 型のみが持つ構造（型レベル保証）。二重経路 drift を防ぐため一覧経路には露出しない。
+- **`data-meta-field` は当面 `updated` 値のみを吐く**（Tripwire テスト用の構造属性）。投稿日時 / 筆者名 / 読了時間など他項目への `data-meta-field` 付与は別 Issue で扱う。
+
 > **既存 Issue / PR の用語解釈ガイド（Issue #542）**: 過去の Issue や PR の AC / 説明文に「ファイルベースルーティング」「vite-plugin-pages」と記載されているものは、いずれも本プロジェクトの実態である「`src/pages/` 配下にページコンポーネントを置き、`src/main.tsx` の `<Routes>` に手動登録する慣行」を指すものとして読み替えること。`vite-plugin-pages` 等の自動ルート生成方式の導入検討は #562 を参照。
 
 #### 自動ルート生成方式（vite-plugin-pages 等）の導入検討結果（Issue #562, 2026-05-16）

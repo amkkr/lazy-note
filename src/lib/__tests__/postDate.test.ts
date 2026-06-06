@@ -29,6 +29,14 @@ describe("parsePostDateToEpoch", () => {
     expect(epoch).toBe(expectedJstEpoch(2026, 3, 10, 0, 0));
   });
 
+  it("ISO 8601 (+09:00) リテラルと同一の epoch を返す", () => {
+    // 本体・expectedJstEpoch ヘルパーと同じ式のコピーに依存しない独立検証。
+    // JS の Date が解釈する ISO 8601 (オフセット明示) の epoch と一致することを確認する。
+    const epoch = parsePostDateToEpoch("2026/03/10 09:30");
+
+    expect(epoch).toBe(new Date("2026-03-10T09:30:00+09:00").getTime());
+  });
+
   it("空文字に対し undefined を返す", () => {
     expect(parsePostDateToEpoch("")).toBeUndefined();
   });

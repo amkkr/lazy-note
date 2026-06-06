@@ -121,6 +121,12 @@ export interface Post extends PostSummary {
   content: string;
   rawContent: string;
   toc: TocItem[];
+  /**
+   * 任意の加筆日時。`## 更新日時` セクションから抽出する。
+   * 一覧用の PostSummary には流さず、記事詳細ページ専用とする
+   * (二重経路 drift を防ぐため一覧経路には露出しない)。
+   */
+  updatedAt?: string;
 }
 
 export const parseMarkdown = (content: string, timestamp: string): Post => {
@@ -128,6 +134,7 @@ export const parseMarkdown = (content: string, timestamp: string): Post => {
 
   const title = extractTitle(lines);
   const createdAt = extractSectionContent(lines, "投稿日時");
+  const updatedAt = extractSectionContent(lines, "更新日時");
   const author = extractSectionContent(lines, "筆者名");
   const bodyContent = extractBodyContent(lines);
 
@@ -143,6 +150,7 @@ export const parseMarkdown = (content: string, timestamp: string): Post => {
     id: timestamp,
     title,
     createdAt,
+    updatedAt,
     content: parsedContent,
     author,
     rawContent: content,

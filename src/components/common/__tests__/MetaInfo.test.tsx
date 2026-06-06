@@ -163,6 +163,10 @@ describe("MetaInfo", () => {
   // Issue #809: updatedAt が createdAt より新しいときだけ「更新: <日時>」行を
   // 追加する。行の種別は `data-meta-field="updated"` で観測可能にする。
   // 更新判定は #808 の `isUpdatedAfterCreated` を使う。
+  //
+  // 行の構造的識別子は `data-meta-field="updated"` を唯一とする。Clock アイコンは
+  // 読了時間行と共用するため行の識別には使わない (アイコンに依存せず data-meta-field
+  // 単独で更新行を一意に特定できることを明示)。
   // ===================================================================
   it("updatedAt が createdAt より新しいとき更新日時行を data-meta-field 付きで表示できる", () => {
     const { container } = render(

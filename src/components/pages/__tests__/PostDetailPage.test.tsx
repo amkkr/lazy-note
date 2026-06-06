@@ -620,6 +620,81 @@ describe("PostDetailPage", () => {
     });
   });
 
+  // ==========================================================================
+  // 加筆日時 (更新日時) 表示 (Issue #810 / epic #806)
+  //
+  // header 内の MetaInfo に post.updatedAt を配線し、createdAt より厳密に
+  // 新しいときだけ「更新: <日時>」行を data-meta-field="updated" で吐く。
+  // 表示判定ロジック自体は MetaInfo (#809) / isUpdatedAfterCreated (#808) の
+  // 責務だが、PostDetailPage がそれを header に正しく配線できているかを検証する。
+  // ==========================================================================
+  describe("加筆日時 (更新日時) 表示", () => {
+    it("updatedAt が createdAt より新しいとき header に更新行を表示できる", () => {
+      // createdAt は時刻付きスラッシュ形式、updatedAt は明確に後の日時にして
+      // 日付のみ vs 時刻ありの境界に依存しない明快な大小関係で検証する。
+      const postWithUpdatedAt: Post = {
+        ...mockPost,
+        createdAt: "2024/01/15 12:00",
+        updatedAt: "2024/03/10 09:30",
+      };
+
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={postWithUpdatedAt}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      const updatedRow = container.querySelector('[data-meta-field="updated"]');
+      expect(updatedRow).not.toBeNull();
+      // 「更新:」ラベルと更新日時が同じ行のテキストに含まれることを保証する。
+      expect(updatedRow?.textContent).toContain("更新:");
+      expect(updatedRow?.textContent).toContain("2024/03/10 09:30");
+    });
+
+    it("updatedAt を持たない記事では header に更新行を表示しない", () => {
+      // 既存 mockPost は updatedAt 未設定 (後方互換)。更新行は出ない。
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(container.querySelector('[data-meta-field="updated"]')).toBeNull();
+    });
+
+    it("更新行を含む PostDetailPage 全体で axe a11y 違反が 0 件である", async () => {
+      const postWithUpdatedAt: Post = {
+        ...mockPost,
+        createdAt: "2024/01/15 12:00",
+        updatedAt: "2024/03/10 09:30",
+      };
+
+      const { container } = render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={postWithUpdatedAt}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+  });
+
   describe("Document Metadata (React 19 ネイティブ metadata)", () => {
     it("記事タイトルとサイト名を連結した document.title にできる", () => {
       render(

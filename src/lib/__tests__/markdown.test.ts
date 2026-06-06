@@ -75,6 +75,63 @@ describe("markdown.ts", () => {
       expect(result.author).toBe("");
     });
 
+    it("更新日時セクションがあるとupdatedAtに加筆日時が入る", () => {
+      const content = `# テストタイトル
+
+## 投稿日時
+- 2024-01-01 10:00
+
+## 筆者名
+- テスト太郎
+
+## 更新日時
+- 2026/03/10 09:30
+
+## 本文
+本文です。`;
+
+      const result = parseMarkdown(content, "20240101100000");
+
+      expect(result.updatedAt).toBe("2026/03/10 09:30");
+    });
+
+    it("更新日時セクションがない場合はupdatedAtが空文字になる", () => {
+      const content = `# テストタイトル
+
+## 投稿日時
+- 2024-01-01 10:00
+
+## 筆者名
+- テスト太郎
+
+## 本文
+本文です。`;
+
+      const result = parseMarkdown(content, "20240101100000");
+
+      expect(result.updatedAt).toBe("");
+    });
+
+    it("更新日時がリスト形式でない場合はupdatedAtが空文字になる", () => {
+      const content = `# テストタイトル
+
+## 投稿日時
+- 2024-01-01 10:00
+
+## 筆者名
+- テスト太郎
+
+## 更新日時
+2026/03/10 09:30
+
+## 本文
+本文です。`;
+
+      const result = parseMarkdown(content, "20240101100000");
+
+      expect(result.updatedAt).toBe("");
+    });
+
     it("本文がない場合は空文字を返す", () => {
       const content = `# テストタイトル
 

@@ -322,12 +322,25 @@ describe("MetaInfo", () => {
 
     // 3. 既存 3 項目 (日付 / 著者 / 読了) の各行が `data-meta-field` を
     //    持たないこと。行は textContent で同定する。
-    const rows = Array.from(container.querySelectorAll("div > div"));
+    //    MetaInfo ルート (data-variant を持つ) の直下 div だけを「行」として
+    //    集める。container 直下から div>div で集めると testing-library の
+    //    ラッパ div / MetaInfo ルート div を誤って拾い、ルート div は全行を
+    //    連結した textContent を持つため find(textContent) が 3 つともルート
+    //    div に解決してしまい、ルート div は元々 data-meta-field を持たないので
+    //    負アサートが常に成立するトートロジーになる (#814 DA 指摘)。
+    //    :scope > div でルート直下の item div (4 つ) だけに限定する。
+    const root = container.querySelector("[data-variant]");
+    const rows = Array.from(root?.querySelectorAll(":scope > div") ?? []);
     const dateRow = rows.find((row) => row.textContent?.includes("2024/01/15"));
     const authorRow = rows.find((row) => row.textContent?.includes("山田太郎"));
     const readingRow = rows.find((row) =>
       row.textContent?.includes("分で読了"),
     );
+    // find が undefined を返してアサートが skip される事故を防ぐため、
+    // 各行が同定できていることを先に確認する。
+    expect(dateRow).toBeDefined();
+    expect(authorRow).toBeDefined();
+    expect(readingRow).toBeDefined();
     expect(dateRow).not.toHaveAttribute("data-meta-field");
     expect(authorRow).not.toHaveAttribute("data-meta-field");
     expect(readingRow).not.toHaveAttribute("data-meta-field");

@@ -25,6 +25,10 @@ interface EmptyStateProps {
      * 装飾矢印 + テキスト」を分離して渡せるよう `ReactNode` に広げた
      * (例: `<><span aria-hidden="true">←</span>記事一覧に戻る</>`)。
      * 既存の素の文字列ラベル渡しはそのまま後方互換で動作する。
+     *
+     * 用途制約: `label` には CTA の短いラベル相当のノードのみを渡す
+     * (装飾矢印 + テキスト等)。レイアウト目的の大きな要素ツリーは渡さない
+     * (`ReactNode` 化で任意ノードを受け入れる型の緩さをこの規約で補う)。
      */
     label: ReactNode;
     href: string;

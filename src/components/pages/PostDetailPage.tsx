@@ -29,6 +29,15 @@ import { TableOfContents } from "../common/TableOfContents";
 //   (実際の `[dir=rtl]` 反転 CSS は RTL 要件発生時まで先送り = YAGNI)。
 // 矢印は SVG / アイコンフォントではなく純粋な glyph のため BackToTop に倣い
 // `ICON` ではなく `ARROW` と命名する。
+//
+// 「統一」したのは処理パターン (矢印を aria-hidden 分離する扱い) であって、
+// コードの共通化 (共有コンポーネント化 / 定数集約) はしない。根拠: (a) 矢印
+// `←`/`→`/`↑` は aria-hidden の装飾文字であり、装飾文字を i18nLiterals.ts へ
+// 集約しない先例がある (IndexRow.tsx の `INDEX_ROW_META_SEPARATOR = "—"` は
+// ローカル定数 / i18nLiterals.ts の「単一ファイル完結はファイル内局所定数」方針)。
+// (b) CLAUDE.md「過度に抽象化しない」+ 参照実装 BackToTop も矢印をローカル定数の
+// まま持つ。この根拠は本ファイル 1 箇所のみに記す (他 3 ファイルは #708 横断統一の
+// 記載から辿れるため重複させない)。
 const POST_DETAIL_NAV_ARIA_LABEL = "ページナビゲーション" as const;
 const POST_DETAIL_BACK_TO_TOP_ARROW = "←" as const;
 const POST_DETAIL_BACK_TO_TOP_TEXT = "TOPに戻る" as const;
@@ -178,7 +187,7 @@ export const PostDetailPage = ({
             {/* Issue #708: 矢印は aria-hidden な装飾要素として分離し、
                 アクセシブル名はテキスト「TOPに戻る」のみにする。
                 navigation variant は inline-flex + gap:sm のため矢印と
-                テキストの間隔は gap が担う (旧連結定数の半角スペース相当)。 */}
+                テキストの間隔は gap token が担う (旧連結時の半角スペースの代替)。 */}
             <span aria-hidden="true">{POST_DETAIL_BACK_TO_TOP_ARROW}</span>
             {POST_DETAIL_BACK_TO_TOP_TEXT}
           </Link>

@@ -113,8 +113,8 @@ const Post = () => {
           action={{
             // Issue #708: 矢印を aria-hidden な装飾要素として分離し、
             // アクセシブル名はテキスト「記事一覧に戻る」のみにする。EmptyState の
-            // CTA Link は inline-flex + gap:2 のため矢印とテキストの間隔は gap が
-            // 担う (旧連結定数の半角スペース相当)。
+            // CTA Link は inline-flex + gap:2 のため矢印とテキストの間隔は gap token
+            // が担う (旧連結時の半角スペースの代替)。
             label: (
               <>
                 <span aria-hidden="true">{POST_NOT_FOUND_ACTION_ARROW}</span>

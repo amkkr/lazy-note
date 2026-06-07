@@ -19,15 +19,19 @@ import { TableOfContents } from "../common/TableOfContents";
 // 文言調整の影響範囲をファイル内 1 箇所に局所化する。
 // (i18n フレームワークは導入しない方針 — 単純な template リテラルに留める)
 //
-// 矢印「←」はテキストの一部として 1 定数に連結したまま保持する。理由:
-// - 現状 JSX は `<Link>← TOPに戻る</Link>` の単一テキストノードで構成されており、
-//   矢印を別 span で装飾扱いしていない (= aria-hidden で SR から隠す構造ではない)。
-// - 連結のまま 1 定数化する方が JSX 側の変更を最小化でき、テンプレート文字列
-//   としての可読性も保たれる。
-// - 将来矢印をアイコンコンポーネント化する等の構造変更が入る場合は、その時点で
-//   再度分離を検討する (現時点では YAGNI)。
+// Issue #708: 矢印「←」をテキストから分離し、JSX 側で
+// `<span aria-hidden="true">{矢印}</span>` の装飾要素として描画する。
+// 連結 1 定数 (`"← TOPに戻る"`) から分離した理由:
+// - 再評価トリガー3 (同種の「矢印 + テキスト」ラベルが 3 箇所以上発生) が
+//   充足したため横断的に方針統一する (BackToTop / PostNavigation / Post と揃える)。
+// - 矢印を aria-hidden にすることで SR のアクセシブル名から外れる a11y 改善。
+// - 矢印を構造的に分離することが将来の i18n / RTL 対応の土台になる
+//   (実際の `[dir=rtl]` 反転 CSS は RTL 要件発生時まで先送り = YAGNI)。
+// 矢印は SVG / アイコンフォントではなく純粋な glyph のため BackToTop に倣い
+// `ICON` ではなく `ARROW` と命名する。
 const POST_DETAIL_NAV_ARIA_LABEL = "ページナビゲーション" as const;
-const POST_DETAIL_BACK_TO_TOP_LABEL = "← TOPに戻る" as const;
+const POST_DETAIL_BACK_TO_TOP_ARROW = "←" as const;
+const POST_DETAIL_BACK_TO_TOP_TEXT = "TOPに戻る" as const;
 
 /**
  * `/posts/:timestamp` ルートの `<title>` を組み立てる純粋関数
@@ -171,7 +175,12 @@ export const PostDetailPage = ({
           })}
         >
           <Link to="/" variant="navigation">
-            {POST_DETAIL_BACK_TO_TOP_LABEL}
+            {/* Issue #708: 矢印は aria-hidden な装飾要素として分離し、
+                アクセシブル名はテキスト「TOPに戻る」のみにする。
+                navigation variant は inline-flex + gap:sm のため矢印と
+                テキストの間隔は gap が担う (旧連結定数の半角スペース相当)。 */}
+            <span aria-hidden="true">{POST_DETAIL_BACK_TO_TOP_ARROW}</span>
+            {POST_DETAIL_BACK_TO_TOP_TEXT}
           </Link>
         </div>
       </nav>

@@ -90,6 +90,48 @@ describe("PostDetailPage", () => {
     expect(backLink).toHaveAttribute("href", "/");
   });
 
+  it("戻りリンクのアクセシブル名から装飾矢印が除外される", () => {
+    // Issue #708: 矢印「←」を aria-hidden な装飾 span に分離したため、
+    // リンクのアクセシブル名は矢印を含まない「TOPに戻る」になる。
+    render(
+      <MemoryRouter>
+        <PostDetailPage
+          post={mockPost}
+          olderPost={null}
+          newerPost={null}
+          milestones={[]}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole("link", { name: "TOPに戻る" }),
+    ).toBeInTheDocument();
+    // 矢印付きの名前ではアクセシブル名として一致しないことも保証する。
+    expect(
+      screen.queryByRole("link", { name: "← TOPに戻る" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("戻りリンクの矢印が aria-hidden の装飾要素になる", () => {
+    // Issue #708 / #709 方式 b-1: 装飾矢印は HTML 文字列として保持しつつ
+    // aria-hidden で SR から隠す。リンク内にスコープして矢印 span を取得する。
+    render(
+      <MemoryRouter>
+        <PostDetailPage
+          post={mockPost}
+          olderPost={null}
+          newerPost={null}
+          milestones={[]}
+        />
+      </MemoryRouter>,
+    );
+
+    const backLink = screen.getByRole("link", { name: "TOPに戻る" });
+    const decorativeArrow = backLink.querySelector('[aria-hidden="true"]');
+    expect(decorativeArrow?.textContent).toBe("←");
+  });
+
   it("タイトルがない記事は「無題の記事」と表示される", () => {
     const postWithoutTitle: Post = {
       ...mockPost,

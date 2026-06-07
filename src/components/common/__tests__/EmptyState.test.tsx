@@ -57,6 +57,30 @@ describe("EmptyState", () => {
     expect(actionLink).toHaveAttribute("href", "/posts/new");
   });
 
+  it("action.label に ReactNode (装飾矢印 + テキスト) を渡して描画できる", () => {
+    // Issue #708: action.label の型を ReactNode に広げ、呼び出し側で
+    // 「aria-hidden な装飾矢印 + テキスト」を分離して渡せることを保証する。
+    const action = {
+      label: (
+        <>
+          <span aria-hidden="true">←</span>記事一覧に戻る
+        </>
+      ),
+      href: "/",
+    };
+
+    render(<EmptyState {...defaultProps} action={action} />);
+
+    // 矢印を除いたテキストがリンクのアクセシブル名になる。
+    const actionLink = screen.getByRole("link", { name: "記事一覧に戻る" });
+    expect(actionLink).toHaveAttribute("href", "/");
+    // 装飾矢印は aria-hidden で SR から隠される (#709 方式 b-1)。
+    // EmptyState の装飾アイコン SVG も aria-hidden を持つため、リンク内に
+    // スコープして矢印 span のみを取得する。
+    const decorativeArrow = actionLink.querySelector('[aria-hidden="true"]');
+    expect(decorativeArrow?.textContent).toBe("←");
+  });
+
   it("アクションボタンが設定されていない場合、表示されない", () => {
     render(<EmptyState {...defaultProps} />);
 

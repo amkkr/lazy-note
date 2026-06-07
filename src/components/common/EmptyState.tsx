@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { css } from "../../../styled-system/css";
 import { center } from "../../../styled-system/patterns";
@@ -17,7 +18,15 @@ interface EmptyStateProps {
   title: string;
   description: string;
   action?: {
-    label: string;
+    /**
+     * CTA リンクのラベル。
+     *
+     * Issue #708: 当初は `string` のみだったが、呼び出し側で「aria-hidden な
+     * 装飾矢印 + テキスト」を分離して渡せるよう `ReactNode` に広げた
+     * (例: `<><span aria-hidden="true">←</span>記事一覧に戻る</>`)。
+     * 既存の素の文字列ラベル渡しはそのまま後方互換で動作する。
+     */
+    label: ReactNode;
     href: string;
   };
 }

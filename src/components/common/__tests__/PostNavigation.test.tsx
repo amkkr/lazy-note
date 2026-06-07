@@ -31,14 +31,22 @@ describe("PostNavigation", () => {
     const olderPost = createMockPost("20240101100000", "古い記事タイトル");
     const newerPost = createMockPost("20240103100000", "新しい記事タイトル");
 
-    renderInRouter(
+    const { container } = renderInRouter(
       <PostNavigation olderPost={olderPost} newerPost={newerPost} />,
     );
 
-    expect(screen.getByText("← 前の記事")).toBeInTheDocument();
+    // Issue #708: 矢印「←」「→」は aria-hidden な装飾 span に分離したため、
+    // ラベルテキストは矢印を含まない「前の記事」「次の記事」になる。
+    expect(screen.getByText("前の記事")).toBeInTheDocument();
     expect(screen.getByText("古い記事タイトル")).toBeInTheDocument();
-    expect(screen.getByText("次の記事 →")).toBeInTheDocument();
+    expect(screen.getByText("次の記事")).toBeInTheDocument();
     expect(screen.getByText("新しい記事タイトル")).toBeInTheDocument();
+
+    // 装飾矢印は aria-hidden で SR から隠される (#709 方式 b-1)。
+    const arrows = container.querySelectorAll('span[aria-hidden="true"]');
+    const arrowTexts = Array.from(arrows).map((el) => el.textContent);
+    expect(arrowTexts).toContain("←");
+    expect(arrowTexts).toContain("→");
 
     const links = screen.getAllByRole("link");
     expect(links[0]).toHaveAttribute("href", "/posts/20240101100000");
@@ -48,21 +56,37 @@ describe("PostNavigation", () => {
   it("古い記事のみの場合に新しい記事リンクが非表示になる", () => {
     const olderPost = createMockPost("20240101100000", "古い記事タイトル");
 
-    renderInRouter(<PostNavigation olderPost={olderPost} newerPost={null} />);
+    const { container } = renderInRouter(
+      <PostNavigation olderPost={olderPost} newerPost={null} />,
+    );
 
-    expect(screen.getByText("← 前の記事")).toBeInTheDocument();
+    expect(screen.getByText("前の記事")).toBeInTheDocument();
     expect(screen.getByText("古い記事タイトル")).toBeInTheDocument();
-    expect(screen.queryByText("次の記事 →")).not.toBeInTheDocument();
+    expect(screen.queryByText("次の記事")).not.toBeInTheDocument();
+
+    // 「前の記事」側の装飾矢印「←」のみが描画され、「→」は出ない。
+    const arrows = container.querySelectorAll('span[aria-hidden="true"]');
+    const arrowTexts = Array.from(arrows).map((el) => el.textContent);
+    expect(arrowTexts).toContain("←");
+    expect(arrowTexts).not.toContain("→");
   });
 
   it("新しい記事のみの場合に古い記事リンクが非表示になる", () => {
     const newerPost = createMockPost("20240103100000", "新しい記事タイトル");
 
-    renderInRouter(<PostNavigation olderPost={null} newerPost={newerPost} />);
+    const { container } = renderInRouter(
+      <PostNavigation olderPost={null} newerPost={newerPost} />,
+    );
 
-    expect(screen.queryByText("← 前の記事")).not.toBeInTheDocument();
-    expect(screen.getByText("次の記事 →")).toBeInTheDocument();
+    expect(screen.queryByText("前の記事")).not.toBeInTheDocument();
+    expect(screen.getByText("次の記事")).toBeInTheDocument();
     expect(screen.getByText("新しい記事タイトル")).toBeInTheDocument();
+
+    // 「次の記事」側の装飾矢印「→」のみが描画され、「←」は出ない。
+    const arrows = container.querySelectorAll('span[aria-hidden="true"]');
+    const arrowTexts = Array.from(arrows).map((el) => el.textContent);
+    expect(arrowTexts).toContain("→");
+    expect(arrowTexts).not.toContain("←");
   });
 
   it("両方nullの場合にコンポーネントが非表示になる", () => {

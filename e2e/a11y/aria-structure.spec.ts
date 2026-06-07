@@ -28,7 +28,7 @@ import { expect, test } from "@playwright/test";
  * - landmark role の欠落・誤り (banner / main / contentinfo / navigation / region)
  * - 見出しレベルの逆転・変更 (h1 → h2 等)
  * - 固定見出し文言 ("Index" / "Anchor" / "節目一覧" / "各記事の座標") の消失
- * - ナビゲーションリンク ("← TOPに戻る") の消失
+ * - ナビゲーションリンク ("TOPに戻る") の消失
  */
 
 /**
@@ -103,13 +103,15 @@ test.describe("ARIA 構造: 記事詳細 (/posts/:timestamp)", () => {
     await page.waitForLoadState("networkidle");
 
     // 記事詳細の安定骨格:
-    // - 「ページナビゲーション」nav 内の "← TOPに戻る" リンク (固定文言 / / 遷移)
+    // - 「ページナビゲーション」nav 内の "TOPに戻る" リンク (固定文言 / / 遷移)。
+    //   矢印「←」は aria-hidden な装飾 span に分離済み (Issue #708) のため
+    //   accessibility tree から除外され、アクセシブル名は "TOPに戻る" になる。
     // - article 直下の記事タイトル h1 (文言は動的なので level のみ検査)
     // Markdown 本文の h2/h3 や段落・リンクは記事ごとに変わるため含めない。
     await expect(page.getByRole("main")).toMatchAriaSnapshot(`
       - main:
         - navigation "ページナビゲーション":
-          - link "← TOPに戻る":
+          - link "TOPに戻る":
             - /url: /
         - article:
           - heading [level=1]

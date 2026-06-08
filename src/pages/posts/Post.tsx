@@ -65,7 +65,17 @@ const MILESTONES: readonly Milestone[] = parseMilestones(milestonesData);
 const POST_NOT_FOUND_TITLE = "記事が見つかりません" as const;
 const POST_NOT_FOUND_DESCRIPTION =
   "お探しの記事は削除されたか、URLが間違っている可能性があります。" as const;
-const POST_NOT_FOUND_ACTION_LABEL = "← 記事一覧に戻る" as const;
+
+// Issue #708: 戻りリンクの矢印「←」をテキストから分離し、EmptyState の
+// action.label (ReactNode 化済み) に「aria-hidden な装飾矢印 + テキスト」を
+// 渡す。連結 1 定数 (`"← 記事一覧に戻る"`) から分離した理由は再評価トリガー3
+// (同種の「矢印 + テキスト」ラベルが 3 箇所以上発生) の充足に伴う横断統一で、
+// BackToTop / PostDetailPage / PostNavigation と方針を揃える。矢印を
+// aria-hidden にすることで SR のアクセシブル名から外れ、i18n / RTL 対応の
+// 構造的土台になる (実際の `[dir=rtl]` 反転 CSS は RTL 要件発生時まで先送り)。
+// 矢印は純粋な glyph のため BackToTop に倣い `ICON` ではなく `ARROW` と命名する。
+const POST_NOT_FOUND_ACTION_ARROW = "←" as const;
+const POST_NOT_FOUND_ACTION_TEXT = "記事一覧に戻る" as const;
 
 /**
  * 記事未検出時の `<title>` 文言 (React 19 ネイティブ metadata)。
@@ -101,7 +111,16 @@ const Post = () => {
           title={POST_NOT_FOUND_TITLE}
           description={POST_NOT_FOUND_DESCRIPTION}
           action={{
-            label: POST_NOT_FOUND_ACTION_LABEL,
+            // Issue #708: 矢印を aria-hidden な装飾要素として分離し、
+            // アクセシブル名はテキスト「記事一覧に戻る」のみにする。EmptyState の
+            // CTA Link は inline-flex + gap:2 のため矢印とテキストの間隔は gap token
+            // が担う (旧連結時の半角スペースの代替)。
+            label: (
+              <>
+                <span aria-hidden="true">{POST_NOT_FOUND_ACTION_ARROW}</span>
+                {POST_NOT_FOUND_ACTION_TEXT}
+              </>
+            ),
             href: "/",
           }}
         />

@@ -4,7 +4,7 @@ import { inferPublishedAt, type Milestone } from "../../../lib/anchors";
 import { Coordinate } from "../Coordinate";
 
 /**
- * Issue #491 AC「既存16記事すべてで Coordinate が正しく表示されること、
+ * Issue #491 AC「既存17記事すべてで Coordinate が正しく表示されること、
  * 0件記事で非表示になることをテストで確認」を満たす統合テスト。
  *
  * datasources/*.md の実ファイル名 (post.id) と datasources/milestones.json
@@ -17,7 +17,7 @@ import { Coordinate } from "../Coordinate";
  *   全節目が tone:heavy の場合に Coordinate コンポーネントが何も描画しないこと。
  *
  * 実記事ファイル名は import.meta.glob で動的列挙する。これにより記事を
- * 追加・削除しても再生成不要で常に最新の 16 件 (現在) を検査する。
+ * 追加・削除しても再生成不要で常に最新の 17 件 (現在) を検査する。
  *
  * Issue #535: 期待値は computeCoordinates の戻り値を再計算するのではなく、
  *   「実際にこの publishedAt と milestones.json でどう描画されるはずか」を
@@ -189,6 +189,14 @@ const expectations: readonly CoordinateExpectation[] = [
       { label: "社会復帰", daysSince: 183 },
     ],
   },
+  {
+    postId: "20260614095248",
+    publishedAt: "2026-06-14T09:52:48+09:00",
+    expectedRows: [
+      { label: "サイト開設", daysSince: 292 },
+      { label: "社会復帰", daysSince: 282 },
+    ],
+  },
 ];
 
 // datasources/*.md のファイル名を動的列挙する。
@@ -231,7 +239,7 @@ const testMilestones: readonly Milestone[] = [
   { date: "2025-09-05", label: "社会復帰", tone: "light" },
 ];
 
-describe("Coordinate (実16記事での回帰テスト)", () => {
+describe("Coordinate (実17記事での回帰テスト)", () => {
   it("datasources/*.md を全件取得できる (テスト前提の健全性)", () => {
     // 1 件以上存在する前提を担保 (本テストの実機性を保つため)
     expect(postIds.length).toBeGreaterThanOrEqual(1);
@@ -284,7 +292,7 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
   });
 
   describe("0 件記事の非表示 (フォールバック)", () => {
-    it("milestones が空配列なら全 16 記事で非表示になる", () => {
+    it("milestones が空配列なら全 17 記事で非表示になる", () => {
       for (const postId of postIds) {
         const publishedAt = inferPublishedAt(postId);
         if (publishedAt === undefined) {
@@ -300,7 +308,7 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
       }
     });
 
-    it("全節目が tone:heavy だけなら全 16 記事で非表示になる", () => {
+    it("全節目が tone:heavy だけなら全 17 記事で非表示になる", () => {
       const heavyOnly: readonly Milestone[] = testMilestones.map((m) => ({
         ...m,
         tone: "heavy",
@@ -321,8 +329,8 @@ describe("Coordinate (実16記事での回帰テスト)", () => {
       }
     });
 
-    it("全節目が publishedAt より未来なら全 16 記事で非表示になる", () => {
-      // 既存 16 記事のうち最古は 20250826 のため、それより未来の節目を作る
+    it("全節目が publishedAt より未来なら全 17 記事で非表示になる", () => {
+      // 既存 17 記事のうち最古は 20250826 のため、それより未来の節目を作る
       const futureOnly: readonly Milestone[] = [
         { date: "2099-12-31", label: "未来の節目", tone: "neutral" },
       ];

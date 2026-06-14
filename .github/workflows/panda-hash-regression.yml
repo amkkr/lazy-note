@@ -81,7 +81,60 @@ jobs:
         uses: pnpm/action-setup@v6.0.8
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        # Issue #822: install 失敗の理由を後段で判別できるよう、出力をログ
+        # ファイルへ退避し、step 自体は continue-on-error で握りつぶす。判別と
+        # job の fail は直後の `Classify install failure` step に委譲する。
+        # こうすることで dependabot が bump した公開直後バージョンを pnpm の
+        # minimumReleaseAge (約 24h) が弾く一時的失敗 (release-age) と、本来検知
+        # したい想定外の install 失敗とを切り分けられる。
+        # set -o pipefail は明示必須: shell 未指定の run step は実装によっては
+        # pipefail が効かず (actions/runner#1955)、tee の成功が pnpm の失敗を
+        # 隠してしまうため、ここで pipe 末尾の非 0 を確実に伝播させる。
+        id: install
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm install --frozen-lockfile 2>&1 | tee /tmp/pnpm-install.log
+
+      - name: Classify install failure
+        # Issue #822: install が失敗した場合のみ走り、ログから失敗理由を分類
+        # する。reason=release-age (pnpm の minimumReleaseAge 違反) なら一時的
+        # 失敗なので後段の Issue 自動起票を抑止し、それ以外 (reason=other) は
+        # 想定外の install 失敗として従来どおり起票対象に残す。
+        # node_modules 不在で後段の build / test は続行不能のため、reason に
+        # かかわらず最後に exit 1 して job 自体は fail させる (他 CI ジョブも
+        # 同じ release-age 失敗で赤くなるので一貫させる)。
+        #
+        # GitHub Actions のセマンティクス上、$GITHUB_OUTPUT への書き込みは exit
+        # 1 より前に実行されるため reason は確実にセットされ、runner は step
+        # プロセス終了後に GITHUB_OUTPUT を読むので exit code に関係なく後段へ
+        # 伝播する。install 成功時は本 step がスキップされ、outputs.reason は
+        # 空文字 '' になる (空 != 'release-age' は true なので起票判定に影響
+        # しない)。
+        if: steps.install.outcome == 'failure'
+        id: install_failure
+        run: |
+          set -euo pipefail
+          if grep -q 'ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION' \
+            /tmp/pnpm-install.log; then
+            echo "reason=release-age" >> "$GITHUB_OUTPUT"
+            # annotation 本体は変数に分割代入し 1 行で echo する (本 file の
+            # 既存方針。改行や長文を直接書くと Actions 上の表示が崩れるため)。
+            msg="pnpm install が minimumReleaseAge ポリシー "
+            msg+="(ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION) で失敗しました。"
+            msg+="dependabot が bump した公開直後バージョンを弾く一時的失敗で、"
+            msg+="ハッシュ回帰ではありません。約 24h 経過後の再実行で解消します。"
+            echo "::notice::${msg}"
+          else
+            echo "reason=other" >> "$GITHUB_OUTPUT"
+            msg="pnpm install が想定外の理由で失敗しました "
+            msg+="(release-age ポリシー違反ではない)。"
+            msg+="/tmp/pnpm-install.log のログを確認してください。"
+            echo "::error::${msg}"
+          fi
+          # release-age / other いずれでも node_modules 不在で後段不能のため
+          # job は fail させる。GITHUB_OUTPUT への書き込みは上で完了済み。
+          exit 1
 
       - name: Build baseline (hash:false) for bundle size comparison
         # Issue #553: baseline (hash:false) との bundle size 対比のため、先に
@@ -628,13 +681,24 @@ jobs:
         # を網羅するため `if: failure()` で発火させる。job が成功 (= test /
         # build 共に pass) の場合はスキップする。
         #
+        # Issue #822: ただし install 段階の minimumReleaseAge ポリシー違反
+        # (reason=release-age) だけは起票対象から除外する。これは dependabot が
+        # bump した公開直後バージョンを pnpm が約 24h 弾く一時的失敗で、ハッシュ
+        # 回帰ではなく全 CI ジョブ共通に起きるため、本 workflow 名義で
+        # 「panda-hash-regression が失敗」と誤った Issue を起票し続けるのを防ぐ。
+        # `Classify install failure` step が reason を出力し、release-age 以外
+        # (reason=other / 空文字 = install 成功で skip) のときのみ発火させる。
+        # release-age 以外の install 失敗・sed drift・Tripwire 回帰・build 回帰
+        # は従来どおり起票対象に残す。job 自体は release-age でも fail させる
+        # (赤いまま) ので、本 step の抑止は「誤解を招く自動起票」のみに効く。
+        #
         # 重複検索の race condition について:
         #   - cron (月 1) と PR trigger は並走可能だが、同名タイトル検索 +
         #     `gh issue create` は GitHub API の即時整合性により多くの場合
         #     1 起票に収束する。万一 2 起票になった場合は手動で片方を close
         #     する運用とし、自動 close 機構は導入しない (実装複雑化に対する
         #     メリットが小さい)
-        if: failure()
+        if: failure() && steps.install_failure.outputs.reason != 'release-age'
         env:
           # GitHub CLI 認証用。`permissions: issues: write` と組み合わせて
           # GITHUB_TOKEN で issue 操作を行う。
@@ -678,6 +742,9 @@ jobs:
             echo "     に追従できていない)"
             echo "   - \`Build project with hash:true\` 失敗: Panda 生成物または"
             echo "     hook class との整合に regression がある"
+            echo "   - \`Classify install failure\` 失敗: install が想定外の"
+            echo "     理由で失敗 (Issue #822。release-age ポリシー違反は本 Issue"
+            echo "     を起票しないので、それ以外の install 失敗を指す)"
             echo "2. 詳細は Issue #496 / Issue #475 / CLAUDE.md の"
             echo "   \"Panda hash:true の運用判断\" を参照する"
             echo "3. 修正 PR を出すか、原因 issue を別途切る"

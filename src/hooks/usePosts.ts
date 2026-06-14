@@ -5,7 +5,8 @@ import { getAllPostSummaries, type PostSummary } from "../lib/markdown";
  * 1 ページあたりの記事件数。
  *
  * Issue #395 (Editorial Bento) の構成に合わせ、Featured 1 + Bento 6 + Index 9 の
- * 計 16 件を 1 ページに収められるよう 16 に設定している。これにより:
+ * 計 16 ロールが 1 ページ目に揃うよう 16 に設定している。記事が 16 件を超えた
+ * 17 件目以降は設計どおり自動でページネーション (2 ページ目以降) される。これにより:
  * - 1 ページ目に Featured / Bento / Index の全ロールが揃い、Magazine 風 TOC として
  *   Index セクションが意味を持つ (10 件のままだと 1 ページ目に最大 3 件しか出ず TOC が破綻する)
  * - 「特集 1 件」の雑誌メタファーが Featured = 全期間の最新 1 件として保たれる

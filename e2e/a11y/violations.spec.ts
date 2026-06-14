@@ -23,8 +23,8 @@ import { expect, test } from "@playwright/test";
  */
 const TARGETS = [
   { name: "home", path: "/" },
-  { name: "post-detail-latest", path: "/posts/20260307120000" },
-  { name: "post-detail-secondary", path: "/posts/20260221104801" },
+  { name: "post-detail-latest", path: "/posts/20260614095248" },
+  { name: "post-detail-secondary", path: "/posts/20260307120000" },
 ];
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];

@@ -36,7 +36,7 @@ import { expect, test } from "@playwright/test";
  * (最新記事) と同一 timestamp を採用し、e2e 全体で代表記事を揃える。
  */
 const HOME_PATH = "/";
-const POST_PATH = "/posts/20260307120000";
+const POST_PATH = "/posts/20260614095248";
 const ANCHOR_PATH = "/anchor";
 
 test.describe("ARIA 構造: ホーム (/)", () => {

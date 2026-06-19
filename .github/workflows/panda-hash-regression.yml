@@ -78,7 +78,7 @@ jobs:
           node-version: "24"
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6.0.8
+        uses: pnpm/action-setup@v6.0.9
 
       - name: Install dependencies
         # Issue #822: install 失敗の理由を後段で判別できるよう、出力をログ

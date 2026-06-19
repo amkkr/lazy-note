@@ -41,7 +41,7 @@
     "@axe-core/playwright": "^4.11.3",
     "@biomejs/biome": "2.5.0",
     "@pandacss/dev": "^1.11.3",
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -54,7 +54,7 @@
     "culori": "~4.0.0",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.1.1",
-    "playwright": "^1.60.0",
+    "playwright": "^1.61.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
     "vitest": "^4.1.8"

@@ -148,14 +148,16 @@ export const Coordinate = memo(
     //   `computeCoordinates` の責務に集約済み (Issue #532 / 案A)。
     //   表示層で `c.tone !== "heavy"` の filter を書くと、別の表示層
     //   (e.g. /anchor ページ = #493) で語彙が分散するリスクがあるため、
-    //   表示ポリシーをエンジン引数 (`excludeHeavy`) で表現する設計を採る。
+    //   表示ポリシーをエンジン引数 (`excludeTones`) で表現する設計を採る。
+    //   除外指定は Issue #614 で boolean フラグから集合指定 (`excludeTones`) へ
+    //   拡張されたが、本表示層の挙動 (heavy のみ除外) は不変。
     // - 戻り値は `readonly Coordinate[]` (現状単型) のため、`kind` の narrowing は
     //   ここでは不要。将来 `Coordinate | Elapsed` mixed union に拡張された場合は
     //   再度 narrowing を入れる (Issue #497 の discriminator 設計意図に対応)。
     const displayable: readonly CoordinateData[] = computeCoordinates(
       publishedAt,
       milestones,
-      { excludeHeavy: true },
+      { excludeTones: ["heavy"] },
     );
 
     if (displayable.length === 0) {

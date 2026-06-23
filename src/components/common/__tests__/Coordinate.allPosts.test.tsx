@@ -66,7 +66,7 @@ interface CoordinateExpectation {
  *   import milestones from "../datasources/milestones.json";
  *   const id = "20260307120000"; // 追加した post.id
  *   const publishedAt = inferPublishedAt(id);
- *   const rows = computeCoordinates(publishedAt!, milestones as never, { excludeHeavy: true })
+ *   const rows = computeCoordinates(publishedAt!, milestones as never, { excludeTones: ["heavy"] })
  *     .map((c) => ({ label: c.label, daysSince: c.daysSince }));
  *   console.log(JSON.stringify({ postId: id, publishedAt, expectedRows: rows }, null, 2));
  *

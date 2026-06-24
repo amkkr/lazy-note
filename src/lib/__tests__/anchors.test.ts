@@ -102,7 +102,7 @@ describe("inferPublishedAt: ファイル名からの ISO 8601 推定 (JST 固定
     });
   });
 
-  describe("既存17記事すべての解決", () => {
+  describe("既存の全記事の解決", () => {
     /**
      * 対象は `YYYYMMDDhhmmss.md` 命名のファイルのみに絞る。
      * 命名外のファイル (例: `non-yyyymmddhhmmss.md`) が将来追加されても
@@ -787,7 +787,7 @@ describe("型レベル: Coordinate / Elapsed の nominal 化 (Issue #497)", () =
 // =============================================================================
 //
 // Issue #489 の Acceptance Criteria「登録した節目で N-1 の座標計算が
-// 17記事に対して破綻しない」を実データで担保する統合テスト群。
+// 全記事に対して破綻しない」を実データで担保する統合テスト群。
 //
 // - 入力 1: `datasources/milestones.json` (本 PR で登録した節目データ)
 // - 入力 2: `datasources/*.md` (記事のファイル名 → inferPublishedAt)

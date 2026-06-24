@@ -48,6 +48,57 @@ describe("parsePostDateToEpoch", () => {
   it("ドット区切りに対し undefined を返す", () => {
     expect(parsePostDateToEpoch("2026.03.10")).toBeUndefined();
   });
+
+  it("月が 13 (範囲外) の入力に対し undefined を返す", () => {
+    expect(parsePostDateToEpoch("2026/13/01")).toBeUndefined();
+  });
+
+  it("月が 00 (範囲外) の入力に対し undefined を返す", () => {
+    expect(parsePostDateToEpoch("2026/00/01")).toBeUndefined();
+  });
+
+  it("日が 40 (範囲外) の入力に対し undefined を返す", () => {
+    expect(parsePostDateToEpoch("2026/01/40")).toBeUndefined();
+  });
+
+  it("日が 00 (範囲外) の入力に対し undefined を返す", () => {
+    expect(parsePostDateToEpoch("2026/01/00")).toBeUndefined();
+  });
+
+  it("時が 24 (範囲外) の入力に対し undefined を返す", () => {
+    expect(parsePostDateToEpoch("2026/01/01 24:00")).toBeUndefined();
+  });
+
+  it("分が 60 (範囲外) の入力に対し undefined を返す", () => {
+    expect(parsePostDateToEpoch("2026/01/01 12:60")).toBeUndefined();
+  });
+
+  it("月日時分が全て上限境界 (12/31 23:59) の入力に対し有効な epoch を返す", () => {
+    expect(parsePostDateToEpoch("2026/12/31 23:59")).toBe(
+      expectedJstEpoch(2026, 12, 31, 23, 59),
+    );
+  });
+
+  it("月日が下限境界 (01/01) の入力に対し有効な epoch を返す", () => {
+    expect(parsePostDateToEpoch("2026/01/01")).toBe(
+      expectedJstEpoch(2026, 1, 1, 0, 0),
+    );
+  });
+
+  it("時分が下限境界 (00:00) の入力に対し有効な epoch を返す", () => {
+    expect(parsePostDateToEpoch("2026/06/15 00:00")).toBe(
+      expectedJstEpoch(2026, 6, 15, 0, 0),
+    );
+  });
+
+  it("月に対し過大な日 (04/31) はロールオーバーに委ね有効な epoch を返す", () => {
+    // 日の検証は単純な 1-31 範囲のみで、月ごとの日数や閏年は判定しない (意図的な
+    // 現状維持)。4 月は 30 日までだが 31 は 1-31 範囲を通過し、Date.UTC により
+    // 翌月 1 日へロールオーバーする。
+    expect(parsePostDateToEpoch("2026/04/31")).toBe(
+      expectedJstEpoch(2026, 5, 1, 0, 0),
+    );
+  });
 });
 
 describe("isUpdatedAfterCreated", () => {
@@ -96,5 +147,13 @@ describe("isUpdatedAfterCreated", () => {
     // 同日加筆を「更新あり」として扱う挙動は意図的 (openQuestion #2 の決定)。
     // createdAt が日付のみ (= 00:00 とみなす) のため、同日でも時刻が後なら更新扱い。
     expect(isUpdatedAfterCreated("2026/03/10", "2026/03/10 09:30")).toBe(true);
+  });
+
+  it("updatedAt が範囲外値 (13 月) なら false を返す", () => {
+    // 比較層として、範囲外 updatedAt はパース不能 (undefined) 扱いになり、
+    // 隣接日時へのロールオーバー化けを起こさず false に落ちる。
+    expect(isUpdatedAfterCreated("2026/03/10 09:30", "2026/13/11 10:00")).toBe(
+      false,
+    );
   });
 });

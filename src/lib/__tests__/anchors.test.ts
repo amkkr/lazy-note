@@ -229,19 +229,21 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
   });
 
   /**
-   * Issue #532: 表示ポリシーをエンジン引数で表現する案 (案A) を採用したことで、
-   * `excludeHeavy` オプションの挙動を仕様としてここで固定する。
+   * Issue #532 / Issue #614: 表示ポリシーをエンジン引数で表現する案 (案A) を
+   * 採用し、当初 boolean の heavy 除外フラグだった除外指定を、将来の tone 追加に
+   * 備えて集合指定型 `excludeTones: readonly MilestoneTone[]` へ破壊的置換した
+   * (Issue #614)。`excludeTones` に含まれる tone を持つ節目を結果から除外する。
    *
    * 表示層 (`Coordinate.tsx`) で `c.tone !== "heavy"` を filter で書くと、
    * 別の表示層 (`/anchor` ページ = #493) で語彙が分散するリスクがあるため、
    * 「どの tone を除外するか」の責務は anchors モジュールに集約する。
    *
    * 既存呼び出し (AnchorPage.tsx / 既存テスト) は options 未指定で
-   * 「heavy を含めて返す」既定挙動が維持されること (= 後方互換) を
-   * 「options 未指定」「options.excludeHeavy: false」テストで固定する。
+   * 「全 tone を含めて返す」既定挙動が維持されること (= 後方互換) を
+   * 「options 未指定」「excludeTones: []」テストで固定する。
    */
-  describe("options.excludeHeavy: heavy 除外オプション (Issue #532)", () => {
-    it("options 未指定のとき heavy も含めて返す (既存挙動 = 後方互換)", () => {
+  describe("options.excludeTones: tone 除外オプション (Issue #532 / Issue #614)", () => {
+    it("options 未指定のとき全 tone を含めて返す (既存挙動 = 後方互換)", () => {
       const milestones: readonly Milestone[] = [
         { date: "2025-01-01", label: "中立", tone: "neutral" },
         { date: "2025-01-02", label: "軽め", tone: "light" },
@@ -256,7 +258,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       expect(result.map((c) => c.label)).toEqual(["中立", "軽め", "重い"]);
     });
 
-    it("options.excludeHeavy が false のとき heavy も含めて返す (明示指定)", () => {
+    it("excludeTones が空配列のとき全 tone を含めて返す (明示指定)", () => {
       const milestones: readonly Milestone[] = [
         { date: "2025-01-01", label: "中立", tone: "neutral" },
         { date: "2025-01-02", label: "軽め", tone: "light" },
@@ -265,14 +267,14 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       const result = computeCoordinates(
         "2025-02-01T12:00:00+09:00",
         milestones,
-        { excludeHeavy: false },
+        { excludeTones: [] },
       );
 
       expect(result).toHaveLength(3);
       expect(result.map((c) => c.label)).toEqual(["中立", "軽め", "重い"]);
     });
 
-    it("options.excludeHeavy が true のとき tone === 'heavy' を除外して返す", () => {
+    it("excludeTones に 'heavy' を指定すると tone === 'heavy' を除外して返す", () => {
       const milestones: readonly Milestone[] = [
         { date: "2025-01-01", label: "中立", tone: "neutral" },
         { date: "2025-01-02", label: "軽め", tone: "light" },
@@ -281,7 +283,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       const result = computeCoordinates(
         "2025-02-01T12:00:00+09:00",
         milestones,
-        { excludeHeavy: true },
+        { excludeTones: ["heavy"] },
       );
 
       expect(result).toHaveLength(2);
@@ -289,7 +291,24 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       expect(result.every((c) => c.tone !== "heavy")).toBe(true);
     });
 
-    it("excludeHeavy: true で全 milestone が heavy のときは空配列を返す", () => {
+    it("excludeTones に複数 tone を指定すると指定した全 tone を除外して返す (heavy / light 指定で neutral のみ残る)", () => {
+      const milestones: readonly Milestone[] = [
+        { date: "2025-01-01", label: "中立", tone: "neutral" },
+        { date: "2025-01-02", label: "軽め", tone: "light" },
+        { date: "2025-01-03", label: "重い", tone: "heavy" },
+      ];
+      const result = computeCoordinates(
+        "2025-02-01T12:00:00+09:00",
+        milestones,
+        { excludeTones: ["heavy", "light"] },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result.map((c) => c.label)).toEqual(["中立"]);
+      expect(result.every((c) => c.tone === "neutral")).toBe(true);
+    });
+
+    it("excludeTones: ['heavy'] で全 milestone が heavy のときは空配列を返す", () => {
       const milestones: readonly Milestone[] = [
         { date: "2025-01-01", label: "重い1", tone: "heavy" },
         { date: "2025-01-02", label: "重い2", tone: "heavy" },
@@ -297,13 +316,13 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       const result = computeCoordinates(
         "2025-02-01T12:00:00+09:00",
         milestones,
-        { excludeHeavy: true },
+        { excludeTones: ["heavy"] },
       );
 
       expect(result).toEqual([]);
     });
 
-    it("excludeHeavy: true でも heavy 以外の入力順は保持される", () => {
+    it("excludeTones: ['heavy'] でも除外されない tone の入力順は保持される", () => {
       const milestones: readonly Milestone[] = [
         { date: "2025-01-05", label: "B", tone: "light" },
         { date: "2025-01-04", label: "X", tone: "heavy" },
@@ -313,13 +332,13 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       const result = computeCoordinates(
         "2025-02-01T12:00:00+09:00",
         milestones,
-        { excludeHeavy: true },
+        { excludeTones: ["heavy"] },
       );
 
       expect(result.map((c) => c.label)).toEqual(["B", "A", "C"]);
     });
 
-    it("excludeHeavy: true と未来除外は両立する (heavy かつ未来 / heavy かつ過去 / 未来 light / 過去 light)", () => {
+    it("excludeTones: ['heavy'] と未来除外は両立する (heavy かつ未来 / heavy かつ過去 / 未来 light / 過去 light)", () => {
       const milestones: readonly Milestone[] = [
         { date: "2025-01-01", label: "過去-light", tone: "light" },
         { date: "2025-01-02", label: "過去-heavy", tone: "heavy" },
@@ -329,7 +348,7 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       const result = computeCoordinates(
         "2025-02-01T12:00:00+09:00",
         milestones,
-        { excludeHeavy: true },
+        { excludeTones: ["heavy"] },
       );
 
       expect(result).toHaveLength(1);

@@ -253,36 +253,44 @@ export const todayInJst = (): string => {
 /**
  * `computeCoordinates` の動作オプション
  *
- * - `excludeHeavy`: true のとき、tone === "heavy" の節目を結果から **除外** する。
- *   未指定または false のときは heavy を含めて全 tone を返す (既存挙動)
+ * - `excludeTones`: 指定した tone を持つ節目を結果から **除外** する。
+ *   未指定または空配列のときは全 tone を返す (既存挙動)。
+ *   例: `["heavy"]` で heavy のみ除外 / `["heavy", "light"]` で neutral のみ残す
  *
- * 設計判断 (Issue #532):
- * - 「表示ポリシーをエンジン引数で表現する」案A を採用
+ * 設計判断 (Issue #532 → Issue #614):
+ * - 「表示ポリシーをエンジン引数で表現する」案A を採用 (Issue #532)
  * - 採用理由:
- *   1. **表示層ごとの再実装リスクを排除する**: heavy 除外を `Coordinate.tsx`
+ *   1. **表示層ごとの再実装リスクを排除する**: tone 除外を `Coordinate.tsx`
  *      側 (`c.tone !== "heavy"` の filter) で行うと、`/anchor` ページ (#493) など
  *      別の表示層で「heavy も含めて出したい」「heavy だけ除外したい」を分岐したい
  *      ときに `tone !== "heavy"` の語彙を表示層ごとに書き直すリスクがある
  *   2. **責務集約**: 「どの tone を除外するか」は表示ポリシーだが、`MilestoneTone`
  *      を知るのは anchors モジュールであり、表示層に enum 比較を漏らしたくない
- *   3. **API 互換性維持**: options は省略可能で、既存呼び出し
- *      (`AnchorPage.tsx` の heavy 含む呼び出し / 全テストケース) は無変更で動作する
+ *   3. **API 表面の単純化**: options は省略可能で、tone 指定なし (未指定 / 空配列)
+ *      の呼び出し (`AnchorPage.tsx` / 全 tone を出す経路) は素直に全件を返す
  * - 案B (ラッパー関数 `computeCoordinatesForDisplay` 追加) との比較: 同じ
  *   モジュールに似た名前の関数を2つ並べると「どちらを呼ぶべきか」の意思決定コストが
  *   表示層側に残る。options による単一関数化の方が API 表面が小さい
- * - 案C (現状維持) との比較: ドキュメントだけでは「呼び出し忘れ」「filter の語彙
- *   揺れ」を防げない (受け入れ基準は「いずれかを選択し判断根拠を明文化」なので
- *   案C も選択肢だが、構造的に再発防止できる案A を採用する)
+ *
+ * boolean → 集合指定への破壊的置換 (Issue #614):
+ * - 当初は「heavy を除外するか」を表す boolean フラグだったが、将来 tone が
+ *   増えたとき (例: `light` も状況により隠したい) に boolean フラグを tone ごとに
+ *   増やすと API が肥大化する。除外したい tone の **集合** を直接受ける
+ *   `excludeTones?: readonly MilestoneTone[]` へ拡張性のため置換した
+ * - `@deprecated` 二段移行 (旧 boolean フラグを当面残す案2) は採らない。
+ *   旧フラグの利用は内部の `Coordinate.tsx` 1 か所のみで外部公開 API では
+ *   なく、後方互換コストを払う意味がないため破壊的に置換する (「過剰抽象化を避ける」
+ *   方針と整合)
  */
 export interface ComputeCoordinatesOptions {
-  readonly excludeHeavy?: boolean;
+  readonly excludeTones?: readonly MilestoneTone[];
 }
 
 /**
  * 1 つの (milestone, publishedDate) ペアを評価し、Coordinate に変換する純粋関数。
  *
  * 戻り値が undefined の場合は以下のいずれかに該当する:
- *   - `excludeHeavy: true` で tone === "heavy" の節目だった
+ *   - `excludeTones` に含まれる tone の節目だった (Issue #614)
  *   - milestone.date の形式不正 (`toMilestoneCalendarDate` が null を返す)
  *   - publishedAt より後 (未来) の節目だった
  *
@@ -292,9 +300,9 @@ export interface ComputeCoordinatesOptions {
 const tryBuildCoordinate = (
   milestone: Milestone,
   publishedDate: Date,
-  excludeHeavy: boolean,
+  excludeTones: readonly MilestoneTone[],
 ): Coordinate | undefined => {
-  if (excludeHeavy && milestone.tone === "heavy") {
+  if (excludeTones.includes(milestone.tone)) {
     return undefined;
   }
   const milestoneDate = toMilestoneCalendarDate(milestone.date);
@@ -325,13 +333,13 @@ const tryBuildCoordinate = (
  * - 空配列が渡されたら空配列を返す
  * - Milestone.date の値範囲は検証せず、`Date.UTC` のロールオーバーを許容する
  *   (`toMilestoneCalendarDate` の JSDoc / テスト「Milestone.date 不正値の仕様」参照)
- * - `options.excludeHeavy` が true のとき、tone === "heavy" の節目を結果から
- *   除外する。未指定または false のときは heavy を含めて返す (Issue #532)
+ * - `options.excludeTones` に含まれる tone の節目を結果から除外する。未指定または
+ *   空配列のときは全 tone を含めて返す (Issue #532 → Issue #614 で集合指定型に拡張)
  *
  * Biome 厳格化耐性メモ (Issue #652 / PR #623 follow-up):
  * - 本関数は `maxAllowedComplexity:8` 厳格化条件下でも違反 0 になるよう、
  *   per-milestone の評価を `tryBuildCoordinate` ヘルパーへ抽出している。
- *   入力順保持 / 未来除外 / 形式不正除外 / excludeHeavy 除外の全仕様は
+ *   入力順保持 / 未来除外 / 形式不正除外 / excludeTones 除外の全仕様は
  *   既存 `anchors.test.ts` で固定済み。
  *
  * @param publishedAt - 記事の公開日時 (ISO 8601 文字列)
@@ -339,7 +347,7 @@ const tryBuildCoordinate = (
  * @param options - 表示ポリシーオプション (省略可能。詳細は
  *   `ComputeCoordinatesOptions` の JSDoc を参照)
  * @returns 各節目に対応する Coordinate の配列 (publishedAt より後の節目は除外。
- *   `excludeHeavy: true` 指定時はさらに heavy も除外)
+ *   `excludeTones` 指定時は該当 tone の節目もさらに除外)
  */
 export const computeCoordinates = (
   publishedAt: string,
@@ -347,11 +355,11 @@ export const computeCoordinates = (
   options?: ComputeCoordinatesOptions,
 ): readonly Coordinate[] => {
   const publishedDate = toJstCalendarDate(publishedAt);
-  const excludeHeavy = options?.excludeHeavy ?? false;
+  const excludeTones = options?.excludeTones ?? [];
 
   const coordinates: Coordinate[] = [];
   for (const milestone of milestones) {
-    const coordinate = tryBuildCoordinate(milestone, publishedDate, excludeHeavy);
+    const coordinate = tryBuildCoordinate(milestone, publishedDate, excludeTones);
     if (coordinate !== undefined) {
       coordinates.push(coordinate);
     }

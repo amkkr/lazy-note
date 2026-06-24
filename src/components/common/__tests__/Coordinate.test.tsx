@@ -343,7 +343,7 @@ describe("Coordinate", () => {
     // 検出できない。境界 3 パターンを最小コストで axe 通過保証する。
     it("heavy 除外で表示件数が縮んだ状態でも axe a11y 違反が 0 件である", async () => {
       // 全節目が過去だが heavy (休職開始) は除外され、表示は neutral / light の
-      // 2 件に縮む構成。Coordinate 内部で `excludeHeavy: true` が効くため
+      // 2 件に縮む構成。Coordinate 内部で `excludeTones: ["heavy"]` が効くため
       // separator は 1 件のみ描画される (境界: 「heavy あり入力」 vs 「heavy なし出力」)
       const { container } = render(
         <Coordinate

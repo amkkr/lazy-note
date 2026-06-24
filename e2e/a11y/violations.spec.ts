@@ -23,7 +23,7 @@ import { expect, test } from "@playwright/test";
  */
 const TARGETS = [
   { name: "home", path: "/" },
-  { name: "post-detail-latest", path: "/posts/20260614095248" },
+  { name: "post-detail-latest", path: "/posts/20260624143000" },
   { name: "post-detail-secondary", path: "/posts/20260307120000" },
 ];
 

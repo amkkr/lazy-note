@@ -822,16 +822,16 @@ describe("Issue #489 AC: 実データ統合 (milestones.json × 全記事)", () 
     return isoList;
   };
 
-  it("datasources/*.md が 17 件存在する (AC 前提条件)", () => {
+  it("datasources/*.md が 18 件存在する (AC 前提条件)", () => {
     const publishedAts = collectPostPublishedAts();
-    expect(publishedAts.length).toBe(17);
+    expect(publishedAts.length).toBe(18);
   });
 
   it("milestones.json は 1 件以上の節目を持つ (AC 前提条件)", () => {
     expect(milestones.length).toBeGreaterThan(0);
   });
 
-  it("全 17 記事に対して computeCoordinates が例外を投げず配列を返す", () => {
+  it("全 18 記事に対して computeCoordinates が例外を投げず配列を返す", () => {
     const publishedAts = collectPostPublishedAts();
     for (const publishedAt of publishedAts) {
       const result = computeCoordinates(publishedAt, milestones);
@@ -839,7 +839,7 @@ describe("Issue #489 AC: 実データ統合 (milestones.json × 全記事)", () 
     }
   });
 
-  it("全 17 記事の Coordinate 配列に undefined / null 要素が混入しない", () => {
+  it("全 18 記事の Coordinate 配列に undefined / null 要素が混入しない", () => {
     const publishedAts = collectPostPublishedAts();
     for (const publishedAt of publishedAts) {
       const result = computeCoordinates(publishedAt, milestones);
@@ -850,7 +850,7 @@ describe("Issue #489 AC: 実データ統合 (milestones.json × 全記事)", () 
     }
   });
 
-  it("全 17 記事の Coordinate.daysSince が NaN にならず 0 以上の整数になる", () => {
+  it("全 18 記事の Coordinate.daysSince が NaN にならず 0 以上の整数になる", () => {
     const publishedAts = collectPostPublishedAts();
     for (const publishedAt of publishedAts) {
       const result = computeCoordinates(publishedAt, milestones);
@@ -862,7 +862,7 @@ describe("Issue #489 AC: 実データ統合 (milestones.json × 全記事)", () 
     }
   });
 
-  it("全 17 記事の Coordinate.tone が MilestoneTone の値域に収まる", () => {
+  it("全 18 記事の Coordinate.tone が MilestoneTone の値域に収まる", () => {
     const allowedTones: readonly string[] = ["neutral", "light", "heavy"];
     const publishedAts = collectPostPublishedAts();
     for (const publishedAt of publishedAts) {
@@ -873,7 +873,7 @@ describe("Issue #489 AC: 実データ統合 (milestones.json × 全記事)", () 
     }
   });
 
-  it("全 17 記事の Coordinate.kind が discriminator 'coordinate' になる", () => {
+  it("全 18 記事の Coordinate.kind が discriminator 'coordinate' になる", () => {
     const publishedAts = collectPostPublishedAts();
     for (const publishedAt of publishedAts) {
       const result = computeCoordinates(publishedAt, milestones);

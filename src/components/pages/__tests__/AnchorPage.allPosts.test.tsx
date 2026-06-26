@@ -8,7 +8,7 @@ import { buildPulseForbiddenVocabRegex } from "../../../test/forbiddenVocab";
 import { AnchorPage } from "../AnchorPage";
 
 /**
- * Issue #493 AC「既存17記事で破綻なく描画されることをテストで確認」を満たす
+ * Issue #493 AC「既存の全記事で破綻なく描画されることをテストで確認」を満たす
  * 統合テスト。
  *
  * datasources/*.md の実ファイル名 (post.id) と AnchorPage が想定する
@@ -237,6 +237,15 @@ const expectations: readonly PostCoordinatesExpectation[] = [
       { label: "社会復帰", tone: "light", daysSince: 282 },
     ],
   },
+  {
+    postId: "20260624143000",
+    publishedAt: "2026-06-24T14:30:00+09:00",
+    expectedRows: [
+      { label: "休職開始", tone: "heavy", daysSince: 323 },
+      { label: "サイト開設", tone: "neutral", daysSince: 302 },
+      { label: "社会復帰", tone: "light", daysSince: 292 },
+    ],
+  },
 ];
 
 /**
@@ -321,7 +330,7 @@ const buildPostSummary = (
   ...overrides,
 });
 
-describe("AnchorPage (実17記事での回帰テスト)", () => {
+describe("AnchorPage (実データ全記事での回帰テスト)", () => {
   it("datasources/*.md を全件取得できる (テスト前提の健全性)", () => {
     expect(postIds.length).toBeGreaterThanOrEqual(1);
   });
@@ -333,7 +342,7 @@ describe("AnchorPage (実17記事での回帰テスト)", () => {
     expect(fixturePostIds).toEqual(postIds);
   });
 
-  it("17 記事 + testMilestones で AnchorPage が破綻なく描画される", () => {
+  it("全記事 + testMilestones で AnchorPage が破綻なく描画される", () => {
     const posts = buildPostSummaries(postIds);
 
     render(
@@ -348,7 +357,7 @@ describe("AnchorPage (実17記事での回帰テスト)", () => {
     expect(milestoneItems).toHaveLength(testMilestones.length);
 
     // 各記事の section は描画され、全記事のタイトルが現れる
-    // (publishedAt 推定可能な記事のみ。既存 17 記事はすべて YYYYMMDDhhmmss 形式)
+    // (publishedAt 推定可能な記事のみ。既存記事はすべて YYYYMMDDhhmmss 形式)
     const postSection = screen.getByRole("region", { name: "各記事の座標" });
     for (const id of postIds) {
       expect(within(postSection).getByText(`記事 ${id}`)).toBeInTheDocument();
@@ -544,7 +553,7 @@ describe("AnchorPage (実17記事での回帰テスト)", () => {
     });
   });
 
-  it("17 記事 + testMilestones で axe a11y 違反が 0 件である", async () => {
+  it("全記事 + testMilestones で axe a11y 違反が 0 件である", async () => {
     const posts = buildPostSummaries(postIds);
 
     const { container } = render(
@@ -557,11 +566,11 @@ describe("AnchorPage (実17記事での回帰テスト)", () => {
     expect(results).toHaveNoViolations();
   });
 
-  it("17 記事 + testMilestones の描画結果に Pulse 思想禁則語彙が現れない", () => {
+  it("全記事 + testMilestones の描画結果に Pulse 思想禁則語彙が現れない", () => {
     // 語彙の網羅は src/test/forbiddenVocab.ts に集約してあり、
     // Coordinate / Resurface / HomePage と共通の禁則語彙集を参照する
     // (Issue #540)。AnchorPage.test.tsx は小規模 fixture でガードしているのに
-    // 対し、本テストは全 17 記事 × testMilestones の組合せでも抽象指標語彙が
+    // 対し、本テストは全記事 × testMilestones の組合せでも抽象指標語彙が
     // 漏れていないことを Tripwire で防御する (= 記事数 × milestone 数の
     // 掛け算で生成される表示文字列の網羅性を担保する責務)。
     //

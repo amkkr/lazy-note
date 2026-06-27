@@ -48,14 +48,14 @@ const basePosts: PostSummary[] = [
 
 describe("AnchorPage", () => {
   describe("節目一覧", () => {
-    it("登録された全ての節目を一覧表示できる", () => {
+    it("showHeavy 指定時は登録された全ての節目を一覧表示できる", () => {
       render(
         <MemoryRouter>
-          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+          <AnchorPage posts={basePosts} milestones={baseMilestones} showHeavy />
         </MemoryRouter>,
       );
 
-      // heavy を含む 3 件すべてを描画する (運用画面なので隠さない)
+      // heavy を含む 3 件すべてを描画する (運用全件確認なので隠さない)
       const milestoneList = screen.getByRole("list", { name: "節目一覧" });
       const items = within(milestoneList).getAllByRole("listitem");
       expect(items).toHaveLength(3);
@@ -65,14 +65,15 @@ describe("AnchorPage", () => {
       expect(within(milestoneList).getByText(/社会復帰/)).toBeInTheDocument();
     });
 
-    it("各節目に登録日を併記できる", () => {
+    it("showHeavy 指定時は各節目に登録日を併記できる", () => {
       render(
         <MemoryRouter>
-          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+          <AnchorPage posts={basePosts} milestones={baseMilestones} showHeavy />
         </MemoryRouter>,
       );
 
       const milestoneList = screen.getByRole("list", { name: "節目一覧" });
+      // 2025-08-05 は heavy 節目 (休職開始) の登録日。showHeavy で表示される。
       expect(within(milestoneList).getByText(/2025-08-05/)).toBeInTheDocument();
       expect(within(milestoneList).getByText(/2025-08-26/)).toBeInTheDocument();
       expect(within(milestoneList).getByText(/2025-09-05/)).toBeInTheDocument();
@@ -112,15 +113,15 @@ describe("AnchorPage", () => {
       expect(within(postSection).getByText("復帰の記事")).toBeInTheDocument();
     });
 
-    it("各記事の座標 (heavy 含む) を一覧表示できる", () => {
+    it("showHeavy 指定時は各記事の座標 (heavy 含む) を一覧表示できる", () => {
       // 復帰の記事 (2025-09-05 公開) は全 3 節目より後 or 同日のため、
       // 「休職開始 から 31 日目」「サイト開設 から 10 日目」「社会復帰 から 0 日目」
-      // が描画される。AnchorPage では heavy も隠さない。
+      // が描画される。showHeavy では heavy も隠さない。
       // 最初の記事 (2025-08-26 公開) は「休職開始 から 21 日目」「サイト開設 から 0 日目」
       // (社会復帰は未来のため除外)。
       render(
         <MemoryRouter>
-          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+          <AnchorPage posts={basePosts} milestones={baseMilestones} showHeavy />
         </MemoryRouter>,
       );
 
@@ -431,10 +432,10 @@ describe("AnchorPage", () => {
   });
 
   describe("デザイントークン (Tripwire)", () => {
-    it("節目一覧の各 li が tone を data-tone 属性として宣言する", () => {
+    it("showHeavy 指定時は節目一覧の各 li が tone を data-tone 属性として宣言する", () => {
       render(
         <MemoryRouter>
-          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+          <AnchorPage posts={basePosts} milestones={baseMilestones} showHeavy />
         </MemoryRouter>,
       );
 
@@ -447,7 +448,115 @@ describe("AnchorPage", () => {
     });
   });
 
+  describe("showHeavy による heavy 抑制 (Issue #839)", () => {
+    it("showHeavy 未指定 (デフォルト) のとき data-tone=heavy の要素を一切描画しない", () => {
+      const { container } = render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      // 節目一覧の li と各記事の座標 span の両方を含め、heavy は 1 件も出ない。
+      // (座標側の抑制が「最重要・落とし穴」: computeCoordinates にも excludeTones
+      //  を渡さないと座標 span に heavy が残ってしまう)
+      expect(container.querySelector('[data-tone="heavy"]')).toBeNull();
+    });
+
+    it("showHeavy 未指定のとき節目一覧から heavy 節目 (休職開始) を抑制する", () => {
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      const milestoneList = screen.getByRole("list", { name: "節目一覧" });
+      const items = within(milestoneList).getAllByRole("listitem");
+      // heavy (休職開始) を抑制し、neutral / light の 2 件のみ残る
+      expect(items).toHaveLength(2);
+      expect(
+        within(milestoneList).queryByText(/休職開始/),
+      ).not.toBeInTheDocument();
+      expect(within(milestoneList).getByText(/サイト開設/)).toBeInTheDocument();
+      expect(within(milestoneList).getByText(/社会復帰/)).toBeInTheDocument();
+    });
+
+    it("showHeavy 未指定のとき各記事の座標から heavy 座標 (休職開始) を抑制する", () => {
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      const postSection = screen.getByRole("region", {
+        name: "各記事の座標",
+      });
+      // 休職開始 (heavy) は各記事の座標一覧にも出ない (= 座標側抑制)
+      expect(
+        within(postSection).queryByText(/休職開始/),
+      ).not.toBeInTheDocument();
+      expect(postSection.querySelector('[data-tone="heavy"]')).toBeNull();
+      // neutral 座標 (サイト開設) は両記事に残る
+      expect(
+        within(postSection).getAllByText(/サイト開設/).length,
+      ).toBeGreaterThan(0);
+    });
+
+    it("showHeavy={true} のとき heavy 節目・heavy 座標を負回帰として表示する", () => {
+      const { container } = render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} showHeavy />
+        </MemoryRouter>,
+      );
+
+      // 負回帰: showHeavy で data-tone=heavy が (節目 li / 座標 span に) 復活する
+      expect(container.querySelector('[data-tone="heavy"]')).not.toBeNull();
+      const milestoneList = screen.getByRole("list", { name: "節目一覧" });
+      expect(within(milestoneList).getByText(/休職開始/)).toBeInTheDocument();
+      const postSection = screen.getByRole("region", {
+        name: "各記事の座標",
+      });
+      expect(
+        within(postSection).getAllByText(/休職開始/).length,
+      ).toBeGreaterThan(0);
+    });
+  });
+
+  describe("サイトの読み方 説明 (Issue #839)", () => {
+    it("『サイトの読み方』を伝える説明文を冒頭に表示する", () => {
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByText(/サイトの読み方/)).toBeInTheDocument();
+    });
+
+    it("説明文が Pulse 禁則語彙に該当しない", () => {
+      const { container } = render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      const text = container.textContent ?? "";
+      expect(text).not.toMatch(buildPulseForbiddenVocabRegex());
+    });
+  });
+
   describe("Document Metadata (React 19 ネイティブ metadata)", () => {
+    it("robots メタタグに noindex,follow を出力できる (クローラ制御 / Issue #839)", () => {
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} />
+        </MemoryRouter>,
+      );
+
+      const robots = document.head.querySelector('meta[name="robots"]');
+      expect(robots).not.toBeNull();
+      expect(robots?.getAttribute("content")).toBe("noindex,follow");
+    });
+
     it("ページ名とサイト名を連結した document.title にできる", () => {
       render(
         <MemoryRouter>

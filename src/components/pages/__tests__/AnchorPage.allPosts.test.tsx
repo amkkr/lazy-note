@@ -33,6 +33,11 @@ import { AnchorPage } from "../AnchorPage";
  *   AnchorPage は Coordinate と異なり tone:heavy を **含めて** 全件描画するため、
  *   各記事の expectedRows には heavy 行も含む点が Coordinate.allPosts.test.tsx
  *   との差異 (詳細は AnchorPage.tsx の JSDoc / Issue #493 参照)。
+ *
+ * Issue #839 (heavy 抑制のデフォルト化): AnchorPage の `showHeavy` prop は
+ * **デフォルト `false` (= 読者面では heavy 抑制)** に変わった。本ファイルは
+ * 「運営者の全件確認 = heavy 含む全件透明性」を回帰するスイートなので、全 render に
+ * `showHeavy` を明示的に渡して透明性パスを exercise する (= `showHeavy={true}`)。
  */
 
 /**
@@ -347,7 +352,7 @@ describe("AnchorPage (実データ全記事での回帰テスト)", () => {
 
     render(
       <MemoryRouter>
-        <AnchorPage posts={posts} milestones={testMilestones} />
+        <AnchorPage posts={posts} milestones={testMilestones} showHeavy />
       </MemoryRouter>,
     );
 
@@ -429,7 +434,7 @@ describe("AnchorPage (実データ全記事での回帰テスト)", () => {
         const posts = buildPostSummaries(postIds);
         render(
           <MemoryRouter>
-            <AnchorPage posts={posts} milestones={testMilestones} />
+            <AnchorPage posts={posts} milestones={testMilestones} showHeavy />
           </MemoryRouter>,
         );
 
@@ -482,7 +487,11 @@ describe("AnchorPage (実データ全記事での回帰テスト)", () => {
 
       render(
         <MemoryRouter>
-          <AnchorPage posts={[postB, postA]} milestones={testMilestones} />
+          <AnchorPage
+            posts={[postB, postA]}
+            milestones={testMilestones}
+            showHeavy
+          />
         </MemoryRouter>,
       );
 
@@ -534,6 +543,7 @@ describe("AnchorPage (実データ全記事での回帰テスト)", () => {
           <AnchorPage
             posts={[postB, invalidPost, postA]}
             milestones={testMilestones}
+            showHeavy
           />
         </MemoryRouter>,
       );
@@ -558,7 +568,7 @@ describe("AnchorPage (実データ全記事での回帰テスト)", () => {
 
     const { container } = render(
       <MemoryRouter>
-        <AnchorPage posts={posts} milestones={testMilestones} />
+        <AnchorPage posts={posts} milestones={testMilestones} showHeavy />
       </MemoryRouter>,
     );
 
@@ -584,7 +594,7 @@ describe("AnchorPage (実データ全記事での回帰テスト)", () => {
     const posts = buildPostSummaries(postIds);
     const { container } = render(
       <MemoryRouter>
-        <AnchorPage posts={posts} milestones={testMilestones} />
+        <AnchorPage posts={posts} milestones={testMilestones} showHeavy />
       </MemoryRouter>,
     );
 

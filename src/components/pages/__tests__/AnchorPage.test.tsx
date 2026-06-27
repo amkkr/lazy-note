@@ -10,9 +10,15 @@ import { AnchorPage } from "../AnchorPage";
 /**
  * AnchorPage (Issue #493 / Phase 2 of Anchor) のテスト。
  *
- * 「個人史タイムライン」運用ページのため、Coordinate (顔1) と Resurface (顔3) の
+ * 「個人史タイムライン」ページのため、Coordinate (顔1) と Resurface (顔3) の
  * 思想とは異なる切り口で:
- * - tone:heavy を **含めて** 節目を全件表示する (運用画面の透明性)
+ * - tone:heavy は `showHeavy` の二相ポリシーで扱う (Issue #839):
+ *   - 読者面 (`showHeavy={false}` = デフォルト): heavy の節目・座標を抑制する
+ *     (ナビ統合で /anchor が読者導線化したため、重い節目を不意に出さない配慮)。
+ *   - 運営者面 (`showHeavy={true}`): heavy も含めて全件表示する (運用画面の
+ *     透明性 = 全件確認)。
+ *   抑制は anchors.ts の `excludeTones` を再利用する (表示層に tone 比較を
+ *   持ち込まない)。本ファイルは両相を Tripwire で固定する。
  * - 各記事の座標を控えめに一覧表示する (過剰可視化禁止 = グラフ/統計なし)
  * - 空状態は穏やかに表示する (「データなし」のような断定的表現を避ける)
  *

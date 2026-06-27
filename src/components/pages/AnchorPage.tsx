@@ -364,9 +364,14 @@ const ANCHOR_COORDINATE_LABEL_TEMPLATE = (
 /**
  * 座標 1 件の表示文言を構築する純粋関数。
  *
- * Coordinate コンポーネントと同じ書式 (「{label} から N 日目」) を流用するが、
- * AnchorPage では tone:heavy も含めて表示するため、ここでは tone による分岐は
- * しない (= 隠さない)。
+ * Coordinate コンポーネントと同じ書式 (「{label} から N 日目」) を流用する。
+ * 本関数は **tone による分岐を持たない** (受け取った Coordinate をそのまま
+ * 文言化するだけ)。tone:heavy の抑制は上流の `computeCoordinates`
+ * (`excludeTones`) で行われるため、ここに到達する座標は既に表示対象に
+ * 絞り込まれている (Issue #839)。したがって `showHeavy={false}` (読者面の
+ * デフォルト) では heavy 座標はそもそも本関数に渡らず、`showHeavy={true}`
+ * (運営者面) では heavy も含めて渡る。どちらの場合も本関数の振る舞いは
+ * 「渡された座標を分岐なく文言化する」で一貫する。
  */
 const buildCoordinateLabel = (coordinate: Coordinate): string => {
   return ANCHOR_COORDINATE_LABEL_TEMPLATE(

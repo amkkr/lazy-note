@@ -538,14 +538,18 @@ describe("AnchorPage", () => {
       expect(screen.getByText(/サイトの読み方/)).toBeInTheDocument();
     });
 
-    it("説明文が Pulse 禁則語彙に該当しない", () => {
-      const { container } = render(
+    it("説明文 (reading-guide) が Pulse 禁則語彙に該当しない", () => {
+      render(
         <MemoryRouter>
           <AnchorPage posts={basePosts} milestones={baseMilestones} />
         </MemoryRouter>,
       );
 
-      const text = container.textContent ?? "";
+      // テスト名どおり「説明文 (ANCHOR_PAGE_READING_GUIDE) 段落」のみにスコープを
+      // 絞る (ページ全体の禁則語彙検査は別テスト "投稿頻度に関する文言を含まない"
+      // が担う)。Footer.test.tsx が link.textContent でスコープを絞るのと同じ流儀。
+      const readingGuide = screen.getByText(/サイトの読み方/);
+      const text = readingGuide.textContent ?? "";
       expect(text).not.toMatch(buildPulseForbiddenVocabRegex());
     });
   });

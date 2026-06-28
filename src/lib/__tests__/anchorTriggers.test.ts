@@ -2,10 +2,12 @@
  * Anchor 再評価トリガー検知器 (anchorTriggers.ts) の単体テスト (Issue #840)
  *
  * 本ファイルは合成入力 (固定 fixture) で `selectDominantMilestone` /
- * `computeDominantMilestoneShare` の **決定的な振る舞い** を固定する:
+ * `computeDominantMilestoneShare` / `countNonHeavyMilestones` の
+ * **決定的な振る舞い** を固定する:
  * - 支配節目 = heavy 除外後の通過済み節目のうち daysSince 最小
  * - タイブレーク (daysSince 同値) は milestones 入力順で先勝ち
  * - 母数 = 支配節目を 1 つ以上持つ記事 (推定不能 / 非 heavy 座標 0 件は除外)
+ * - グルーピングキーは date + label の複合 (同一 label・別 date の併合防止)
  *
  * 実データ (datasources/*.md + 本番 milestones.json) を使った Tripwire は
  * `anchorTriggers.allPosts.test.ts` 側に分離する (本ファイルはロジック単体検証)。
@@ -14,6 +16,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeDominantMilestoneShare,
+  countNonHeavyMilestones,
   selectDominantMilestone,
 } from "../anchorTriggers";
 import type { Milestone } from "../anchors";
@@ -30,6 +33,24 @@ const fixtureMilestones: readonly Milestone[] = [
   { date: "2025-09-05", label: "社会復帰", tone: "light" },
 ];
 
+describe("countNonHeavyMilestones: heavy 除外後の節目件数", () => {
+  it("heavy を除いた件数 (neutral + light) を返す", () => {
+    expect(countNonHeavyMilestones(fixtureMilestones)).toBe(2);
+  });
+
+  it("全節目が heavy のとき 0 を返す", () => {
+    const allHeavy: readonly Milestone[] = [
+      { date: "2025-08-05", label: "休職開始", tone: "heavy" },
+      { date: "2025-08-10", label: "別の重い節目", tone: "heavy" },
+    ];
+    expect(countNonHeavyMilestones(allHeavy)).toBe(0);
+  });
+
+  it("空配列のとき 0 を返す", () => {
+    expect(countNonHeavyMilestones([])).toBe(0);
+  });
+});
+
 describe("selectDominantMilestone: 1 記事の支配節目選定", () => {
   it("複数の通過済み節目があるとき daysSince 最小 (最後に通過した節目) を選ぶ", () => {
     // 2025-09-08 公開: サイト開設 (13 日前) / 社会復帰 (3 日前) を通過済み。
@@ -39,7 +60,7 @@ describe("selectDominantMilestone: 1 記事の支配節目選定", () => {
       fixtureMilestones,
     );
     expect(dominant?.label).toBe("社会復帰");
-    expect(dominant?.daysSince).toBe(3);
+    expect(dominant?.date).toBe("2025-09-05");
   });
 
   it("非 heavy の通過済み節目が 1 件だけのとき、その節目を選ぶ", () => {
@@ -49,7 +70,7 @@ describe("selectDominantMilestone: 1 記事の支配節目選定", () => {
       fixtureMilestones,
     );
     expect(dominant?.label).toBe("サイト開設");
-    expect(dominant?.daysSince).toBe(1);
+    expect(dominant?.date).toBe("2025-08-26");
   });
 
   it("heavy 節目しか通過していない記事は支配節目を持たない (undefined)", () => {
@@ -82,7 +103,7 @@ describe("selectDominantMilestone: 1 記事の支配節目選定", () => {
       tieMilestones,
     );
     expect(dominant?.label).toBe("先勝ち");
-    expect(dominant?.daysSince).toBe(0);
+    expect(dominant?.date).toBe("2025-08-26");
   });
 });
 
@@ -128,14 +149,36 @@ describe("computeDominantMilestoneShare: 最大支配グループ比率の計算
     expect(result.groups).toEqual([]);
   });
 
-  it("count 同値のグループは label 昇順で整列する (決定的)", () => {
+  it("count 同値のグループは label 昇順 (コードポイント順) で整列する (決定的)", () => {
     // サイト開設 1 件 / 社会復帰 1 件 (count 同値) を label 昇順で並べる。
-    // localeCompare 昇順では「サイト開設」< 「社会復帰」。
+    // コードポイント順でも「サイト開設」< 「社会復帰」が成立する。
     const fileNames = ["20250827000000.md", "20250908000000.md"];
     const result = computeDominantMilestoneShare(fileNames, fixtureMilestones);
     expect(result.groups).toEqual([
       { label: "サイト開設", count: 1 },
       { label: "社会復帰", count: 1 },
     ]);
+  });
+
+  it("同一 label・別 date の節目を併合せず、複合キーで別グループに分ける", () => {
+    // 同じ label「復帰」を date 違いで 2 件登録する (id 無しでの取り違え検知)。
+    // label 単独キーだと 1 グループ count=2 (= 偽陰性方向) に水増しされるが、
+    // date + label 複合キーなら各 1 件の別グループになる。
+    const dupLabelMilestones: readonly Milestone[] = [
+      { date: "2025-08-26", label: "復帰", tone: "neutral" },
+      { date: "2025-09-05", label: "復帰", tone: "light" },
+    ];
+    const fileNames = [
+      "20250827000000.md", // 2025-08-26 の「復帰」のみ通過済み
+      "20250908000000.md", // より新しい 2025-09-05 の「復帰」が支配
+    ];
+    const result = computeDominantMilestoneShare(fileNames, dupLabelMilestones);
+    expect(result.denominator).toBe(2);
+    // 併合されていれば groups は 1 件 (count=2) になるはず。複合キーなので 2 件。
+    expect(result.groups).toEqual([
+      { label: "復帰", count: 1 },
+      { label: "復帰", count: 1 },
+    ]);
+    expect(result.maxShare).toBe(0.5);
   });
 });

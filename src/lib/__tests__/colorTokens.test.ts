@@ -237,6 +237,28 @@ describe("semantic トークン (light/dark の本文ペア)", () => {
     expect(r).toBeGreaterThanOrEqual(contrastThresholds.bodyText);
   });
 
+  it("semanticColorTokens.accentLink × bgSurface (light) が WCAG AA 4.5:1 以上である", () => {
+    // Issue #839: Footer のナビリンク (accent.link) は bg.surface 上に置かれ、
+    // 全ページの Footer 入口リンクとして導入された。Footer.tsx のコメントが
+    // ハードコードで主張する AA 充足 (light 実測 ~7.38:1) を Tripwire で固定する。
+    // 通常テキスト (navigation Link = fontSize sm) 用途のため AA 閾値 4.5:1。
+    const r = ratio(
+      semanticColorTokens.accentLink.light,
+      semanticColorTokens.bgSurface.light,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
+  it("semanticColorTokens.accentLink × bgSurface (dark) が WCAG AA 4.5:1 以上である", () => {
+    // Issue #839: dark は実測 ~4.69:1 と AA (4.5:1) ギリギリのため、閾値割れを
+    // 将来検知できるよう実測値ベースで AA を固定する (Footer ナビリンクの回帰防御)。
+    const r = ratio(
+      semanticColorTokens.accentLink.dark,
+      semanticColorTokens.bgSurface.dark,
+    );
+    expect(r).toBeGreaterThanOrEqual(contrastThresholds.largeText);
+  });
+
   it("light bgCanvas が cream-50 (primitives) を指している", () => {
     expect(semanticColorTokens.bgCanvas.light).toBe(
       oklchPrimitives.cream["50"],

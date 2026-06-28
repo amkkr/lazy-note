@@ -841,5 +841,24 @@ describe("PostDetailPage", () => {
 
       expect(document.head.querySelectorAll("title")).toHaveLength(1);
     });
+
+    it("robots メタタグを出力しない (インデックス維持 / Issue #839)", () => {
+      // /anchor のみ noindex,follow を付け、記事詳細 (/posts/:timestamp) は
+      // インデックス対象に保つ。将来の共有 layout 化等でサイト全体 de-index が
+      // 緑のまま起きるのを防ぐ負回帰テスト (/anchor 側の正テストは
+      // AnchorPage.test.tsx)。
+      render(
+        <MemoryRouter>
+          <PostDetailPage
+            post={mockPost}
+            olderPost={null}
+            newerPost={null}
+            milestones={[]}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
+    });
   });
 });

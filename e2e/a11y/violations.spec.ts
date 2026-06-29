@@ -7,7 +7,8 @@ import { expect, test } from "@playwright/test";
  * a11y ハードゲート G1: axe-core violations = 0
  *
  * Editorial Citrus デザインリニューアル `07-accessibility-and-performance.md` §3 に基づく。
- * 代表 3 ページ (ホーム / 記事詳細 2 種) で WCAG 2.1 AA レベルまでの違反を検査する。
+ * 代表 4 ページ (ホーム / 記事詳細 2 種 / 個人史タイムライン /anchor) で
+ * WCAG 2.1 AA レベルまでの違反を検査する。
  *
  * - AAA タグはコントラスト 7:1 を culori 実測で別途検証 (G2 / Issue #4a) するため、
  *   axe-core 側では AA までを必須ゲートとする。
@@ -25,6 +26,10 @@ const TARGETS = [
   { name: "home", path: "/" },
   { name: "post-detail-latest", path: "/posts/20260624143000" },
   { name: "post-detail-secondary", path: "/posts/20260307120000" },
+  // /anchor は Footer の「サイトの読み方」入口でナビ統合された読者導線
+  // (Issue #839)。読者面のためデフォルトで heavy を抑制した状態の DOM を
+  // axe で検査する (Footer の navigation Link / accent.link コントラスト含む)。
+  { name: "anchor", path: "/anchor" },
 ];
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];

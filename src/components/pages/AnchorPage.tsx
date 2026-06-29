@@ -5,6 +5,7 @@ import {
   computeCoordinates,
   inferPublishedAt,
   type Milestone,
+  type MilestoneTone,
 } from "../../lib/anchors";
 import { SITE_NAME, UNTITLED_POST } from "../../lib/i18nLiterals";
 import type { PostSummary } from "../../lib/markdown";
@@ -28,8 +29,9 @@ interface AnchorPageProps {
    */
   posts: readonly PostSummary[];
   /**
-   * 全節目データ。AnchorPage は運用画面のため、tone:heavy を **含めて** 全件
-   * 表示する (Coordinate / Resurface とは異なるポリシー)。
+   * 全節目データ。`showHeavy` の値により tone:heavy の扱いが変わる
+   * (デフォルト `showHeavy=false` では heavy を抑制する。詳細は `showHeavy`
+   * の JSDoc 参照)。
    *
    * **表示順契約 (Issue #543)**: 節目一覧セクションでの表示順は、本配列の
    * **入力順をそのまま保つ** (date / tone での内部ソートはしない)。
@@ -38,6 +40,28 @@ interface AnchorPageProps {
    * 呼び出し側でソート済み配列を渡すこと。
    */
   milestones: readonly Milestone[];
+  /**
+   * tone:heavy の節目・座標を表示するかどうか (Issue #839)。
+   *
+   * - **デフォルト `false` (= 抑制)**: 公開 `/anchor` (読者面) は heavy を
+   *   抑制する。ナビ統合 (Footer の「サイトの読み方」入口) で `/anchor` が
+   *   「補助ページ」から「読者導線」へ性質変化したため、重い節目を不意に
+   *   突きつけない配慮としてデフォルトを抑制側に倒す (docs/ANCHOR.md #545)。
+   * - **`true`**: 節目一覧・各記事の座標の両方で heavy も含めて全件表示する
+   *   (= 運営者の全件確認パス)。ローカル開発で運営者が全件確認したいとき等に
+   *   呼び出し側で明示的に渡す。
+   *
+   * 抑制の実体は `src/lib/anchors.ts` の `excludeTones`
+   * (`ComputeCoordinatesOptions.excludeTones`) を再利用する。表示層に
+   * `tone === "heavy"` のような enum リテラル比較を持ち込まず、除外語彙
+   * (`HEAVY_TONES`) を `excludeTones` へ渡す形に統一する (責務集約)。
+   *
+   * **隠す効果の限界**: 本サイトは CSR の静的サイト (GitHub Pages 配信) で
+   * サーバ側認証境界を持てず、URL 改変・公開リポジトリ閲覧
+   * (`datasources/milestones.json` 直読み) は技術的に防げない。本抑制は機密
+   * 保護ではなく「重い節目を不意に突きつけない配慮」である。
+   */
+  showHeavy?: boolean;
 }
 
 /**
@@ -46,8 +70,10 @@ interface AnchorPageProps {
  * /anchor ページ本体。「節目」と「各記事の座標」を確認できる素朴な一覧画面。
  * **過剰な可視化 (グラフ/統計) は出さない** Pulse 思想の継承。
  *
- * 設計の核 (epic #487 / Issue #493):
- * - 節目を全件 (heavy を含む) 一覧表示する (= 運用画面の透明性)
+ * 設計の核 (epic #487 / Issue #493 / Issue #839):
+ * - 節目を一覧表示する。`showHeavy` (デフォルト `false`) により tone:heavy の
+ *   表示可否を切り替える。読者面 (公開 `/anchor`) はデフォルトで heavy を抑制し、
+ *   運営者の全件確認は `showHeavy={true}` で行う (Issue #839)
  * - 各記事の座標を控えめに一覧表示する (Coordinate と同じトーン)
  * - 投稿頻度・統計・グラフのような過剰可視化を一切しない
  * - 空状態は穏やかに表示する (「データなし」「エラー」のような断定的文言を
@@ -65,8 +91,8 @@ interface AnchorPageProps {
  *   呼び出し側でソート済み配列を渡すこと。
  *
  * Coordinate コンポーネントを再利用しない理由:
- * - Coordinate は tone:heavy を除外する (「静かに隠す」設計)
- * - AnchorPage は heavy も表示する (運用画面なので透明性を優先)
+ * - Coordinate は常に tone:heavy を除外する (「静かに隠す」設計、固定)
+ * - AnchorPage は `showHeavy` で heavy 表示可否を切り替えられる (Issue #839)
  * - ポリシーが異なるため、AnchorPage 内で素朴に「{label} から N 日目」を組み立てる
  *
  * a11y:
@@ -262,6 +288,18 @@ const skippedNoteStyles = css({
 const ANCHOR_PAGE_HEADING = "Anchor" as const;
 const ANCHOR_PAGE_DESCRIPTION =
   "登録された節目と、各記事の座標を一覧表示します。" as const;
+// 「サイトの読み方」を伝える補助説明文 (Issue #839)。Footer の入口リンク
+// (「サイトの読み方」) からの導線に呼応し、このページの読み方を 1〜2 文で添える。
+// 過剰可視化 / 件数・頻度語彙を避け、Pulse 禁則語彙 (forbiddenVocab.ts) に
+// 該当しないこと (= AnchorPage.test.tsx で担保)。
+const ANCHOR_PAGE_READING_GUIDE =
+  "あわせて、このページはこのサイトの読み方を伝える補助ビューでもあります。各記事がどの節目の地点で書かれたかを、静かにたどれます。" as const;
+
+// heavy 抑制に使う tone 集合 (Issue #839)。マジックリテラル ["heavy"] を表示層に
+// 直書きせず、名前付き定数に集約して anchors.ts の `excludeTones`
+// (ComputeCoordinatesOptions) へ渡す。これにより `tone === "heavy"` のような
+// enum リテラル比較を表示層に漏らさず、除外語彙を 1 箇所に局所化する。
+const HEAVY_TONES: readonly MilestoneTone[] = ["heavy"];
 
 /**
  * `/anchor` ルートの Document Metadata 文言 (React 19 ネイティブ metadata)。
@@ -286,11 +324,17 @@ const ANCHOR_META_DESCRIPTION = ANCHOR_PAGE_DESCRIPTION;
  *
  * `og:*` は最小限 (title / description / type / site_name) を添える。
  * Anchor は記事一覧ではなく運用ビューなので `og:type` は `website`。
+ *
+ * クローラ制御 (Issue #839): `/anchor` は読者導線になったが、検索インデックス
+ * 対象にはしない。`noindex,follow` で検索結果からは除外しつつリンク先は辿らせる。
+ * `/` ・ `/posts/:timestamp` には robots を付けない (インデックス維持)。
+ * canonical / `og:url` は追加しない (Issue #839 で対象外)。
  */
 const AnchorPageMetadata = () => (
   <>
     <title>{ANCHOR_META_TITLE}</title>
     <meta name="description" content={ANCHOR_META_DESCRIPTION} />
+    <meta name="robots" content="noindex,follow" />
     <meta property="og:title" content={ANCHOR_META_TITLE} />
     <meta property="og:description" content={ANCHOR_META_DESCRIPTION} />
     <meta property="og:type" content="website" />
@@ -320,9 +364,14 @@ const ANCHOR_COORDINATE_LABEL_TEMPLATE = (
 /**
  * 座標 1 件の表示文言を構築する純粋関数。
  *
- * Coordinate コンポーネントと同じ書式 (「{label} から N 日目」) を流用するが、
- * AnchorPage では tone:heavy も含めて表示するため、ここでは tone による分岐は
- * しない (= 隠さない)。
+ * Coordinate コンポーネントと同じ書式 (「{label} から N 日目」) を流用する。
+ * 本関数は **tone による分岐を持たない** (受け取った Coordinate をそのまま
+ * 文言化するだけ)。tone:heavy の抑制は上流の `computeCoordinates`
+ * (`excludeTones`) で行われるため、ここに到達する座標は既に表示対象に
+ * 絞り込まれている (Issue #839)。したがって `showHeavy={false}` (読者面の
+ * デフォルト) では heavy 座標はそもそも本関数に渡らず、`showHeavy={true}`
+ * (運営者面) では heavy も含めて渡る。どちらの場合も本関数の振る舞いは
+ * 「渡された座標を分岐なく文言化する」で一貫する。
  */
 const buildCoordinateLabel = (coordinate: Coordinate): string => {
   return ANCHOR_COORDINATE_LABEL_TEMPLATE(
@@ -354,10 +403,16 @@ interface PostCoordinatesEntry {
  * `posts.length - entries.length` として算出する (Issue #544)。これにより
  * 「publishedAt 推定不可」の判定軸を本関数 1 箇所に集約し、二重定義による
  * 将来の乖離リスクを排除する。
+ *
+ * `excludeTones` (Issue #839): 各記事の座標から除外する tone 集合を
+ * `computeCoordinates` の `excludeTones` オプションにそのまま委譲する。これにより
+ * 「heavy 座標を読者面で抑制する」ポリシーを表示層の enum 比較ではなく
+ * anchors.ts のエンジン側で処理する (= 節目一覧側の除外と語彙を共有する)。
  */
 const buildPostCoordinatesEntries = (
   posts: readonly PostSummary[],
   milestones: readonly Milestone[],
+  excludeTones: readonly MilestoneTone[],
 ): readonly PostCoordinatesEntry[] => {
   const entries: PostCoordinatesEntry[] = [];
   for (const post of posts) {
@@ -365,7 +420,9 @@ const buildPostCoordinatesEntries = (
     if (publishedAt === undefined) {
       continue;
     }
-    const coordinates = computeCoordinates(publishedAt, milestones);
+    const coordinates = computeCoordinates(publishedAt, milestones, {
+      excludeTones,
+    });
     entries.push({ post, coordinates });
   }
   return entries;
@@ -374,164 +431,197 @@ const buildPostCoordinatesEntries = (
 /**
  * AnchorPage コンポーネント本体。
  */
-export const AnchorPage = memo(({ posts, milestones }: AnchorPageProps) => {
-  // 各セクション見出しの動的 ID (React 19 useId)。静的 id の重複を避け
-  // (useUniqueElementIds)、section の aria-labelledby と heading を紐付ける。
-  const milestonesHeadingId = useId();
-  const postsHeadingId = useId();
+export const AnchorPage = memo(
+  ({ posts, milestones, showHeavy = false }: AnchorPageProps) => {
+    // 各セクション見出しの動的 ID (React 19 useId)。静的 id の重複を避け
+    // (useUniqueElementIds)、section の aria-labelledby と heading を紐付ける。
+    const milestonesHeadingId = useId();
+    const postsHeadingId = useId();
 
-  const postEntries = buildPostCoordinatesEntries(posts, milestones);
-  // publishedAt 推定不可でスキップされた記事の件数 (Issue #544)。
-  // 「publishedAt 推定不可」の判定軸は `buildPostCoordinatesEntries` 内に集約
-  // されており、ここでは入力件数と描画対象件数の差分で算出する (= 二重定義の
-  // 乖離リスクを排除)。0 件のときは注記そのものを出さない (= ノイズ削減)。
-  const skippedCount = posts.length - postEntries.length;
+    // heavy 抑制ポリシー (Issue #839)。showHeavy=false (読者面のデフォルト) では
+    // HEAVY_TONES を除外集合とし、true (運営者の全件確認) では空集合 = 全 tone 表示。
+    // この excludeTones を「節目一覧の filter」と「座標計算 computeCoordinates」の
+    // 両方に渡すことで、data-tone="heavy" が出る 2 箇所 (節目 li / 座標 span) を
+    // 同じ語彙で同時に抑制する。
+    const excludeTones: readonly MilestoneTone[] = showHeavy ? [] : HEAVY_TONES;
 
-  return (
-    <div className={containerStyles}>
-      {/* React 19 ネイティブ Document Metadata。<head> へ hoist される。
+    // 節目一覧: excludeTones に含まれる tone の節目を除外してから描画する。
+    // `excludeTones.includes(...)` は anchors.ts の `tryBuildCoordinate` と
+    // 同じ除外判定語彙の再利用であり、表示層に `tone === "heavy"` のような
+    // 新規 enum リテラル比較を持ち込まない。
+    const visibleMilestones = milestones.filter(
+      (milestone) => !excludeTones.includes(milestone.tone),
+    );
+
+    const postEntries = buildPostCoordinatesEntries(
+      posts,
+      milestones,
+      excludeTones,
+    );
+    // publishedAt 推定不可でスキップされた記事の件数 (Issue #544)。
+    // 「publishedAt 推定不可」の判定軸は `buildPostCoordinatesEntries` 内に集約
+    // されており、ここでは入力件数と描画対象件数の差分で算出する (= 二重定義の
+    // 乖離リスクを排除)。0 件のときは注記そのものを出さない (= ノイズ削減)。
+    const skippedCount = posts.length - postEntries.length;
+
+    return (
+      <div className={containerStyles}>
+        {/* React 19 ネイティブ Document Metadata。<head> へ hoist される。
           本ページが描画する <title> はこの 1 つだけ (1 ルート 1 タイトル)。 */}
-      <AnchorPageMetadata />
-      <div className={sectionGapStyles}>
-        <div>
-          <h1 className={pageHeadingStyles}>{ANCHOR_PAGE_HEADING}</h1>
-          <p className={pageDescriptionStyles}>{ANCHOR_PAGE_DESCRIPTION}</p>
-        </div>
+        <AnchorPageMetadata />
+        <div className={sectionGapStyles}>
+          <div>
+            <h1 className={pageHeadingStyles}>{ANCHOR_PAGE_HEADING}</h1>
+            <p className={pageDescriptionStyles}>{ANCHOR_PAGE_DESCRIPTION}</p>
+            {/* 「サイトの読み方」を伝える補助説明文 (Issue #839)。Footer の入口
+              リンクからの導線に呼応する。過剰可視化なし・件数/頻度語彙なし。 */}
+            <p className={pageDescriptionStyles}>{ANCHOR_PAGE_READING_GUIDE}</p>
+          </div>
 
-        {/* 節目一覧 (heavy を含む全件)
-            運用画面のため Coordinate (= 表示時に heavy 除外) とは異なり
-            全 tone を見せる。tone は data-tone 属性で構造に出し、視覚は色で
-            分けない (= 過剰可視化を避ける)。 */}
-        <section
-          aria-labelledby={milestonesHeadingId}
-          className={sectionBlockStyles}
-          data-token-border="border.subtle"
-        >
-          <h2 id={milestonesHeadingId} className={sectionHeadingStyles}>
-            {ANCHOR_MILESTONES_SECTION_HEADING}
-          </h2>
-          {milestones.length === 0 ? (
-            <p className={emptyStateStyles}>
-              {ANCHOR_EMPTY_MILESTONES_MESSAGE}
-            </p>
-          ) : (
-            <ul
-              aria-label={ANCHOR_MILESTONES_LIST_ARIA_LABEL}
-              className={milestoneListStyles}
-              // biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する
-              role="list"
-            >
-              {milestones.map((milestone) => (
-                <li
-                  // 同 date + 同 label の節目は意味的に重複であるため、
-                  // 複合キーで一意性を担保する (React duplicate key warning 回避)
-                  key={`${milestone.date}-${milestone.label}`}
-                  className={milestoneItemStyles}
-                  data-tone={milestone.tone}
-                >
-                  <span className={milestoneDateStyles}>{milestone.date}</span>
-                  <span>{milestone.label}</span>
-                  {/* tone の英字タグ。aria-hidden で SR からは隠す
+          {/* 節目一覧 (showHeavy により heavy 表示可否を切替 / Issue #839)
+            読者面 (showHeavy=false) では excludeTones で heavy を除外した
+            visibleMilestones を描画し、showHeavy=true では全 tone を見せる。
+            tone は data-tone 属性で構造に出し、視覚は色で分けない
+            (= 過剰可視化を避ける)。 */}
+          <section
+            aria-labelledby={milestonesHeadingId}
+            className={sectionBlockStyles}
+            data-token-border="border.subtle"
+          >
+            <h2 id={milestonesHeadingId} className={sectionHeadingStyles}>
+              {ANCHOR_MILESTONES_SECTION_HEADING}
+            </h2>
+            {visibleMilestones.length === 0 ? (
+              <p className={emptyStateStyles}>
+                {ANCHOR_EMPTY_MILESTONES_MESSAGE}
+              </p>
+            ) : (
+              <ul
+                aria-label={ANCHOR_MILESTONES_LIST_ARIA_LABEL}
+                className={milestoneListStyles}
+                // biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する
+                role="list"
+              >
+                {visibleMilestones.map((milestone) => (
+                  <li
+                    // 同 date + 同 label の節目は意味的に重複であるため、
+                    // 複合キーで一意性を担保する (React duplicate key warning 回避)
+                    key={`${milestone.date}-${milestone.label}`}
+                    className={milestoneItemStyles}
+                    data-tone={milestone.tone}
+                  >
+                    <span className={milestoneDateStyles}>
+                      {milestone.date}
+                    </span>
+                    <span>{milestone.label}</span>
+                    {/* tone の英字タグ。aria-hidden で SR からは隠す
                       (data-tone 属性で SR 非依存の構造表現を別途行うため)。
                       視覚は Editorial 雑誌風の控えめな小型タグとして残す。 */}
-                  <span aria-hidden="true" className={milestoneToneLabelStyles}>
-                    {milestone.tone}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                    <span
+                      aria-hidden="true"
+                      className={milestoneToneLabelStyles}
+                    >
+                      {milestone.tone}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-        {/* 各記事の座標一覧
+          {/* 各記事の座標一覧
             posts が空のとき section (= region) ごと出さず、穏やかな空状態テキスト
             のみ表示する (= 見出し "各記事の座標" を出さないことで、region として
             残らない)。 posts は存在するが publishedAt 推定不可な id を持つもの
             (= テスト用 id) は素直にスキップする。 */}
-        {posts.length === 0 ? (
-          <div className={sectionBlockStyles} data-token-border="border.subtle">
-            <p className={emptyStateStyles}>{ANCHOR_EMPTY_POSTS_MESSAGE}</p>
-          </div>
-        ) : (
-          <section
-            aria-labelledby={postsHeadingId}
-            className={sectionBlockStyles}
-            data-token-border="border.subtle"
-          >
-            <h2 id={postsHeadingId} className={sectionHeadingStyles}>
-              {ANCHOR_POSTS_SECTION_HEADING}
-            </h2>
-            {postEntries.length === 0 ? (
-              // 全記事が publishedAt 推定不可だった場合のフォールバック (Issue #544)。
-              // 空 `<ul>` を出すと「各記事の座標」見出し + 空 list + 注記という
-              // 不自然な画面になるため、穏やかな空状態テキストにまとめる。
-              <p className={emptyStateStyles} role="note">
-                {ANCHOR_ALL_SKIPPED_FALLBACK_TEMPLATE(skippedCount)}
-              </p>
-            ) : (
-              <>
-                {/* biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する */}
-                <ul className={postListStyles} role="list">
-                  {postEntries.map((entry) => (
-                    <li
-                      key={entry.post.id}
-                      className={postItemStyles}
-                      data-token-border="border.subtle"
-                      // Issue #624 AC3 / PR #617 M3: 各記事 li の構造に post.id を
-                      // 機械可読な形で出す。これにより `AnchorPage.allPosts.test.tsx`
-                      // 等の順序検証 Tripwire が textContent ベース (タイトル文字列
-                      // マッチ) から構造属性ベース (`data-post-id` 完全一致) に
-                      // 切り替えられる。
-                      //
-                      // 命名規約 (CLAUDE.md「data-* 属性命名規約」):
-                      // - `data-variant` / `data-tone` のような enum 値属性ではなく、
-                      //   PostSummary.id (= YYYYMMDDhhmmss timestamp 文字列) を
-                      //   そのまま反映する **識別子属性** として定義する
-                      // - ドメイン enum ではないが、表示文脈で post の同一性を
-                      //   構造的に観測可能にする目的のため `data-post-id` という
-                      //   ドメイン語彙そのままの属性名を採用する
-                      // - 同名衝突回避のため、post ドメイン側で先に占有する形を取る
-                      //   (後発ドメインが ID 属性を必要とする場合は別 prefix を使う)
-                      data-post-id={entry.post.id}
-                    >
-                      <span className={postTitleStyles}>
-                        {entry.post.title || UNTITLED_POST}
-                      </span>
-                      {entry.coordinates.length === 0 ? (
-                        <span className={emptyStateStyles}>
-                          {ANCHOR_EMPTY_COORDINATES_MESSAGE}
+          {posts.length === 0 ? (
+            <div
+              className={sectionBlockStyles}
+              data-token-border="border.subtle"
+            >
+              <p className={emptyStateStyles}>{ANCHOR_EMPTY_POSTS_MESSAGE}</p>
+            </div>
+          ) : (
+            <section
+              aria-labelledby={postsHeadingId}
+              className={sectionBlockStyles}
+              data-token-border="border.subtle"
+            >
+              <h2 id={postsHeadingId} className={sectionHeadingStyles}>
+                {ANCHOR_POSTS_SECTION_HEADING}
+              </h2>
+              {postEntries.length === 0 ? (
+                // 全記事が publishedAt 推定不可だった場合のフォールバック (Issue #544)。
+                // 空 `<ul>` を出すと「各記事の座標」見出し + 空 list + 注記という
+                // 不自然な画面になるため、穏やかな空状態テキストにまとめる。
+                <p className={emptyStateStyles} role="note">
+                  {ANCHOR_ALL_SKIPPED_FALLBACK_TEMPLATE(skippedCount)}
+                </p>
+              ) : (
+                <>
+                  {/* biome-ignore lint/a11y/noRedundantRoles: Safari/VoiceOver で list-style: none を当てた ul の list セマンティクスが剥奪される既知の WebKit バグへの防御として role="list" を明示する */}
+                  <ul className={postListStyles} role="list">
+                    {postEntries.map((entry) => (
+                      <li
+                        key={entry.post.id}
+                        className={postItemStyles}
+                        data-token-border="border.subtle"
+                        // Issue #624 AC3 / PR #617 M3: 各記事 li の構造に post.id を
+                        // 機械可読な形で出す。これにより `AnchorPage.allPosts.test.tsx`
+                        // 等の順序検証 Tripwire が textContent ベース (タイトル文字列
+                        // マッチ) から構造属性ベース (`data-post-id` 完全一致) に
+                        // 切り替えられる。
+                        //
+                        // 命名規約 (CLAUDE.md「data-* 属性命名規約」):
+                        // - `data-variant` / `data-tone` のような enum 値属性ではなく、
+                        //   PostSummary.id (= YYYYMMDDhhmmss timestamp 文字列) を
+                        //   そのまま反映する **識別子属性** として定義する
+                        // - ドメイン enum ではないが、表示文脈で post の同一性を
+                        //   構造的に観測可能にする目的のため `data-post-id` という
+                        //   ドメイン語彙そのままの属性名を採用する
+                        // - 同名衝突回避のため、post ドメイン側で先に占有する形を取る
+                        //   (後発ドメインが ID 属性を必要とする場合は別 prefix を使う)
+                        data-post-id={entry.post.id}
+                      >
+                        <span className={postTitleStyles}>
+                          {entry.post.title || UNTITLED_POST}
                         </span>
-                      ) : (
-                        <div className={postCoordinatesStyles}>
-                          {entry.coordinates.map((coordinate) => (
-                            <span
-                              key={`${coordinate.label}-${coordinate.daysSince}`}
-                              data-tone={coordinate.tone}
-                            >
-                              {buildCoordinateLabel(coordinate)}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                {/* publishedAt 推定不可な記事のスキップ件数注記 (Issue #544)
+                        {entry.coordinates.length === 0 ? (
+                          <span className={emptyStateStyles}>
+                            {ANCHOR_EMPTY_COORDINATES_MESSAGE}
+                          </span>
+                        ) : (
+                          <div className={postCoordinatesStyles}>
+                            {entry.coordinates.map((coordinate) => (
+                              <span
+                                key={`${coordinate.label}-${coordinate.daysSince}`}
+                                data-tone={coordinate.tone}
+                              >
+                                {buildCoordinateLabel(coordinate)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  {/* publishedAt 推定不可な記事のスキップ件数注記 (Issue #544)
                     運用画面として「壊れた id がある事実」を画面に出すための添え書き。
                     0 件のときは注記そのものを出さない (= ノイズ削減 + 運用画面の
                     控えめなトーンを維持)。 */}
-                {skippedCount > 0 ? (
-                  <p className={skippedNoteStyles} role="note">
-                    {ANCHOR_SKIPPED_NOTE_TEMPLATE(skippedCount)}
-                  </p>
-                ) : null}
-              </>
-            )}
-          </section>
-        )}
+                  {skippedCount > 0 ? (
+                    <p className={skippedNoteStyles} role="note">
+                      {ANCHOR_SKIPPED_NOTE_TEMPLATE(skippedCount)}
+                    </p>
+                  ) : null}
+                </>
+              )}
+            </section>
+          )}
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 AnchorPage.displayName = "AnchorPage";

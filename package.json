@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
-    "@biomejs/biome": "2.5.4",
+    "@biomejs/biome": "2.5.5",
     "@pandacss/dev": "^1.11.5",
     "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.9.1",

@@ -24,7 +24,7 @@ import { expect, test } from "@playwright/test";
  */
 const TARGETS = [
   { name: "home", path: "/" },
-  { name: "post-detail-latest", path: "/posts/20260624143000" },
+  { name: "post-detail-latest", path: "/posts/20260728134449" },
   { name: "post-detail-secondary", path: "/posts/20260307120000" },
   // /anchor は Footer の「サイトの読み方」入口でナビ統合された読者導線
   // (Issue #839)。読者面のためデフォルトで heavy を抑制した状態の DOM を

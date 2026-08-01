@@ -251,6 +251,15 @@ const expectations: readonly PostCoordinatesExpectation[] = [
       { label: "社会復帰", tone: "light", daysSince: 292 },
     ],
   },
+  {
+    postId: "20260728134449",
+    publishedAt: "2026-07-28T13:44:49+09:00",
+    expectedRows: [
+      { label: "休職開始", tone: "heavy", daysSince: 357 },
+      { label: "サイト開設", tone: "neutral", daysSince: 336 },
+      { label: "社会復帰", tone: "light", daysSince: 326 },
+    ],
+  },
 ];
 
 /**

@@ -205,6 +205,14 @@ const expectations: readonly CoordinateExpectation[] = [
       { label: "社会復帰", daysSince: 292 },
     ],
   },
+  {
+    postId: "20260728134449",
+    publishedAt: "2026-07-28T13:44:49+09:00",
+    expectedRows: [
+      { label: "サイト開設", daysSince: 336 },
+      { label: "社会復帰", daysSince: 326 },
+    ],
+  },
 ];
 
 // datasources/*.md のファイル名を動的列挙する。

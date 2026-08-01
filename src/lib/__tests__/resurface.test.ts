@@ -293,11 +293,11 @@ describe("selectResurfaced: 既存の全記事の実データに対する分岐"
       .sort((a, b) => b.id.localeCompare(a.id));
   };
 
-  it("today=2026-08-22 では最新記事 (2026-06-24) から 59 日経過のため沈黙トリガーが発火する", () => {
+  it("today=2026-08-28 では最新記事 (2026-07-28) から 31 日経過のため沈黙トリガーが発火する", () => {
     const posts = loadRealPostSummaries();
     expect(posts.length).toBeGreaterThanOrEqual(16);
 
-    const result = selectResurfaced(posts, [], "2026-08-22");
+    const result = selectResurfaced(posts, [], "2026-08-28");
 
     expect(result).not.toBeNull();
     expect(result?.reason.kind).toBe("silence");
@@ -314,15 +314,15 @@ describe("selectResurfaced: 既存の全記事の実データに対する分岐"
     expect(result).toBeNull();
   });
 
-  it("today=2026-08-26 (沈黙 & 1年前 2025-08-26 に記事あり) では沈黙が暦の節目より優先される", () => {
+  it("today=2026-08-27 (沈黙 & 1年前 2025-08-27 に記事あり) では沈黙が暦の節目より優先される", () => {
     const posts = loadRealPostSummaries();
-    // 最新の 2026-06-24 から today までの日数を確認
-    // 2026-06-24 から 2026-08-26 は 63 日経過 → 沈黙トリガー (>=30) が先に発火
-    // ※ 1年前 (2025-08-26 = 最古記事) の同月同日記事も存在するが、沈黙が優先される
-    const result = selectResurfaced(posts, [], "2026-08-26");
+    // 最新の 2026-07-28 から today までの日数を確認
+    // 2026-07-28 から 2026-08-27 は 30 日経過 → 沈黙トリガー (>=30) が先に発火
+    // ※ 1年前 (2025-08-27) の同月同日記事も存在するが、沈黙が優先される
+    const result = selectResurfaced(posts, [], "2026-08-27");
 
     expect(result).not.toBeNull();
-    // 沈黙が優先される (lastPostDaysAgo > 30)
+    // 沈黙が優先される (lastPostDaysAgo >= 30)
     expect(result?.reason.kind).toBe("silence");
   });
 });
@@ -441,7 +441,7 @@ describe("selectResurfaced: options.excludeIds (View Transition 名前衝突回�
     expect(result?.post.id).toBe("20240401120000");
   });
 
-  it("実データ (全記事) で today=2026-08-22、最古記事 id を excludeIds に渡すと別記事 or null になる", () => {
+  it("実データ (全記事) で today=2026-08-28、最古記事 id を excludeIds に渡すと別記事 or null になる", () => {
     // datasources から実データ全記事を読む。最古は 20250826031705。
     // 既定では沈黙トリガーで最古 (20250826031705) が選定される (1年前候補が無いため)。
     // この id を excludeIds に渡すと、フォールバックの最古が無くなるので
@@ -454,10 +454,10 @@ describe("selectResurfaced: options.excludeIds (View Transition 名前衝突回�
       .map((file) => makePost(file.replace(".md", "")))
       .sort((a, b) => b.id.localeCompare(a.id));
 
-    const defaultResult = selectResurfaced(posts, [], "2026-08-22");
+    const defaultResult = selectResurfaced(posts, [], "2026-08-28");
     expect(defaultResult?.post.id).toBe("20250826031705");
 
-    const excludedResult = selectResurfaced(posts, [], "2026-08-22", {
+    const excludedResult = selectResurfaced(posts, [], "2026-08-28", {
       excludeIds: ["20250826031705"],
     });
     expect(excludedResult).not.toBeNull();

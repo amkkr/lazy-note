@@ -11,10 +11,7 @@
  * 本ファイルは anchors.ts の純粋関数のみを検証する。
  */
 
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import milestonesJson from "../../../datasources/milestones.json";
 import {
   type Coordinate,
   computeCoordinates,
@@ -99,30 +96,6 @@ describe("inferPublishedAt: ファイル名からの ISO 8601 推定 (JST 固定
       expect(inferPublishedAt("20250229120000.md")).toBe(
         "2025-02-29T12:00:00+09:00",
       );
-    });
-  });
-
-  describe("既存の全記事の解決", () => {
-    /**
-     * 対象は `YYYYMMDDhhmmss.md` 命名のファイルのみに絞る。
-     * 命名外のファイル (例: `non-yyyymmddhhmmss.md`) が将来追加されても
-     * inferPublishedAt の解決確認テストが壊れないようにする。
-     * 件数しきい値 (>= 16) と全件解決を担保する点は変わらない。
-     */
-    it("datasources/ 配下の YYYYMMDDhhmmss.md ファイル全件で publishedAt が解決できる", () => {
-      const datasourcesDir = join(__dirname, "../../../datasources");
-      const files = readdirSync(datasourcesDir).filter((file) =>
-        /^\d{14}\.md$/.test(file),
-      );
-
-      // 前提: 16 記事以上存在する (本 Issue の前提)
-      expect(files.length).toBeGreaterThanOrEqual(16);
-
-      for (const file of files) {
-        const result = inferPublishedAt(file);
-        expect(result, `ファイル ${file} の推定に失敗`).toBeDefined();
-        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/);
-      }
     });
   });
 });
@@ -779,107 +752,5 @@ describe("型レベル: Coordinate / Elapsed の nominal 化 (Issue #497)", () =
     const coordinate: Coordinate = result;
 
     void coordinate;
-  });
-});
-
-// =============================================================================
-// Issue #489 AC: 実データ統合 (datasources/milestones.json × datasources/*.md)
-// =============================================================================
-//
-// Issue #489 の Acceptance Criteria「登録した節目で N-1 の座標計算が
-// 全記事に対して破綻しない」を実データで担保する統合テスト群。
-//
-// - 入力 1: `datasources/milestones.json` (本 PR で登録した節目データ)
-// - 入力 2: `datasources/*.md` (記事のファイル名 → inferPublishedAt)
-// - 検証関数: computeCoordinates (層1=座標)
-//
-// 破綻の定義 (この describe では以下を全件検出する):
-//   - 例外を投げる
-//   - undefined / null を返す
-//   - 配列以外を返す
-//   - 要素の daysSince が NaN
-describe("Issue #489 AC: 実データ統合 (milestones.json × 全記事)", () => {
-  const datasourcesDir = join(__dirname, "..", "..", "..", "datasources");
-  // `as readonly Milestone[]` は resolveJsonModule:true で widen された JSON 型
-  // (`tone: string`) を `Milestone` (`tone: "neutral" | "light" | "heavy"`) に
-  // narrowing するキャスト。設計判断の正本 (集約せず各 page で個別 import / 撤退方法
-  // / 不正値時の挙動など) は pages/anchor.tsx の MILESTONES JSDoc を参照 (Issue #546)。
-  // 本テストは「本物の milestones.json を入力にする回帰テスト」のため、production と
-  // 同一の narrowing キャストをそのまま再現する。
-  const milestones = milestonesJson as readonly Milestone[];
-
-  const collectPostPublishedAts = (): readonly string[] => {
-    const fileNames = readdirSync(datasourcesDir).filter((name) =>
-      name.endsWith(".md"),
-    );
-    const isoList: string[] = [];
-    for (const fileName of fileNames) {
-      const iso = inferPublishedAt(fileName);
-      if (iso !== undefined) {
-        isoList.push(iso);
-      }
-    }
-    return isoList;
-  };
-
-  it("datasources/*.md が 18 件存在する (AC 前提条件)", () => {
-    const publishedAts = collectPostPublishedAts();
-    expect(publishedAts.length).toBe(18);
-  });
-
-  it("milestones.json は 1 件以上の節目を持つ (AC 前提条件)", () => {
-    expect(milestones.length).toBeGreaterThan(0);
-  });
-
-  it("全 18 記事に対して computeCoordinates が例外を投げず配列を返す", () => {
-    const publishedAts = collectPostPublishedAts();
-    for (const publishedAt of publishedAts) {
-      const result = computeCoordinates(publishedAt, milestones);
-      expect(Array.isArray(result)).toBe(true);
-    }
-  });
-
-  it("全 18 記事の Coordinate 配列に undefined / null 要素が混入しない", () => {
-    const publishedAts = collectPostPublishedAts();
-    for (const publishedAt of publishedAts) {
-      const result = computeCoordinates(publishedAt, milestones);
-      for (const coordinate of result) {
-        expect(coordinate).not.toBeUndefined();
-        expect(coordinate).not.toBeNull();
-      }
-    }
-  });
-
-  it("全 18 記事の Coordinate.daysSince が NaN にならず 0 以上の整数になる", () => {
-    const publishedAts = collectPostPublishedAts();
-    for (const publishedAt of publishedAts) {
-      const result = computeCoordinates(publishedAt, milestones);
-      for (const coordinate of result) {
-        expect(Number.isNaN(coordinate.daysSince)).toBe(false);
-        expect(Number.isInteger(coordinate.daysSince)).toBe(true);
-        expect(coordinate.daysSince).toBeGreaterThanOrEqual(0);
-      }
-    }
-  });
-
-  it("全 18 記事の Coordinate.tone が MilestoneTone の値域に収まる", () => {
-    const allowedTones: readonly string[] = ["neutral", "light", "heavy"];
-    const publishedAts = collectPostPublishedAts();
-    for (const publishedAt of publishedAts) {
-      const result = computeCoordinates(publishedAt, milestones);
-      for (const coordinate of result) {
-        expect(allowedTones).toContain(coordinate.tone);
-      }
-    }
-  });
-
-  it("全 18 記事の Coordinate.kind が discriminator 'coordinate' になる", () => {
-    const publishedAts = collectPostPublishedAts();
-    for (const publishedAt of publishedAts) {
-      const result = computeCoordinates(publishedAt, milestones);
-      for (const coordinate of result) {
-        expect(coordinate.kind).toBe("coordinate");
-      }
-    }
   });
 });

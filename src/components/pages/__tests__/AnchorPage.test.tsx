@@ -163,6 +163,84 @@ describe("AnchorPage", () => {
       expect(within(postSection).getByText(/31 日目/)).toBeInTheDocument();
     });
 
+    /**
+     * 1 記事分の座標表示を期待行と比較する補助関数。
+     *
+     * 各記事 li 内の座標は `[data-tone]` 属性付き span として描画されるため、
+     * それを **index 順に** 取り出して tone と表示文言を完全一致で照合する
+     * (= 件数・順序・tone・テキストの同時固定)。
+     */
+    const verifyPostCoordinates = (
+      postItem: HTMLLIElement,
+      expectedRows: readonly {
+        label: string;
+        tone: Milestone["tone"];
+        daysSince: number;
+      }[],
+    ): void => {
+      const coordinateSpans = postItem.querySelectorAll("[data-tone]");
+      expect(coordinateSpans).toHaveLength(expectedRows.length);
+
+      for (const [index, row] of expectedRows.entries()) {
+        const span = coordinateSpans[index];
+        expect(span?.getAttribute("data-tone")).toBe(row.tone);
+        expect(span?.textContent).toBe(
+          `${row.label} から ${row.daysSince} 日目`,
+        );
+      }
+    };
+
+    /**
+     * 座標行の描画順・完全一致テキストの Tripwire。
+     *
+     * 上の「showHeavy 指定時は各記事の座標 (heavy 含む) を一覧表示できる」は
+     * 個別の regex 照合なので、`entry.coordinates` を reverse / re-sort する変更を
+     * 素通りさせてしまう。本テストは各記事の座標 span を index 順に完全一致で
+     * 照合し、「computeCoordinates が返した順序 (= milestones の入力順) をそのまま
+     * 描画する」契約を構造的に固定する。
+     *
+     * 期待値は手計算 (baseMilestones = 休職開始 2025-08-05 / サイト開設 2025-08-26 /
+     * 社会復帰 2025-09-05、AnchorPage は showHeavy で heavy も表示する):
+     * - 最初の記事 (2025-08-26 公開): 休職開始 = 8/5 → 8/26 で 21 日目 /
+     *   サイト開設 = 同日で 0 日目 / 社会復帰 (2025-09-05) は未来のため除外
+     * - 復帰の記事 (2025-09-05 公開): 休職開始 = 8/5 → 9/5 で 26 + 5 = 31 日目 /
+     *   サイト開設 = 8/26 → 9/5 で 5 + 5 = 10 日目 / 社会復帰 = 同日で 0 日目
+     */
+    it("showHeavy 指定時の各記事の座標を milestones の入力順どおり完全一致で描画する", () => {
+      render(
+        <MemoryRouter>
+          <AnchorPage posts={basePosts} milestones={baseMilestones} showHeavy />
+        </MemoryRouter>,
+      );
+
+      const postSection = screen.getByRole("region", {
+        name: "各記事の座標",
+      });
+
+      const getPostItem = (postId: string): HTMLLIElement => {
+        const postItem = postSection.querySelector<HTMLLIElement>(
+          `li[data-post-id="${postId}"]`,
+        );
+        if (postItem === null) {
+          throw new Error(`postItem for ${postId} not found`);
+        }
+        return postItem;
+      };
+
+      // 最初の記事 (2025-08-26 公開)
+      verifyPostCoordinates(getPostItem("20250826031705"), [
+        { label: "休職開始", tone: "heavy", daysSince: 21 },
+        { label: "サイト開設", tone: "neutral", daysSince: 0 },
+      ]);
+
+      // 復帰の記事 (2025-09-05 公開)
+      verifyPostCoordinates(getPostItem("20250905120000"), [
+        { label: "休職開始", tone: "heavy", daysSince: 31 },
+        { label: "サイト開設", tone: "neutral", daysSince: 10 },
+        { label: "社会復帰", tone: "light", daysSince: 0 },
+      ]);
+    });
+
     it("座標 0 件の記事は穏やかな空状態を表示する", () => {
       // 全節目より前 (2025-08-04 以前) に公開された記事の場合、座標は 0 件になる
       const earlyPost: PostSummary = {

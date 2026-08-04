@@ -27,10 +27,11 @@
  * 観測値 (2026-06 時点): 約 77.8% (社会復帰 14 件 / サイト開設 4 件 / 母数 18 件)。
  * 記事追加で陳腐化する具体数なので、観測時点付きの目安として記す。
  *
- * **凍結 fixture を使わない設計差分 (重要)**:
- * 同じ実記事を入力に取る `AnchorPage.allPosts.test.tsx` /
- * `Coordinate.allPosts.test.tsx` は、本番 milestones.json の改変で道連れ失敗
- * しないよう凍結 fixture (testMilestones) を使う。一方、本テストは
+ * **実データを入力に取る例外である理由 (重要)**:
+ * 表示層のテスト (`AnchorPage.test.tsx` / `Coordinate.test.tsx` 等) は、記事追加や
+ * 本番 milestones.json の改変で道連れ失敗しないよう、テストファイル内で定義した
+ * 合成 fixture のみを入力に取る (CLAUDE.md「実データ（記事）とテスト所有 fixture
+ * の分離」)。一方、本テストは
  * **トリガー検知器** であり、実データ (実 milestones.json + 実 datasources) の
  * 変化に追従して反応することそのものが目的である。そのため本番
  * `datasources/milestones.json` を直 import し、`import.meta.glob` で実記事を

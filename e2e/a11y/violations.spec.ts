@@ -13,7 +13,13 @@ import { expect, test } from "@playwright/test";
  * - AAA タグはコントラスト 7:1 を culori 実測で別途検証 (G2 / Issue #4a) するため、
  *   axe-core 側では AA までを必須ゲートとする。
  * - 違反があれば `expect.soft` で全件まとめて出力し、CI ログ / Summary で確認できるようにする。
- * - `/about` は本サイトに存在しないため、最新の 2 記事を代表ページとして採用する。
+ * - `/about` は本サイトに存在しないため、記事詳細 2 件を代表ページとして採用する。
+ *   代表記事は **実在する任意の記事** を固定するだけでよく、記事を追加しても
+ *   更新する必要はない (かつて `post-detail-latest` という名前で「常に最新記事に
+ *   追従させる」と読める規約になっていたが、記事追加のたびに e2e の更新を強いる
+ *   構造だったため撤廃し、`post-detail-primary` に改名した。CLAUDE.md
+ *   「実データ（記事）とテスト所有 fixture の分離」参照)。差し替えが必要なのは、
+ *   指定した記事が **削除された** ときだけ。
  *
  * 既知違反 (allowList):
  *   現状 allow-list は空。Editorial Citrus OKLCH トークン移行 (Issue #0a / #4a / Phase2 リニューアル)
@@ -24,7 +30,7 @@ import { expect, test } from "@playwright/test";
  */
 const TARGETS = [
   { name: "home", path: "/" },
-  { name: "post-detail-latest", path: "/posts/20260624143000" },
+  { name: "post-detail-primary", path: "/posts/20260624143000" },
   { name: "post-detail-secondary", path: "/posts/20260307120000" },
   // /anchor は Footer の「サイトの読み方」入口でナビ統合された読者導線
   // (Issue #839)。読者面のためデフォルトで heavy を抑制した状態の DOM を

@@ -170,6 +170,21 @@ describe("computeCoordinates: 層1=座標 (登録節目との差分日数)", () 
       expect(result[0]?.label).toBe("過去");
     });
 
+    it("publishedAt の翌日の節目は除外される (1 日差の境界)", () => {
+      // 未来除外の境界値。「publishedAt 当日 (0 日目) は含める」の直下にある
+      // 「翌日 (= -1 日) は含めない」側を固定する。除外条件を `days < 0` から
+      // `days < -1` に緩めると、翌日の節目が daysSince: -1 で混入して失敗する。
+      const milestones: readonly Milestone[] = [
+        { date: "2025-01-11", label: "翌日", tone: "neutral" },
+      ];
+      const result = computeCoordinates(
+        "2025-01-10T12:00:00+09:00",
+        milestones,
+      );
+
+      expect(result).toEqual([]);
+    });
+
     it("全ての節目が publishedAt より後なら空配列を返す", () => {
       const milestones: readonly Milestone[] = [
         { date: "2025-12-31", label: "未来", tone: "neutral" },

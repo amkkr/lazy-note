@@ -39,6 +39,23 @@ describe("Coordinate", () => {
       expect(container.firstChild).toBeNull();
     });
 
+    it("全節目が tone:heavy のとき何も描画しない (heavy 除外の結果 0 件)", () => {
+      // 全節目が過去だが、Coordinate は heavy を静かに隠すため表示対象が 0 件に
+      // なる経路 (= フィルタ結果としての 0 件)。「全節目が未来で 0 件」とは
+      // 到達経路が異なるため独立した境界として固定する。
+      const { container } = render(
+        <Coordinate
+          publishedAt="2026-01-01T00:00:00+09:00"
+          milestones={[
+            { date: "2025-01-01", label: "休職開始", tone: "heavy" },
+            { date: "2025-02-01", label: "再休職", tone: "heavy" },
+          ]}
+        />,
+      );
+
+      expect(container.firstChild).toBeNull();
+    });
+
     it("show=false のとき何も描画しない (表示 OFF フラグ)", () => {
       const { container } = render(
         <Coordinate

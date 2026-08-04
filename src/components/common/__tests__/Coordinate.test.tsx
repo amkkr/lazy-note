@@ -39,6 +39,23 @@ describe("Coordinate", () => {
       expect(container.firstChild).toBeNull();
     });
 
+    it("全節目が tone:heavy のとき何も描画しない (heavy 除外の結果 0 件)", () => {
+      // 全節目が過去だが、Coordinate は heavy を静かに隠すため表示対象が 0 件に
+      // なる経路 (= フィルタ結果としての 0 件)。「全節目が未来で 0 件」とは
+      // 到達経路が異なるため独立した境界として固定する。
+      const { container } = render(
+        <Coordinate
+          publishedAt="2026-01-01T00:00:00+09:00"
+          milestones={[
+            { date: "2025-01-01", label: "休職開始", tone: "heavy" },
+            { date: "2025-02-01", label: "再休職", tone: "heavy" },
+          ]}
+        />,
+      );
+
+      expect(container.firstChild).toBeNull();
+    });
+
     it("show=false のとき何も描画しない (表示 OFF フラグ)", () => {
       const { container } = render(
         <Coordinate
@@ -165,6 +182,57 @@ describe("Coordinate", () => {
       expect(group.textContent).toContain("333");
       // 区切り文字「・」が間に存在する
       expect(group.textContent).toMatch(/・/);
+    });
+
+    /**
+     * 描画順・完全一致テキストの Tripwire。
+     *
+     * 上の「複数の座標を「・」区切りの一行で並べる」は textContent への部分一致
+     * (toContain) のみなので、`displayable` を reverse / re-sort する変更を素通り
+     * させてしまう。本テストは li を index 順に完全一致で照合し、
+     * 「computeCoordinates が返した順序 (= milestones の入力順) をそのまま描画する」
+     * 契約を構造的に固定する。
+     *
+     * 入力の milestones は **日付昇順に並べていない** (社会復帰 2025-02-01 →
+     * サイト開設 2025-01-01 → 通院開始 2025-03-01)。これにより「入力順保持」と
+     * 「日付順ソート」を区別でき、reverse だけでなく内部ソート混入も検知できる。
+     *
+     * 期待値は手計算 (2025 年は非閏年 = 365 日):
+     * - 社会復帰 (2025-02-01, 通算 32 日目) → 365 - 32 = 333 日目
+     * - サイト開設 (2025-01-01, 通算 1 日目) → 365 - 1 = 364 日目
+     * - 通院開始 (2025-03-01, 通算 60 日目) → 365 - 60 = 305 日目
+     */
+    it("milestones の入力順どおりに li を並べ、各 li のテキストが完全一致する", () => {
+      render(
+        <Coordinate
+          publishedAt="2025-12-31T00:00:00+09:00"
+          milestones={[
+            { date: "2025-02-01", label: "社会復帰", tone: "light" },
+            { date: "2025-01-01", label: "サイト開設", tone: "neutral" },
+            { date: "2025-03-01", label: "通院開始", tone: "neutral" },
+          ]}
+        />,
+      );
+
+      const expectedRows: readonly string[] = [
+        "社会復帰 から 333 日目",
+        "サイト開設 から 364 日目",
+        "通院開始 から 305 日目",
+      ];
+
+      const list = screen.getByRole("list", { name: "個人史座標" });
+      const items = list.querySelectorAll("li");
+      expect(items).toHaveLength(expectedRows.length);
+
+      for (const [index, expected] of expectedRows.entries()) {
+        // li は index > 0 のとき先頭に separator span (aria-hidden) を含むため、
+        // 座標本体の span (= aria-hidden でない span) を取り出して完全一致で
+        // 照合する (Issue #709: aria-hidden 装飾要素は素の getByText で見ない)。
+        const labelSpan = items[index]?.querySelector(
+          'span:not([aria-hidden="true"])',
+        );
+        expect(labelSpan?.textContent).toBe(expected);
+      }
     });
   });
 

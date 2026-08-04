@@ -15,8 +15,6 @@
  * - `selectResurfaced` は anchors.ts の `inferPublishedAt` を再利用する
  */
 
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Milestone } from "../anchors";
 import type { PostSummary } from "../markdown";
@@ -277,56 +275,6 @@ describe("selectResurfaced: どれも該当しないケース", () => {
   });
 });
 
-describe("selectResurfaced: 既存の全記事の実データに対する分岐", () => {
-  /**
-   * datasources/ 配下の YYYYMMDDhhmmss.md ファイル全件を PostSummary 化する。
-   * inferPublishedAt 解決不能な ID は selectResurfaced 内で除外される。
-   */
-  const loadRealPostSummaries = (): PostSummary[] => {
-    const datasourcesDir = join(__dirname, "../../../datasources");
-    const files = readdirSync(datasourcesDir).filter((file) =>
-      /^\d{14}\.md$/.test(file),
-    );
-    // ID 降順 (新しい順) で並べる (markdown.ts の挙動に合わせる)
-    return files
-      .map((file) => makePost(file.replace(".md", "")))
-      .sort((a, b) => b.id.localeCompare(a.id));
-  };
-
-  it("today=2026-08-22 では最新記事 (2026-06-24) から 59 日経過のため沈黙トリガーが発火する", () => {
-    const posts = loadRealPostSummaries();
-    expect(posts.length).toBeGreaterThanOrEqual(16);
-
-    const result = selectResurfaced(posts, [], "2026-08-22");
-
-    expect(result).not.toBeNull();
-    expect(result?.reason.kind).toBe("silence");
-    if (result?.reason.kind === "silence") {
-      expect(result.reason.lastPostDaysAgo).toBeGreaterThanOrEqual(30);
-    }
-  });
-
-  it("today=2026-06-15 では沈黙しておらず、1年前 (2025-06-15) の記事も無いため null", () => {
-    const posts = loadRealPostSummaries();
-    // 2025-06-15 の記事は存在しない (記事は 2025-08-26 以降)
-    const result = selectResurfaced(posts, [], "2026-06-15");
-
-    expect(result).toBeNull();
-  });
-
-  it("today=2026-08-26 (沈黙 & 1年前 2025-08-26 に記事あり) では沈黙が暦の節目より優先される", () => {
-    const posts = loadRealPostSummaries();
-    // 最新の 2026-06-24 から today までの日数を確認
-    // 2026-06-24 から 2026-08-26 は 63 日経過 → 沈黙トリガー (>=30) が先に発火
-    // ※ 1年前 (2025-08-26 = 最古記事) の同月同日記事も存在するが、沈黙が優先される
-    const result = selectResurfaced(posts, [], "2026-08-26");
-
-    expect(result).not.toBeNull();
-    // 沈黙が優先される (lastPostDaysAgo > 30)
-    expect(result?.reason.kind).toBe("silence");
-  });
-});
-
 describe("selectResurfaced: options.excludeIds (View Transition 名前衝突回避)", () => {
   /**
    * HomePage では Featured / Bento / Index で `view-transition-name: post-{id}` を
@@ -439,30 +387,6 @@ describe("selectResurfaced: options.excludeIds (View Transition 名前衝突回�
 
     expect(result).not.toBeNull();
     expect(result?.post.id).toBe("20240401120000");
-  });
-
-  it("実データ (全記事) で today=2026-08-22、最古記事 id を excludeIds に渡すと別記事 or null になる", () => {
-    // datasources から実データ全記事を読む。最古は 20250826031705。
-    // 既定では沈黙トリガーで最古 (20250826031705) が選定される (1年前候補が無いため)。
-    // この id を excludeIds に渡すと、フォールバックの最古が無くなるので
-    // pastCandidates の末尾 (次に古い) が選ばれる。
-    const datasourcesDir = join(__dirname, "../../../datasources");
-    const files = readdirSync(datasourcesDir).filter((file) =>
-      /^\d{14}\.md$/.test(file),
-    );
-    const posts: PostSummary[] = files
-      .map((file) => makePost(file.replace(".md", "")))
-      .sort((a, b) => b.id.localeCompare(a.id));
-
-    const defaultResult = selectResurfaced(posts, [], "2026-08-22");
-    expect(defaultResult?.post.id).toBe("20250826031705");
-
-    const excludedResult = selectResurfaced(posts, [], "2026-08-22", {
-      excludeIds: ["20250826031705"],
-    });
-    expect(excludedResult).not.toBeNull();
-    // 除外で最古が抜けたので、次に古い記事が選ばれる
-    expect(excludedResult?.post.id).not.toBe("20250826031705");
   });
 });
 

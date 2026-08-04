@@ -567,10 +567,10 @@ export const AnchorPage = memo(
                         className={postItemStyles}
                         data-token-border="border.subtle"
                         // Issue #624 AC3 / PR #617 M3: 各記事 li の構造に post.id を
-                        // 機械可読な形で出す。これにより `AnchorPage.allPosts.test.tsx`
-                        // 等の順序検証 Tripwire が textContent ベース (タイトル文字列
-                        // マッチ) から構造属性ベース (`data-post-id` 完全一致) に
-                        // 切り替えられる。
+                        // 機械可読な形で出す。これにより `AnchorPage.test.tsx`
+                        // の順序検証 Tripwire (「posts 入力順保持」) が textContent
+                        // ベース (タイトル文字列マッチ) から構造属性ベース
+                        // (`data-post-id` 完全一致) に切り替えられる。
                         //
                         // 命名規約 (CLAUDE.md「data-* 属性命名規約」):
                         // - `data-variant` / `data-tone` のような enum 値属性ではなく、

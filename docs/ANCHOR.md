@@ -187,8 +187,7 @@ AnchorPage には個別 OFF の prop / フラグは無い。停止したい場�
   直接 URL では到達可能なため、完全停止は下記「ページ自体の削除」を使う
 - **ページ自体の削除 (完全撤退)**: `src/pages/anchor.tsx` と
   `src/components/pages/AnchorPage.tsx` を削除する (関連テスト
-  `src/components/pages/__tests__/AnchorPage.test.tsx` /
-  `AnchorPage.allPosts.test.tsx` も併せて削除)
+  `src/components/pages/__tests__/AnchorPage.test.tsx` も併せて削除)
 - **データで黙らせる (節目一覧のみ空状態)**: `milestones.json` を `[]` に
   すると AnchorPage の「節目一覧」セクションが「まだ節目が記録されていません」
   の空状態になる。各記事の座標一覧は記事自体は残るので、座標が 0 件と

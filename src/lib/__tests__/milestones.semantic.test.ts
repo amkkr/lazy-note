@@ -43,8 +43,8 @@ import type { Milestone } from "../anchors";
  * 場合は以下の代替案を再評価する。「5 件」は現状 3 件、本ファイル内の inline fixture
  * 視認性の境界として目安に設定したもので、厳密な閾値ではない。
  *
- * - 案 1: src/test/fixtures/expectedMilestones.ts に外出しし、Coordinate.allPosts.test.tsx /
- *   AnchorPage.allPosts.test.tsx の testMilestones から再利用 (silent pass リスクは残るが
+ * - 案 1: src/test/fixtures/expectedMilestones.ts に外出しし、Coordinate.test.tsx /
+ *   AnchorPage.test.tsx の milestones fixture から再利用 (silent pass リスクは残るが
  *   メンテ負荷削減)。
  *   ただし案 1 を選ぶ場合、「本番 JSON と意味的にずれていないか」を inline fixture で
  *   検証する本ファイルの設計思想自体が成立しなくなるため、本ファイルの存在意義自体を
@@ -115,9 +115,9 @@ describe("datasources/milestones.json 意味的スナップショット (Issue #
  *
  * 本 Tripwire は「label レベルの禁則語彙混入」を **データ層単体テスト** で
  * 直接検出する。これにより:
- * - `AnchorPage.allPosts.test.tsx` が本番 `milestones.json` を直接 import する
- *   特例 (Issue #618 案A の限定 import) を撤去できる (Issue #624 AC2 で実施)
- * - 表示層 Tripwire は `testMilestones` 固定 fixture ベースに完全に統一できる
+ * - 表示層 Tripwire が本番 `milestones.json` を直接 import する特例
+ *   (Issue #618 案A の限定 import) を撤去できる (Issue #624 AC2 で実施)
+ * - 表示層 Tripwire はテストファイル内の固定 fixture ベースに完全に統一できる
  *
  * 出典: Issue #624 (Issue #618 案A の follow-up = 案C)。
  */

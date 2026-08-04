@@ -10,7 +10,7 @@ import { expect, test } from "@playwright/test";
  *
  * 対象 3 ルート (既存 e2e と同じ代表 URL):
  * - `/`              ホーム (HomePage / Editorial Bento)
- * - `/posts/:ts`     記事詳細 (代表 1 件、violations.spec.ts と同じ最新記事)
+ * - `/posts/:ts`     記事詳細 (実在する代表記事 1 件を固定)
  * - `/anchor`        個人史タイムライン (AnchorPage)
  *
  * flaky 回避の設計方針:
@@ -32,8 +32,16 @@ import { expect, test } from "@playwright/test";
  */
 
 /**
- * 各ルートの代表 URL。記事詳細は violations.spec.ts の `post-detail-latest`
- * (最新記事) と同一 timestamp を採用し、e2e 全体で代表記事を揃える。
+ * 各ルートの代表 URL。
+ *
+ * 記事詳細の代表は **実在する任意の記事 1 件** を固定する。記事を追加しても
+ * この URL を更新する必要はない (「最新記事に揃える」「violations.spec.ts と
+ * 同一 timestamp に揃える」といった同期義務を課す規約は撤廃した)。記事追加の
+ * たびに e2e の代表 URL 更新を強いる構造は、テストが実データに従属する
+ * アンチパターンだったため (CLAUDE.md「実データ（記事）とテスト所有 fixture の
+ * 分離」参照)。
+ *
+ * 差し替えが必要になるのは、ここで指定した記事が **削除された** ときだけ。
  */
 const HOME_PATH = "/";
 const POST_PATH = "/posts/20260624143000";

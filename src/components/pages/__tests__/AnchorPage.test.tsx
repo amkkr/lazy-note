@@ -52,6 +52,24 @@ const basePosts: PostSummary[] = [
   },
 ];
 
+/**
+ * 個別の PostSummary を組み立てるヘルパー。
+ *
+ * id ごとに異なるタイトル・excerpt を与えたい Tripwire 系テスト (= 入力順保持
+ * テスト等) の重複コードを削減する。id 以外は必要なフィールドだけを overrides で
+ * 渡し、未指定は無害なダミー値で埋める。
+ */
+const buildPostSummary = (
+  overrides: Partial<PostSummary> & { id: string },
+): PostSummary => ({
+  title: `記事 ${overrides.id}`,
+  createdAt: "",
+  author: "amkkr",
+  excerpt: "",
+  readingTimeMinutes: 1,
+  ...overrides,
+});
+
 describe("AnchorPage", () => {
   describe("節目一覧", () => {
     it("showHeavy 指定時は登録された全ての節目を一覧表示できる", () => {
@@ -451,6 +469,129 @@ describe("AnchorPage", () => {
       expect(items[0]).toHaveAttribute("data-tone", "heavy");
       expect(items[1]).toHaveAttribute("data-tone", "neutral");
       expect(items[2]).toHaveAttribute("data-tone", "light");
+    });
+  });
+
+  /**
+   * Issue #566: 各記事の座標セクションでの表示順 Tripwire。
+   *
+   * AnchorPage.tsx の JSDoc 契約 (「入力 posts 配列の順序をそのまま保持して描画する」
+   * = 内部で id / 日付でソートしない) を、入力順が呼び出し側 (= pages/anchor.tsx)
+   * が決めた順序のまま DOM に反映されることで構造的に担保する。
+   *
+   * 同ファイルの「節目一覧の各 li が tone を data-tone 属性として宣言する」テスト
+   * (= milestones 側の入力順保持 Tripwire) と対称的に、本テストは posts 側の
+   * 入力順保持 Tripwire として位置づける。
+   *
+   * **本テストが検証するのは AnchorPage が posts を内部で再ソートしないこと**で
+   * あり、使用する id は実在記事である必要はない (id の大小関係のみが本テストの
+   * 意味を成す)。そのため入力は合成 id (2024 年台 = 実記事と衝突しない) を使う。
+   *
+   * 失敗が示唆する変更:
+   * - AnchorPage 内部で posts を reverse / re-sort するコードが混入した
+   * - AnchorPage の表示順契約自体を意図的に変更した
+   *   (= JSDoc 契約 + pages/anchor.tsx の sort + 本テストを同時に更新する必要)
+   */
+  describe("posts 入力順保持 (Tripwire / Issue #566)", () => {
+    it("逆順 (B, A) で渡したとき DOM 出現順も逆順 (B → A) になる", () => {
+      // Issue #566 受け入れ基準: 「posts を [id=B, id=A] (id 順不同) の順で
+      // 渡したとき、リスト DOM の出現順が B → A であること」を直接 assert する。
+      // ここでは id の大小関係を明示するため A < B (id 昇順比較で A が小さい)
+      // となる 2 件を用意し、「id 降順 (B → A) で渡したら DOM も B → A」を
+      // 検証する (= AnchorPage が id 昇順へ並び替えると失敗する)。
+      //
+      // Issue #624 AC3 / PR #617 M3: 順序検証は `data-post-id` 構造属性ベース
+      // で行う。textContent 経由のタイトル文字列マッチに比べ、ID は post の
+      // 一次キーであり、タイトル文言変更や i18n 化・サニタイズ追加といった
+      // 表示加工に左右されない構造的根拠で順序を固定できる。
+      const postA = buildPostSummary({
+        id: "20240101000000",
+        title: "記事 A (id 小)",
+        createdAt: "2024-01-01",
+        excerpt: "id 小",
+      });
+      const postB = buildPostSummary({
+        id: "20241231000000",
+        title: "記事 B (id 大)",
+        createdAt: "2024-12-31",
+        excerpt: "id 大",
+      });
+
+      render(
+        <MemoryRouter>
+          <AnchorPage
+            posts={[postB, postA]}
+            milestones={baseMilestones}
+            showHeavy
+          />
+        </MemoryRouter>,
+      );
+
+      const postSection = screen.getByRole("region", {
+        name: "各記事の座標",
+      });
+      const postList = within(postSection).getByRole("list");
+      const items = within(postList).getAllByRole("listitem");
+
+      expect(items).toHaveLength(2);
+      // 入力順 [B, A] と完全一致 (内部で reverse / 再 sort されていない)
+      // `data-post-id` の出現順を post.id 列として直接比較する
+      const postIdOrder = items.map((li) => li.getAttribute("data-post-id"));
+      expect(postIdOrder).toEqual([postB.id, postA.id]);
+    });
+
+    it("publishedAt 推定不可な記事をスキップしても、残った記事間の入力相対順を保つ", () => {
+      // (スキップ自体の検証は同ファイルの別テストで済んでいる。本テストは
+      // スキップ後の残余配列の順序保持のみを対象とする。)
+      // 入力配列に壊れた id を混ぜても、スキップ後の残余配列順 (= 入力相対順)
+      // を AnchorPage 内部で並び替えないことを検証する。
+      // [B, invalid, A] と渡したら、DOM は [B, A] となる (invalid 除外、残余は
+      // 入力相対順保持)。「スキップ後の整列に乗じて id 順へ並び替える」コード
+      // 混入を検知する。
+      //
+      // Issue #624 AC3 / PR #617 M3: 順序検証は上の test 同様 `data-post-id`
+      // 構造属性ベースで行う。
+      const postA = buildPostSummary({
+        id: "20240101000000",
+        title: "記事 A (id 小)",
+        createdAt: "2024-01-01",
+        excerpt: "id 小",
+      });
+      const postB = buildPostSummary({
+        id: "20241231000000",
+        title: "記事 B (id 大)",
+        createdAt: "2024-12-31",
+        excerpt: "id 大",
+      });
+      const invalidPost = buildPostSummary({
+        id: "test-invalid",
+        title: "壊れた id (スキップ対象)",
+        createdAt: "2024-06-01",
+        excerpt: "推定不可",
+      });
+
+      render(
+        <MemoryRouter>
+          <AnchorPage
+            posts={[postB, invalidPost, postA]}
+            milestones={baseMilestones}
+            showHeavy
+          />
+        </MemoryRouter>,
+      );
+
+      const postSection = screen.getByRole("region", {
+        name: "各記事の座標",
+      });
+      const postList = within(postSection).getByRole("list");
+      const items = within(postList).getAllByRole("listitem");
+
+      // invalid をスキップした 2 件のみ描画される (= 残余配列の順序保持の前提)
+      expect(items).toHaveLength(2);
+      // 入力相対順 [B, A] が DOM 出現順に保持される
+      // `data-post-id` の出現順を post.id 列として直接比較する
+      const postIdOrder = items.map((li) => li.getAttribute("data-post-id"));
+      expect(postIdOrder).toEqual([postB.id, postA.id]);
     });
   });
 

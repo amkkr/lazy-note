@@ -561,10 +561,15 @@ describe("add", () => {
 - 複数節目通過 / 全節目通過 / heavy のみ / 全節目が未来 / milestones 空
 - 月跨ぎ・年跨ぎ・閏日跨ぎ
 
-**例外規定**: 実データの変化を検知して人間に再評価を促すことが目的のテストのみ、実データ / 本番 JSON を直接入力にしてよい。ただし件数・ID・日付をアサートせず、**不変条件（閾値・関係式・値域）のみをアサート**し、失敗メッセージに再評価を促す旨と診断情報を書くこと。該当するのは以下の 2 本のみ:
+**例外規定**: 実データの変化を検知して人間に再評価を促すことが目的のテストのみ、実データ / 本番 JSON を直接入力にしてよい。ただし件数・ID・日付をアサートせず、**不変条件（閾値・関係式・値域）のみをアサート**し、失敗メッセージに再評価を促す旨と診断情報を書くこと。
 
-- `src/lib/__tests__/anchorTriggers.allPosts.test.ts`（Issue #840 のトリガー検知器。実データの変化に反応すること自体が目的）
-- `src/lib/__tests__/milestones.semantic.test.ts`（`milestones.json` は 3 件程度で滅多に変わらない仕様寄りデータ）
+例外は **`datasources/*.md`（記事）系と `datasources/milestones.json` 系で性質が違う**ので分けて扱う。記事は増え続けるコンテンツなので例外は 1 本だけ、`milestones.json` は 3 件程度で滅多に変わらない仕様寄りデータなので直 import を 2 本認める。合計 3 本で、これ以外に実データを直接入力に取るテストを増やしてはならない:
+
+- **`datasources/*.md`（記事）を入力に取ってよいのは 1 本のみ**
+  - `src/lib/__tests__/anchorTriggers.allPosts.test.ts`（Issue #840 のトリガー検知器。実記事の分布変化に反応すること自体が目的なので `import.meta.glob` で実記事を動的列挙する）
+- **本番 `datasources/milestones.json` を直 import してよいのは 2 本のみ**（いずれも記事は読まない）
+  - `src/lib/__tests__/milestones.semantic.test.ts`（本番 JSON の意味的スナップショット + label の禁則語彙 Tripwire）
+  - `src/lib/__tests__/milestonesSchema.test.ts`（本番 JSON のスキーマ検証。strict validation を通ること / 1 件以上あること / tone が値域内であること、という不変条件のみをアサートする）
 
 e2e（`e2e/a11y/*.spec.ts`）は実在記事 1 件を代表として URL を固定してよいが、「最新記事に揃える」等の**同期義務を課す規約は書かない**こと（代表記事の差し替えが必要なのは、その記事が削除されたときだけ）。
 

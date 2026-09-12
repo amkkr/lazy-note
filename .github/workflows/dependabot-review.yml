@@ -9,10 +9,7 @@
 # トリガーに synchronize を含めないのは、`@dependabot rebase` や base 更新時の
 # 自動 rebase で同じレビューが繰り返し走るのを避けるため。
 # 代償として、未マージPRが新バージョンに force-push された場合は自動レビューされない。
-# 必要なら PR を close → reopen し、reopened トリガーで再実行する。
-#
-# run スクリプト・uses 行・claude_args・prompt は内容を保つため折り返さない。
-# yamllint disable rule:line-length
+# 必要なら Actions 画面の Re-run jobs で再実行する（Dependabot 起因の run の再実行は Dependabot secret のまま動く）。
 name: Dependabot Review
 
 on:

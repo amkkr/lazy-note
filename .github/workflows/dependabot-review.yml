@@ -1,0 +1,122 @@
+# Dependabot が作成した PR を Claude がレビューし、結果をPRにコメントする。
+# 自動マージは行わない。マージ判断は人間が行う。
+#
+# 前提: Dependabot secret に CLAUDE_CODE_OAUTH_TOKEN の登録が必要。
+#   Settings → Secrets and variables → Dependabot → New repository secret
+#   Dependabot 起因のワークフローは Actions secrets を参照できないため、
+#   既に Actions secret として登録済みでも別途登録が要る。
+#
+# トリガーに synchronize を含めないのは、`@dependabot rebase` や base 更新時の
+# 自動 rebase で同じレビューが繰り返し走るのを避けるため。
+# 代償として、未マージPRが新バージョンに force-push された場合は自動レビューされない。
+# 必要なら PR を close → reopen し、reopened トリガーで再実行する。
+#
+# run スクリプト・uses 行・claude_args・prompt は内容を保つため折り返さない。
+# yamllint disable rule:line-length
+name: Dependabot Review
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  review:
+    # Dependabot が作成した PR のみを対象にする
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      # ランナーに pnpm が無いため、Claude が pnpm install / pnpm audit を
+      # 実行できるようツールだけを用意する。依存のインストールはここでは行わない
+      # （公開直後の版が minimumReleaseAge で弾かれるとジョブ自体が落ちるため）。
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      # Dependabot はコミットメッセージ末尾に updated-dependencies ブロックを埋め込む。
+      # ここから update-type を取り出す（グループ更新では複数エントリになる）。
+      - name: Resolve Dependabot update type
+        id: metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          messages="$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/commits" --paginate --jq '.[].commit.message')"
+          types="$(printf '%s\n' "$messages" \
+            | grep -oE 'update-type: version-update:semver-(patch|minor|major)' \
+            | sed 's/.*semver-//' | sort -u || true)"
+
+          if [ -z "$types" ]; then
+            resolved="unknown"
+          elif printf '%s\n' "$types" | grep -qx 'major'; then
+            resolved="major"
+          elif printf '%s\n' "$types" | grep -qx 'minor'; then
+            resolved="minor"
+          else
+            resolved="patch"
+          fi
+
+          echo "検出された update-type: ${types:-(なし)} → 集約結果: ${resolved}"
+          echo "update-type=${resolved}" >> "$GITHUB_OUTPUT"
+
+      - name: Run Claude Code review
+        id: claude
+        uses: anthropics/claude-code-action@8251c103ac8c1d761882c86aba1412c7f583c844 # v1.0.213
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: >-
+            --allowed-tools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh api:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh release view:*),Bash(git log:*),Bash(git diff:*),Bash(pnpm install:*),Bash(pnpm audit:*),Bash(cat:*),Bash(grep:*),Bash(rg:*),WebSearch,WebFetch"
+          prompt: |
+            あなたはこのリポジトリの依存関係更新レビュー担当です。
+            対象PR: ${{ github.repository }}#${{ github.event.pull_request.number }}
+            タイトル: ${{ github.event.pull_request.title }}
+            Dependabot が報告した更新種別: ${{ steps.metadata.outputs.update-type }}
+
+            以下を必ず実行すること。
+
+            1. `.github/DEPENDABOT_REVIEW_TEMPLATE.md` を読み、出力形式を把握する。
+            2. `CLAUDE.md` を読み、依存関係に関する注意事項を確認する。
+            3. `gh pr diff` で `package.json` / `pnpm-lock.yaml` の差分を確認し、影響範囲を特定する。
+            4. 更新対象ライブラリのリリースノート / CHANGELOG を WebFetch / WebSearch で確認し、
+               破壊的変更・非推奨化・挙動変更の有無を調べる。
+            5. **上流リポジトリの直近のIssue・不具合報告を調査する**。
+               `gh search issues` や WebSearch を使い、当該バージョンに対する不具合報告、
+               リリース直後の revert / 追従リリースの有無を確認する。
+               確認したクエリと結果（該当なしを含む）を必ず記載する。
+            6. セキュリティ観点を確認する。CVE/GHSA 修正の有無、pnpm-lock.yaml で新規に入る推移依存、
+               postinstall スクリプトの追加などサプライチェーン上のリスク。
+               可能なら `pnpm install --frozen-lockfile` の後 `pnpm audit` を実行し結果を載せる。
+            7. 調査結果を `.github/DEPENDABOT_REVIEW_TEMPLATE.md` の形式どおりにまとめ、
+               `gh pr comment ${{ github.event.pull_request.number }} --body-file <file>` でPRに投稿する。
+
+            マージ可否を判断するのは人間であり、あなたはその判断材料を提供する。
+            調査結果はすべて箇条書きで簡潔に書くこと。1項目1行。散文の段落を書かない。
+            事実で書くこと。確認できなかったことを「問題なし」と書かない。
+            推測で埋めず、未確認は「未確認（理由）」と明記する。

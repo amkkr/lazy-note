@@ -133,13 +133,6 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
   - **付与範囲は最小限（YAGNI）**: 現状は更新行のみに付与し、他項目（日付 / 著者 / 読了時間）への付与は需要が出た別 Issue で拡張する（先回り付与はしない）。この付与範囲は `MetaInfo.test.tsx` の負回帰テスト（Issue #814）で固定する
   - 採用例: `MetaInfo` の更新日時行（`<div ... data-meta-field="updated">`）（Issue #809 で導入、Issue #814 で規約化）
 
-#### Panda `hash:true` は使わない
-
-`panda.config.ts` の `hash:true` は無効（デフォルト）のまま運用する。有効にすると class 名が短いハッシュ文字列になり生の CSS は 25.6% 小さくなるが、圧縮しにくくなるため gzip 配信後のサイズは逆に 5.8% 増える（2026-05-15 に計測）。
-
-- テストは Panda が生成する class 名の文字列に依存しない（`data-*` 属性か、hash 化されない手書きの class 名 `index-row-*` / `copy-btn` などで検証する）。`hash:true` を有効にしてもテストが通ることは 2026-05-15 に Issue #475 で確認し、下記 workflow の 2026-09-26 の実行でも通っていた
-- `hash:true` での回帰は `panda-hash-regression.yml` が、依存・設定ファイルを変更した PR と月 1 回の定期実行で検査していたが、`hash:true` を使わないため削除した。有効にするときは、その変更 PR の CI（`test.yml` のテストと `ci.yml` のビルド）で確認する
-
 ### 設定ファイル
 
 - TypeScript: 厳格モード、ES2020ターゲット、バンドラー解決

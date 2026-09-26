@@ -108,26 +108,28 @@ jobs:
 
             以下を必ず実行すること。
 
-            1. `.github/DEPENDABOT_REVIEW_TEMPLATE.md` を読み、出力形式を把握する。
+            1. `.github/DEPENDABOT_REVIEW_TEMPLATE.md` を読み、確認する観点と出力形式を把握する。
             2. `CLAUDE.md` を読み、依存関係に関する注意事項を確認する。
             3. `gh pr diff` で `package.json` / `pnpm-lock.yaml` の差分を確認し、影響範囲を特定する。
-            4. CI の結果は `gh pr checks ${{ github.event.pull_request.number }}` で確認し、影響範囲・結論に反映する。
+            4. CI の結果を確認し、観点表の CI 行と判定に反映する。
+               確認には `gh pr checks ${{ github.event.pull_request.number }}` を使う。
                ビルドやテストはこのジョブでは実行せず、CI の結果を根拠とする（PR head のコードを実行させないため）。
-               CI が未完了の場合はその時点の状態を記載し、未完了のチェックは「未確認（CI 実行中）」とする。
             5. 更新対象ライブラリのリリースノート / CHANGELOG を WebFetch / WebSearch で確認し、
                破壊的変更・非推奨化・挙動変更の有無を調べる。
             6. **上流リポジトリの直近のIssue・不具合報告を調査する**。
                `gh search issues` や WebSearch を使い、当該バージョンに対する不具合報告、
                リリース直後の revert / 追従リリースの有無を確認する。
-               確認したクエリと結果（該当なしを含む）を必ず記載する。
+               確認したクエリと結果（該当なしを含む）は調査ログに記載する。
             7. セキュリティ観点を確認する。CVE/GHSA 修正の有無、pnpm-lock.yaml で新規に入る推移依存、
                postinstall スクリプトの追加などサプライチェーン上のリスク。
-               可能なら `pnpm install --frozen-lockfile --ignore-scripts` の後 `pnpm audit` を実行し結果を載せる。
+               可能なら `pnpm install --frozen-lockfile --ignore-scripts` の後
+               `pnpm audit` を実行する。
             8. 調査結果を `.github/DEPENDABOT_REVIEW_TEMPLATE.md` の形式どおりにまとめ、
-               レビュー本文を Write で `/tmp/dependabot-review.md` に書き出してから、
+               レビュー本文を Write で `/tmp/dependabot-review.md` に書き出す。
+               書き出した本文を記述ルールと照合し、違反があれば Edit で直してから、
                `gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/dependabot-review.md` でPRに投稿する。
 
             マージ可否を判断するのは人間であり、あなたはその判断材料を提供する。
-            調査結果はすべて箇条書きで簡潔に書くこと。1項目1行。散文の段落を書かない。
+            読み手がコメント冒頭の数行で判断できるよう、判定を先頭に書き、調査の過程は調査ログに留める。
             事実で書くこと。確認できなかったことを「問題なし」と書かない。
             推測で埋めず、未確認は「未確認（理由）」と明記する。

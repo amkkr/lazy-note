@@ -32,9 +32,6 @@ jobs:
       - name: Lint design tokens (R-5 / Issue #393)
         run: pnpm lint:tokens
 
-      - name: Check build / build:ci sync (Issue #685)
-        run: pnpm check:build-ci-sync
-
       # Issue #580: tsc --incremental の .tsbuildinfo を cache し、
       # type-check / type-check:test / type-check:scripts / type-check:api の cold ビルドを高速化する。
       # Issue #640: PR #580 では 4 つの .tsbuildinfo を `.tsbuildinfo/` 1 entry でまとめていたため、

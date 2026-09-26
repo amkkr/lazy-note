@@ -86,9 +86,6 @@ pnpm dev
 # プロダクションビルド（リント・テスト・型チェック・ビルドを順次実行）
 pnpm build
 
-# CI 用ビルド（panda → tsc → tsc(api) → vite build のみの軽量版）
-pnpm build:ci
-
 # ビルドプレビュー
 pnpm preview
 
@@ -120,9 +117,6 @@ pnpm fmt
 
 # デザイントークン lint（生 CSS 値の混入検知）
 pnpm lint:tokens
-
-# build / build:ci の同期検証
-pnpm check:build-ci-sync
 
 # --- 型チェック ---
 # src の型チェック
@@ -232,7 +226,6 @@ datasources/         # データソース
 scripts/             # ユーティリティスクリプト
 ├── newPost.ts          # 新規記事作成スクリプト
 ├── calculateContrast.ts # コントラスト比計算
-├── checkBuildCiSync.ts  # build / build:ci 同期検証
 ├── lintTokens.ts        # デザイントークン lint
 └── download-fonts.sh    # self-host フォント取得
 public/fonts/        # self-host する欧文フォント（詳細は public/fonts/README.md）

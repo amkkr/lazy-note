@@ -32,9 +32,6 @@ jobs:
       - name: Lint design tokens (R-5 / Issue #393)
         run: pnpm lint:tokens
 
-      - name: Check build / build:ci sync (Issue #685)
-        run: pnpm check:build-ci-sync
-
       # Issue #580: tsc --incremental の .tsbuildinfo を cache し、
       # type-check / type-check:test / type-check:scripts / type-check:api の cold ビルドを高速化する。
       # Issue #640: PR #580 では 4 つの .tsbuildinfo を `.tsbuildinfo/` 1 entry でまとめていたため、
@@ -104,3 +101,33 @@ jobs:
       #   - tsc-api cache を ci.yml ↔ deploy.yml の双方向で活用できる (cache key 整合性の回復)
       - name: Type check (api) (Issue #730)
         run: pnpm type-check:api
+
+  # PR の時点で本番用のビルド（Panda CSS の生成と vite build）が通ることを
+  # 確認する。型チェックは lint-and-typecheck ジョブで行う。
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.1.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # prepare (panda codegen) は styles.css を出力しないため、panda で
+      # CSS も生成する。
+      - name: Generate Panda CSS
+        run: |
+          pnpm prepare
+          pnpm exec panda
+
+      - name: Build
+        run: pnpm exec vite build

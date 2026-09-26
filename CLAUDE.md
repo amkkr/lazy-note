@@ -133,24 +133,12 @@ Tripwire テスト用に吐く data-* 属性の命名は以下を指針とする
   - **付与範囲は最小限（YAGNI）**: 現状は更新行のみに付与し、他項目（日付 / 著者 / 読了時間）への付与は需要が出た別 Issue で拡張する（先回り付与はしない）。この付与範囲は `MetaInfo.test.tsx` の負回帰テスト（Issue #814）で固定する
   - 採用例: `MetaInfo` の更新日時行（`<div ... data-meta-field="updated">`）（Issue #809 で導入、Issue #814 で規約化）
 
-#### Panda `hash:true` の運用判断（2026-05-15 時点）
+#### Panda `hash:true` は使わない
 
-`panda.config.ts` の `hash:true` は**本番では無効（デフォルト）**で運用する。将来再評価する開発者向けの判断材料を残す。
+`panda.config.ts` の `hash:true` は無効（デフォルト）のまま運用する。有効にすると class 名が短いハッシュ文字列になり生の CSS は 25.6% 小さくなるが、圧縮しにくくなるため gzip 配信後のサイズは逆に 5.8% 増える（2026-05-15 に計測）。
 
-- **Tripwire テストは `hash:true` 耐性あり**: PR #474 で導入した `data-*` 属性方式により、`hash:true` を一時有効化しても Tripwire テストは全 pass（Issue #475 にて master `d609ef0` で実機検証、**2026-05-15 時点**の 647 件で確認）。この「647 件」は検証を実施した特定時点のスナップショット値であり、現在のテスト総数とは異なる（テストは継続的に増加している）。Issue #422 の構造的耐性は実機で担保された
-- **bundle size はトレードオフ**: 生 CSS は `-25.6%` だが、hash 化で class 名のエントロピーが上がり gzip 圧縮率が低下するため、**gzip 後は `+5.8%`**。実環境は gzip 配信が標準なので、転送量で見るとほぼ等価
-- **手書き hook class（`index-row-*` / `copy-btn` 等）は Panda hash 化対象外**: `hash:true` を有効化しても影響を受けない
-- **再評価したい場合**: 別 Issue として切り出すこと
-  - CI で `hash:true` 実機検証を回すための workflow は `.github/workflows/panda-hash-regression.yml`（Issue #496 で追加済み）
-  - GitHub Actions の "Panda hash:true regression check" workflow から手動 (workflow_dispatch) で実行できる
-  - 実行内容: `pnpm test:run` と `panda + tsc + vite build` を `hash: true` で 1 回ずつ実行し、Tripwire 耐性の regression を検知する
-  - **自動実行トリガー（Issue #526）**: 上記 manual 実行に加え、以下 2 系統が自動実行する:
-    - **schedule (月初 00:00 UTC = `'0 0 1 * *'`)**: 月 1 回の定期検証で「機能が腐る」リスクを軽減
-    - **pull_request paths**: `panda.config.ts` / `package.json` / `pnpm-lock.yaml` 変更 PR で即時検知。dependabot の `@pandacss/dev` 更新 PR は `pnpm-lock.yaml` 変更を含むため自動捕捉される
-    - CI billing への影響は「月 1 + 該当 PR」程度で許容範囲。失敗時の通知は GitHub Actions 標準通知 (commit author email / fail badge) に加え、**Issue 自動起票 (Issue #733)** を併用する: workflow 失敗時に最終 step (`Open or update issue on failure`, `if: failure()`) が `gh issue list` で同名タイトルの open issue を検索し、無ければ `gh issue create` で新規起票、有ればコメント追記する dedup 戦略で、外部依存追加なしに能動的な通知経路を確保する。Slack (webhook secret 管理コスト増) は採用しない
-    - **install の release-age 失敗は起票対象から除外（Issue #822）**: 上記 Issue 自動起票は当初 `if: failure()` 単独だったが、dependabot PR で `pnpm install --frozen-lockfile` が公開直後バージョンを `minimumReleaseAge`（pnpm デフォルト約 24h、リポジトリに明示設定なし）で弾く `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` 失敗まで「panda-hash-regression が失敗」と誤って起票し続けた。これはハッシュ回帰ではなく全 CI ジョブ共通の一時的失敗（24h 後の再実行で解消）で、test/build（実際の回帰検出ステップ）には未到達。対策として `Install dependencies` を `continue-on-error: true` 化し、直後の `Classify install failure` step がログから理由を `reason=release-age` / `reason=other` に分類して `$GITHUB_OUTPUT` へ出力した上で必ず `exit 1`（job は赤いまま）し、起票条件を `if: failure() && steps.install_failure.outputs.reason != 'release-age'` に変更した。release-age 以外の install 失敗・sed drift・Tripwire 回帰・build 回帰は従来どおり起票する。`minimumReleaseAge` ポリシー自体の緩和や dependabot PR の trigger 除外（`@pandacss/dev` 捕捉目的に反するため不可、Issue #526 参照）はしない
-- **`build:ci` script と workflow の整合性メモ（Issue #528）**: hash:true build step は `package.json` の `build:ci` (= `panda && tsc && tsc --project tsconfig.api.json && vite build`, test/lint/type-check:scripts を含まない軽量版) を呼ぶ。`build` script (本番経路) のコマンド列 (`panda && tsc && vite build` 部分) を変更する場合は `build:ci` も同期させること。**同期の有無は `scripts/checkBuildCiSync.ts` で自動検出される（Issue #685、`.github/workflows/ci.yml` の lint-and-typecheck job で実行）** ので、散文ルールが形骸化しても CI が drift を検知して fail する
-  - baseline (hash:false) build step は bundle size 計測専用で tsc を意図的に省く運用 (Issue #625 DA #2) のため `build:ci` ではなく `pnpm exec panda && pnpm exec vite build` を直接呼ぶ非対称運用とする
+- テストは Panda が生成する class 名の文字列に依存しない（`data-*` 属性か、hash 化されない手書きの class 名 `index-row-*` / `copy-btn` などで検証する）。`hash:true` を有効にしてもテストが通ることは 2026-05-15 に Issue #475 で確認し、下記 workflow の 2026-09-26 の実行でも通っていた
+- `hash:true` での回帰は `panda-hash-regression.yml` が、依存・設定ファイルを変更した PR と月 1 回の定期実行で検査していたが、`hash:true` を使わないため削除した。有効にするときは、その変更 PR の CI（`test.yml` のテストと `ci.yml` のビルド）で確認する
 
 ### 設定ファイル
 

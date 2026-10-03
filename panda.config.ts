@@ -1,4 +1,6 @@
 import { defineConfig } from "@pandacss/dev";
+import presetBase from "@pandacss/preset-base";
+import presetPanda from "@pandacss/preset-panda";
 
 /**
  * Editorial Citrus デザインリニューアル (Issue #358) の OKLCH カラートークン。
@@ -50,6 +52,12 @@ export default defineConfig({
   // ====================================================================
   strictPropertyValues: true,
   validation: "error",
+
+  // @pandacss/dev 2.x から preset は自動注入されなくなったため明示する。
+  // v1 では presets 未指定時に preset-base (utilities / conditions / patterns)
+  // と preset-panda (既定 tokens / breakpoints) が暗黙に読み込まれていた。
+  // theme.extend で preset-panda の tokens を拡張しているため両方必要。
+  presets: [presetBase, presetPanda],
 
   // Whether to use css reset
   preflight: true,

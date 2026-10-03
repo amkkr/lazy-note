@@ -1,5 +1,9 @@
 allowBuilds:
   esbuild: true
+  # @pandacss/dev 2.x の推移依存。install スクリプトはソースビルド用の
+  # フォールバックで、通常はプラットフォーム別の prebuilt バイナリ
+  # (optionalDependencies) が使われるため実行を明示的に拒否する
+  "@parcel/watcher": false
 
 overrides:
   axe-core: 4.11.4

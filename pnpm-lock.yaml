@@ -50,8 +50,8 @@ importers:
         specifier: ^2.0.0
         version: 2.1.0
       '@pandacss/preset-panda':
-        specifier: ^2.0.0
-        version: 2.1.0
+        specifier: ^2.1.2
+        version: 2.1.2
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.63.0
@@ -429,12 +429,16 @@ packages:
     resolution: {integrity: sha512-48bQ8Pl2QZE0HWE+OMmR2S3ePyuj4uRLk2DuRRKyoStwx8AHOi+Q31/ooR5W+uYqGgKEJJww9BbrWKebtnfrwg==}
     engines: {node: '>=22'}
 
-  '@pandacss/preset-panda@2.1.0':
-    resolution: {integrity: sha512-+tcgz5TFw9VkyebuYrZ/S/P9HII6EI7lu+qgoyoG5rnTORaEZFz1GIqwtpneSvbeONn7mBQ70+NCxL6Vwi4UOQ==}
+  '@pandacss/preset-panda@2.1.2':
+    resolution: {integrity: sha512-LqgrySTQGNCx0/XxKCagoWIEZ51VbcMIRnO/2XDVdVE/V7Tf78c+p5nBcIC2zh93RHW6uUefF2spl7Happ3Sxw==}
     engines: {node: '>=22'}
 
   '@pandacss/types@2.1.0':
     resolution: {integrity: sha512-/NlGSiLyoNreV1uymm3g8yOfAm7uYS4dPNuuV/eMgIBv9nBekZOrF35zEpYGoW6YQAgpRJiAw2kUTEI8jmNUgg==}
+    engines: {node: '>=22'}
+
+  '@pandacss/types@2.1.2':
+    resolution: {integrity: sha512-Vbu+E+PFjrkkJnyofMdxr7q0pzOlM6cUm8mLahUcWtpE8wzK7S/VnGhpFc4YfImvRC52yMt9ViKufYENbYKI2w==}
     engines: {node: '>=22'}
 
   '@parcel/watcher-android-arm64@2.5.6':
@@ -1983,11 +1987,13 @@ snapshots:
     dependencies:
       '@pandacss/types': 2.1.0
 
-  '@pandacss/preset-panda@2.1.0':
+  '@pandacss/preset-panda@2.1.2':
     dependencies:
-      '@pandacss/types': 2.1.0
+      '@pandacss/types': 2.1.2
 
   '@pandacss/types@2.1.0': {}
+
+  '@pandacss/types@2.1.2': {}
 
   '@parcel/watcher-android-arm64@2.5.6':
     optional: true

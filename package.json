@@ -30,7 +30,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.10",
     "dompurify": "^3.4.16",
-    "marked": "^18.0.14",
+    "marked": "^18.1.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4"

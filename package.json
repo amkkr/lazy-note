@@ -38,7 +38,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@biomejs/biome": "2.5.14",
-    "@pandacss/dev": "^2.0.0",
+    "@pandacss/dev": "^2.1.2",
     "@pandacss/preset-base": "^2.0.0",
     "@pandacss/preset-panda": "^2.0.0",
     "@playwright/test": "^1.63.0",

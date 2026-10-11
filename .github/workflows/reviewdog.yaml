@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: yamllint
-        uses: reviewdog/action-yamllint@290d92c84b22627946efc7fd6f038ade2d2beede
+        uses: reviewdog/action-yamllint@5dd4640db975e4cac6f4e775a401695bafc28068
         with:
           github_token: ${{ secrets.github_token }}
           reporter: github-pr-review # Change reporter.

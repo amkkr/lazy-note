@@ -41,7 +41,7 @@
     "@pandacss/dev": "^2.1.2",
     "@pandacss/preset-base": "^2.1.2",
     "@pandacss/preset-panda": "^2.1.2",
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "^1.64.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
@@ -54,7 +54,7 @@
     "culori": "~4.0.0",
     "jest-axe": "^11.0.0",
     "jsdom": "^30.1.2",
-    "playwright": "^1.63.0",
+    "playwright": "^1.64.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.3",
     "vitest": "^5.0.3"

@@ -36,7 +36,7 @@
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.13.0",
+    "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "2.5.15",
     "@pandacss/dev": "^2.2.0",
     "@pandacss/preset-base": "^2.2.0",

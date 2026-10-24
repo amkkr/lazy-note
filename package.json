@@ -40,7 +40,7 @@
     "@biomejs/biome": "2.5.15",
     "@pandacss/dev": "^2.2.0",
     "@pandacss/preset-base": "^2.3.0",
-    "@pandacss/preset-panda": "^2.2.0",
+    "@pandacss/preset-panda": "^2.3.0",
     "@playwright/test": "^1.64.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

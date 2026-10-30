@@ -47,8 +47,8 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(postcss@8.5.29)
       '@pandacss/preset-base':
-        specifier: ^2.3.0
-        version: 2.3.0
+        specifier: ^2.4.0
+        version: 2.4.0
       '@pandacss/preset-panda':
         specifier: ^2.3.0
         version: 2.3.0
@@ -430,20 +430,20 @@ packages:
     peerDependencies:
       postcss: '>=8.5.10'
 
-  '@pandacss/preset-base@2.3.0':
-    resolution: {integrity: sha512-huimT/+2rE5VIVBCTzkx+z8qMge/KrDK1Zc8RX02qetFVpZc2xQJGVI0EKrzhxR6/R93slAbSFIwPJ8Do5BKCA==}
+  '@pandacss/preset-base@2.4.0':
+    resolution: {integrity: sha512-0tQx1ltwgD1WawROrYQMK7BnWJu8U9nnuJJxmwVq86hD+6A3uhWp9O55WiHL8YJZGC1j1dSRORYpFjYg2KVfZA==}
     engines: {node: '>=22'}
 
   '@pandacss/preset-panda@2.3.0':
     resolution: {integrity: sha512-ulG3z/aV4vcjNkX8RsycYLEjAtDlVZl1hNCWcqwMJHL6DC9/xuhRvZu4MlMJTf0olG1oZDC2MAGSdtCYzNBjmQ==}
     engines: {node: '>=22'}
 
-  '@pandacss/types@2.2.0':
-    resolution: {integrity: sha512-XeUt/mWUkghn4oyKqcFMz6whTr4SHxmiKksNVNX3EAB1ceyrvQ68tHrYWNK59NtBrRPeJxSOibHhZWVRqHcuvQ==}
-    engines: {node: '>=22'}
-
   '@pandacss/types@2.3.0':
     resolution: {integrity: sha512-YbwB+9U9DhlFrKOz6+f2rMXFI7j7qSs8xhiGzvrWf8HVZQkcn2Yr3L+Q8u5ARr5qGErjA7UC4F80+eg6rnLjnA==}
+    engines: {node: '>=22'}
+
+  '@pandacss/types@2.4.0':
+    resolution: {integrity: sha512-W2ELCg6MjSyHXOa5/Z9pQ+S39jKcYWRQIC0bu3Ycg6NPDh/qOz8cc9Kr5LMO9Iskd3F8a2MdBl3BuUR+PvR6oQ==}
     engines: {node: '>=22'}
 
   '@parcel/watcher-android-arm64@2.5.6':
@@ -1989,17 +1989,17 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  '@pandacss/preset-base@2.3.0':
+  '@pandacss/preset-base@2.4.0':
     dependencies:
-      '@pandacss/types': 2.3.0
+      '@pandacss/types': 2.4.0
 
   '@pandacss/preset-panda@2.3.0':
     dependencies:
       '@pandacss/types': 2.3.0
 
-  '@pandacss/types@2.2.0': {}
-
   '@pandacss/types@2.3.0': {}
+
+  '@pandacss/types@2.4.0': {}
 
   '@parcel/watcher-android-arm64@2.5.6':
     optional: true

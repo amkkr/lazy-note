@@ -438,10 +438,6 @@ packages:
     resolution: {integrity: sha512-ulG3z/aV4vcjNkX8RsycYLEjAtDlVZl1hNCWcqwMJHL6DC9/xuhRvZu4MlMJTf0olG1oZDC2MAGSdtCYzNBjmQ==}
     engines: {node: '>=22'}
 
-  '@pandacss/types@2.2.0':
-    resolution: {integrity: sha512-XeUt/mWUkghn4oyKqcFMz6whTr4SHxmiKksNVNX3EAB1ceyrvQ68tHrYWNK59NtBrRPeJxSOibHhZWVRqHcuvQ==}
-    engines: {node: '>=22'}
-
   '@pandacss/types@2.3.0':
     resolution: {integrity: sha512-YbwB+9U9DhlFrKOz6+f2rMXFI7j7qSs8xhiGzvrWf8HVZQkcn2Yr3L+Q8u5ARr5qGErjA7UC4F80+eg6rnLjnA==}
     engines: {node: '>=22'}
@@ -1996,8 +1992,6 @@ snapshots:
   '@pandacss/preset-panda@2.3.0':
     dependencies:
       '@pandacss/types': 2.3.0
-
-  '@pandacss/types@2.2.0': {}
 
   '@pandacss/types@2.3.0': {}
 

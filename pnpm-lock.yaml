@@ -50,8 +50,8 @@ importers:
         specifier: ^2.4.0
         version: 2.4.0
       '@pandacss/preset-panda':
-        specifier: ^2.3.0
-        version: 2.3.0
+        specifier: ^2.4.0
+        version: 2.4.0
       '@playwright/test':
         specifier: ^1.64.1
         version: 1.64.1
@@ -434,8 +434,8 @@ packages:
     resolution: {integrity: sha512-0tQx1ltwgD1WawROrYQMK7BnWJu8U9nnuJJxmwVq86hD+6A3uhWp9O55WiHL8YJZGC1j1dSRORYpFjYg2KVfZA==}
     engines: {node: '>=22'}
 
-  '@pandacss/preset-panda@2.3.0':
-    resolution: {integrity: sha512-ulG3z/aV4vcjNkX8RsycYLEjAtDlVZl1hNCWcqwMJHL6DC9/xuhRvZu4MlMJTf0olG1oZDC2MAGSdtCYzNBjmQ==}
+  '@pandacss/preset-panda@2.4.0':
+    resolution: {integrity: sha512-fXG9fYUp/uAv7WUKV1EWfnYnt9yWR/V4NbRYTV5nRTRZYZvpS365bpEsE5oaJTihnOqe9nR8uBH4FWZ9+gTSqQ==}
     engines: {node: '>=22'}
 
   '@pandacss/types@2.3.0':
@@ -1993,9 +1993,9 @@ snapshots:
     dependencies:
       '@pandacss/types': 2.4.0
 
-  '@pandacss/preset-panda@2.3.0':
+  '@pandacss/preset-panda@2.4.0':
     dependencies:
-      '@pandacss/types': 2.3.0
+      '@pandacss/types': 2.4.0
 
   '@pandacss/types@2.3.0': {}
 

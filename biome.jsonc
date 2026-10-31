@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -45,7 +45,7 @@
     //   各ドメインの recommended セットは現状の src/scripts/e2e で違反 0 を確認済み
     //   (無コストで安全に増やせる)。
     // - useUniqueElementIds (react ドメイン all のみ収録) と
-    //   noPlaywrightNetworkidle (nursery) は recommended に含まれないため、
+    //   noPlaywrightNetworkidle は recommended に含まれないため、
     //   下の rules で個別に有効化する (all 全体を入れると Fast Refresh 系の
     //   useComponentExportOnlyModules 等のノイズが増えるため、必要なルールのみ採用)。
     "domains": {
@@ -54,7 +54,7 @@
       "playwright": "recommended"
     },
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "complexity": {
         "noBannedTypes": "error",
         "noEmptyTypeParameters": "error",
@@ -92,10 +92,11 @@
       "security": {
         "noDangerouslySetInnerHtml": "warn"
       },
-      "nursery": {
-        // noPlaywrightNetworkidle (playwright ドメイン) は nursery のため
-        // recommended に含まれない。Playwright の networkidle 待機は flaky な
-        // ため web-first assertion への移行を促す。本プロジェクトは e2e/ を
+      "suspicious": {
+        // noPlaywrightNetworkidle (playwright ドメイン) は Biome 2.6 で
+        // nursery から suspicious へ昇格した (旧 nursery キーのままだと
+        // unknown key として設定エラーになる)。Playwright の networkidle 待機は
+        // flaky なため web-first assertion への移行を促す。本プロジェクトは e2e/ を
         // lint 対象に含める (files.includes) ため、spec ファイルで検知される。
         "noPlaywrightNetworkidle": "error"
       }
